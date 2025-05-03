@@ -1,0 +1,99 @@
+# Build directories
+/build/
+/bin/
+/out/
+/lib/
+/cmake-build-*/
+
+# IDE specific files
+/.vscode/*
+!/.vscode/settings.json
+!/.vscode/tasks.json
+!/.vscode/launch.json
+!/.vscode/extensions.json
+/.vs/
+/.idea/
+*.swp
+*.swo
+*~
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Cache files
+.cache/
+compile_commands.json
+
+# Shader compilation artifacts
+*.spv
+
+# Generated documentation
+/docs/html/
+/docs/latex/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Log files
+*.log
+logs/
+
+# Vulkan validation layer files
+vk_layer_settings.txt
+
+# clangd cache files
+.clangd/
+.clang-format
+.clang-tidy
+!/.clangd
+!/.clang-format
+!/.clang-tidy
+
+# Python related (if using any Python scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/

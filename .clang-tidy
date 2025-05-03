@@ -1,0 +1,81 @@
+---
+Checks: >
+  bugprone-*,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -modernize-use-trailing-return-type,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-type-union-access,
+  -readability-magic-numbers,
+  -readability-identifier-length
+
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*'
+FormatStyle: file
+
+CheckOptions:
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack
+
+  - key: readability-identifier-naming.VariableCase
+    value: camelBack
+  - key: readability-identifier-naming.ParameterCase
+    value: camelBack
+
+  - key: readability-identifier-naming.PrivateMemberPrefix
+    value: m_
+  - key: readability-identifier-naming.ProtectedMemberPrefix
+    value: m_
+
+  - key: readability-identifier-naming.StaticVariablePrefix
+    value: s_
+  - key: readability-identifier-naming.StaticVariableCase
+    value: camelBack
+  
+  - key: readability-identifier-naming.ClassStaticMemberPrefix
+    value: s_
+  - key: readability-identifier-naming.ClassStaticMemberCase
+    value: camelBack
+  
+  - key: readability-identifier-naming.StaticMemberPrefix
+    value: s_
+  - key: readability-identifier-naming.StaticMemberCase
+    value: camelBack
+  
+  - key: readability-identifier-naming.GlobalVariablePrefix
+    value: g_
+  - key: readability-identifier-naming.GlobalVariableCase
+    value: camelBack
+
+  - key: readability-identifier-naming.ConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.MacroDefinitionCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.EnumConstantCase
+    value: UPPER_CASE
+
+  - key: cppcoreguidelines-avoid-c-arrays.IgnoreArrays
+    value: '1'
+  - key: cppcoreguidelines-pro-type-reinterpret-cast.IgnoreTypes
+    value: 'VkBuffer;VkImage;VkDeviceMemory;VkDescriptorSet'
+  - key: performance-unnecessary-value-param.AllowedTypes
+    value: 'VkExtent2D;VkRect2D;VkViewport'
+  - key: readability-function-cognitive-complexity.Threshold
+    value: '50'
+  - key: modernize-loop-convert.MinConfidence
+    value: reasonable
+  - key: modernize-use-nullptr.NullMacros
+    value: 'NULL'
