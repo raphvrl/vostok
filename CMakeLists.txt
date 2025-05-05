@@ -6,7 +6,7 @@ option(VOSTOK_TREAT_WARNINGS_AS_ERRORS "Treat warnings as errors" OFF)
 option(VOSTOK_ENABLE_CLANG_TIDY "Enable clang-tidy checks" ON)
 option(VOSTOK_BUILD_EXAMPLES "Build Vostok examples" ON)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -30,6 +30,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -fsanitize=address,undefined")
 endif()
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    link_libraries(stdc++exp)
+endif()
+
 if(VOSTOK_ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY_EXE NAMES clang-tidy)
     if(CLANG_TIDY_EXE)
@@ -37,7 +41,9 @@ if(VOSTOK_ENABLE_CLANG_TIDY)
         set(CMAKE_CXX_CLANG_TIDY 
             ${CLANG_TIDY_EXE}
             -p=${CMAKE_BINARY_DIR}
+            -header-filter=^${CMAKE_CURRENT_SOURCE_DIR}/include/vostok/.*
             --config-file=${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy
+            -system-headers=false
         )
     else()
         message(WARNING "Clang-Tidy requested but executable not found")
@@ -45,14 +51,14 @@ if(VOSTOK_ENABLE_CLANG_TIDY)
     endif()
 endif()
 
-set(EXTERNAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external)
+set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 
 if (NOT TARGET glfw)
     set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
     set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
     set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
     set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-    add_subdirectory(${EXTERNAL_DIR}/glfw EXCLUDE_FROM_ALL)
+    add_subdirectory(${THIRD_PARTY_DIR}/glfw EXCLUDE_FROM_ALL)
 endif()
 
 if (NOT TARGET spdlog)
@@ -60,7 +66,7 @@ if (NOT TARGET spdlog)
     set(SPDLOG_INSTALL OFF CACHE BOOL "" FORCE)
     set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "" FORCE)
 
-    add_subdirectory(${EXTERNAL_DIR}/spdlog EXCLUDE_FROM_ALL)
+    add_subdirectory(${THIRD_PARTY_DIR}/spdlog EXCLUDE_FROM_ALL)
 
     if (VOSTOK_ENABLE_CLANG_TIDY)
         set_target_properties(spdlog PROPERTIES CXX_CLANG_TIDY "")
@@ -68,6 +74,16 @@ if (NOT TARGET spdlog)
             set_target_properties(fmt PROPERTIES CXX_CLANG_TIDY "")
         endif()
     endif()
+endif()
+
+if (TARGET spdlog)
+    get_target_property(SPDLOG_INTERFACE_INCLUDES spdlog INTERFACE_INCLUDE_DIRECTORIES)
+    set_target_properties(spdlog PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${SPDLOG_INTERFACE_INCLUDES}")
+endif()
+
+if (TARGET glfw)
+    get_target_property(GLFW_INTERFACE_INCLUDES glfw INTERFACE_INCLUDE_DIRECTORIES)
+    set_target_properties(glfw PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${GLFW_INTERFACE_INCLUDES}")
 endif()
 
 find_package(Vulkan REQUIRED)
@@ -80,7 +96,10 @@ set(EXTERNAL_LIBS
 
 file(GLOB_RECURSE VOSTOK_HEADERS
     "${CMAKE_CURRENT_SOURCE_DIR}/include/vostok/*.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/vostok/*.inl"
 )
+
+set_source_files_properties(${VOSTOK_HEADERS} PROPERTIES HEADER_FILE_ONLY TRUE)
 
 file(GLOB_RECURSE VOSTOK_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"

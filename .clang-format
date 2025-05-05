@@ -67,6 +67,6 @@ BreakStringLiterals: true
 FixNamespaceComments: true
 KeepEmptyLinesAtTheStartOfBlocks: false
 MaxEmptyLinesToKeep: 1
-PointerAlignment: Left
+PointerAlignment: Right
 SpaceBeforeParens: ControlStatements
 SpacesInParentheses: false
