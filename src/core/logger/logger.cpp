@@ -1,10 +1,12 @@
 #include "core/logger/logger.hpp"
 
+#include <algorithm>
 #include <filesystem>
 #include <memory>
 #include <mutex>
 #include <source_location>
 #include <spdlog/async.h>
+#include <spdlog/async_logger.h>
 #include <spdlog/common.h>
 #include <spdlog/logger.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -43,6 +45,7 @@ public:
 private:
     std::unordered_map<std::string, std::shared_ptr<LoggerHandle::Impl>> m_loggers;
     std::shared_ptr<spdlog::logger> createSpdLogger(std::string_view name);
+    static std::string formatLogFilename(const std::string &pattern, std::string_view loggerName);
 
     LogConfig m_config;
     std::vector<spdlog::sink_ptr> m_sinks;
@@ -194,7 +197,8 @@ LogSystem::LogSystem(const LogConfig &config) : m_config(config)
         m_sinks.push_back(consoleSink);
     }
 
-    if (config.file.has_value()) {
+    if (config.file.has_value() && (!config.file->separateFilesByComponent ||
+                                    config.file->filePath != config.file->componentFilePattern)) {
         if (config.file->rotateOnSize) {
             auto fileSink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
                 config.file->filePath,
@@ -238,20 +242,87 @@ std::shared_ptr<spdlog::logger> LogSystem::createSpdLogger(std::string_view name
     const std::string LOGGER_NAME = !name.empty() ? std::string(name) : "default";
     std::shared_ptr<spdlog::logger> logger;
 
+    std::vector<spdlog::sink_ptr> sinks;
+
+    if (m_config.console.has_value()) {
+        for (auto &sink : m_sinks) {
+            if (dynamic_cast<spdlog::sinks::stdout_color_sink_mt *>(sink.get()) != nullptr) {
+                sinks.push_back(sink);
+            }
+        }
+    }
+
+    if (m_config.file.has_value() && m_config.file->separateFilesByComponent) {
+        std::string filename;
+
+        if (name.empty()) {
+            filename = m_config.file->filePath;
+        } else {
+            filename = formatLogFilename(m_config.file->componentFilePattern, name);
+            size_t pos = filename.find("{name}");
+            if (pos != std::string::npos) {
+                filename.replace(pos, 6, std::string(name));
+            }
+        }
+
+        spdlog::sink_ptr fileSink;
+        if (m_config.file->rotateOnSize) {
+            fileSink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+                filename,
+                m_config.file->maxSizeMB * 1024 * 1024,
+                m_config.file->maxFiles,
+                m_config.file->truncateOnStart
+            );
+        } else {
+            fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+                filename,
+                m_config.file->truncateOnStart
+            );
+        }
+        fileSink->set_level(convertLevel(m_config.level));
+        fileSink->set_pattern(m_config.pattern);
+        sinks.push_back(fileSink);
+    } else {
+        for (const auto &sink : m_sinks) {
+            if (dynamic_cast<spdlog::sinks::basic_file_sink_mt *>(sink.get()) != nullptr ||
+                dynamic_cast<spdlog::sinks::rotating_file_sink_mt *>(sink.get()) != nullptr) {
+                sinks.push_back(sink);
+            }
+        }
+    }
+
     if (m_config.asyncMode) {
         logger = std::make_shared<spdlog::async_logger>(
             LOGGER_NAME,
-            m_sinks.begin(),
-            m_sinks.end(),
+            sinks.begin(),
+            sinks.end(),
             spdlog::thread_pool(),
             spdlog::async_overflow_policy::block
         );
     } else {
-        logger = std::make_shared<spdlog::logger>(LOGGER_NAME, m_sinks.begin(), m_sinks.end());
+        logger = std::make_shared<spdlog::logger>(LOGGER_NAME, sinks.begin(), sinks.end());
     }
 
     spdlog::register_logger(logger);
     return logger;
+}
+
+std::string LogSystem::formatLogFilename(const std::string &pattern, std::string_view loggerName)
+{
+    std::string result = pattern;
+
+    size_t pos = result.find("{name}");
+    if (pos != std::string::npos) {
+        std::string name = loggerName.empty() ? "default" : std::string(loggerName);
+
+        std::ranges::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
+            return std::tolower(c);
+        });
+
+        result.replace(pos, 6, name);
+    }
+
+    return result;
 }
 
 LoggerHandle LogSystem::getLogger(std::string_view name)
@@ -484,7 +555,7 @@ LoggerHandle &Logger::getDefaultLogger()
         if (!result) {
             return s_defaultLogger;
         }
-        // Réinitialisation du logger par défaut après initialisation
+
         s_defaultLogger = getLogSystem()->getLogger("");
     }
 

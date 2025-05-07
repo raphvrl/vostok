@@ -49,10 +49,13 @@ constexpr std::string_view toString(LogLevel level)
 struct FileLogConfig
 {
     std::string filePath = "vostok.log";
-    bool rotateOnSize = true;
+    bool rotateOnSize = false;
     size_t maxSizeMB = 10;
     size_t maxFiles = 5;
-    bool truncateOnStart = false;
+    bool truncateOnStart = true;
+
+    bool separateFilesByComponent = false;
+    std::string componentFilePattern = "vostok_{name}.log";
 };
 
 struct ConsoleLogConfig
