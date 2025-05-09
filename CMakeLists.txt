@@ -110,6 +110,7 @@ add_library(vostok STATIC ${VOSTOK_SOURCES} ${VOSTOK_HEADERS})
 target_include_directories(vostok
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:include>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -125,6 +126,7 @@ target_compile_definitions(vostok
     PRIVATE
         $<$<CONFIG:Debug>:VOSTOK_DEBUG>
         $<$<BOOL:${VOSTOK_ENABLE_VALIDATION}>:VOSTOK_ENABLE_VALIDATION>
+        VOSTOK_HAS_GLFW
 )
 
 add_subdirectory(shaders)
