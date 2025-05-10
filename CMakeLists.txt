@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.25)
 project(vostok VERSION 0.1.0 LANGUAGES CXX C)
 
 option(VOSTOK_ENABLE_VALIDATION "Enable Vulkan validation layers" ON)
@@ -11,17 +11,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(VOSTOK_WARNING_FLAGS "")
+set(VOSTOK_OPTIMIZATION_FLAGS "")
+
 if (MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")
+    list(APPEND VOSTOK_WARNING_FLAGS "/W4")
+    set(VOSTOK_OPTIMIZATION_FLAGS "/O2")
     if(VOSTOK_TREAT_WARNINGS_AS_ERRORS)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")
+        list(APPEND VOSTOK_WARNING_FLAGS "/WX")
     endif()
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wcast-qual")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+    list(APPEND VOSTOK_WARNING_FLAGS "-Wall" "-Wextra" "-Wpedantic" "-Wconversion" "-Wshadow" "-Wcast-qual")
+    set(VOSTOK_OPTIMIZATION_FLAGS "-O3")
     if(VOSTOK_TREAT_WARNINGS_AS_ERRORS)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+        list(APPEND VOSTOK_WARNING_FLAGS "-Werror")
     endif()
 endif()
 
@@ -53,59 +56,114 @@ endif()
 
 set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 
-if (NOT TARGET glfw)
-    set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-    set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-    set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-    add_subdirectory(${THIRD_PARTY_DIR}/glfw EXCLUDE_FROM_ALL)
-endif()
+function(add_third_party_library NAME)
+    set(DIR_NAME ${NAME})
+    if (${ARGC} GREATER 1)
+        set(DIR_NAME ${ARGV1})
+    endif()
 
-if (NOT TARGET spdlog)
-    set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
-    set(SPDLOG_INSTALL OFF CACHE BOOL "" FORCE)
-    set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "" FORCE)
-
-    add_subdirectory(${THIRD_PARTY_DIR}/spdlog EXCLUDE_FROM_ALL)
-
-    if (VOSTOK_ENABLE_CLANG_TIDY)
-        set_target_properties(spdlog PROPERTIES CXX_CLANG_TIDY "")
-        if (TARGET fmt)
-            set_target_properties(fmt PROPERTIES CXX_CLANG_TIDY "")
+    if (NOT EXISTS ${THIRD_PARTY_DIR}/${DIR_NAME}/CMakeLists.txt)
+        message(WARNING "Third-party library directory ${THIRD_PARTY_DIR}/${DIR_NAME} does not contain a CMakeLists.txt file")
+        return()
+    endif()
+    
+    if (NOT TARGET ${NAME})
+        add_subdirectory(${THIRD_PARTY_DIR}/${DIR_NAME} ${CMAKE_BINARY_DIR}/third_party/${DIR_NAME} EXCLUDE_FROM_ALL)
+        
+        if (VOSTOK_ENABLE_CLANG_TIDY AND TARGET ${NAME})
+            set_target_properties(${NAME} PROPERTIES CXX_CLANG_TIDY "")
+        endif()
+        
+        if (TARGET ${NAME})
+            get_target_property(INCLUDES ${NAME} INTERFACE_INCLUDE_DIRECTORIES)
+            if(INCLUDES)
+                set_target_properties(${NAME} PROPERTIES 
+                    INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${INCLUDES}")
+            endif()
         endif()
     endif()
+endfunction()
+
+if(EXISTS ${THIRD_PARTY_DIR}/glfw/CMakeLists.txt)
+    add_third_party_library(glfw)
+    set_target_properties(glfw PROPERTIES
+        GLFW_BUILD_DOCS OFF
+        GLFW_BUILD_TESTS OFF
+        GLFW_BUILD_EXAMPLES OFF
+        GLFW_INSTALL OFF
+    )
+else()
+    message(WARNING "GLFW directory not found, please clone glfw in ${THIRD_PARTY_DIR}/glfw")
 endif()
 
-if (TARGET spdlog)
-    get_target_property(SPDLOG_INTERFACE_INCLUDES spdlog INTERFACE_INCLUDE_DIRECTORIES)
-    set_target_properties(spdlog PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${SPDLOG_INTERFACE_INCLUDES}")
-endif()
-
-if (TARGET glfw)
-    get_target_property(GLFW_INTERFACE_INCLUDES glfw INTERFACE_INCLUDE_DIRECTORIES)
-    set_target_properties(glfw PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${GLFW_INTERFACE_INCLUDES}")
+if(EXISTS ${THIRD_PARTY_DIR}/spdlog/CMakeLists.txt)
+    add_third_party_library(spdlog)
+    set_target_properties(spdlog PROPERTIES
+        SPDLOG_BUILD_EXAMPLE OFF
+        SPDLOG_INSTALL OFF
+        SPDLOG_FMT_EXTERNAL OFF
+    )
+else()
+    message(WARNING "spdlog directory not found, please clone spdlog in ${THIRD_PARTY_DIR}/spdlog")
 endif()
 
 find_package(Vulkan REQUIRED)
+
+if(EXISTS ${THIRD_PARTY_DIR}/volk/CMakeLists.txt)
+    add_third_party_library(volk)
+    set_target_properties(volk PROPERTIES
+        VOLK_STATIC_DEFINES VK_NO_PROTOTYPES
+        VOLK_PULL_IN_VULKAN OFF
+    )
+else()
+    message(WARNING "volk directory not found, please clone volk in ${THIRD_PARTY_DIR}/volk")
+endif()
+
+if(EXISTS ${THIRD_PARTY_DIR}/vma/CMakeLists.txt)
+    add_third_party_library(VulkanMemoryAllocator vma)
+    set_target_properties(VulkanMemoryAllocator PROPERTIES
+        VMA_STATIC_VULKAN_FUNCTIONS OFF
+        VMA_DYNAMIC_VULKAN_FUNCTIONS ON
+    )
+else()
+    message(WARNING "VulkanMemoryAllocator directory not found, please clone VMA in ${THIRD_PARTY_DIR}/vma")
+endif()
 
 set(EXTERNAL_LIBS
     glfw
     spdlog::spdlog
     Vulkan::Vulkan
+    volk
+    VulkanMemoryAllocator
 )
 
-file(GLOB_RECURSE VOSTOK_HEADERS
-    "${CMAKE_CURRENT_SOURCE_DIR}/include/vostok/*.hpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/include/vostok/*.inl"
+set(VOSTOK_SOURCES "")
+set(VOSTOK_HEADERS "")
+
+function(add_vostok_module MODULE_NAME)
+    file(GLOB_RECURSE MODULE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/${MODULE_NAME}/*.cpp")
+    file(GLOB_RECURSE MODULE_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/vostok/${MODULE_NAME}/*.hpp")
+    
+    set(VOSTOK_SOURCES ${VOSTOK_SOURCES} ${MODULE_SOURCES} PARENT_SCOPE)
+    set(VOSTOK_HEADERS ${VOSTOK_HEADERS} ${MODULE_HEADERS} PARENT_SCOPE)
+endfunction()
+
+add_vostok_module(core)
+add_vostok_module(window)
+add_vostok_module(graphics)
+
+add_library(vostok STATIC "")
+target_sources(vostok 
+    PRIVATE 
+        ${VOSTOK_SOURCES}
+    PUBLIC
+        ${VOSTOK_HEADERS}
 )
 
-set_source_files_properties(${VOSTOK_HEADERS} PROPERTIES HEADER_FILE_ONLY TRUE)
-
-file(GLOB_RECURSE VOSTOK_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+target_compile_options(vostok PRIVATE 
+    $<$<CONFIG:Release>:${VOSTOK_OPTIMIZATION_FLAGS}> 
+    ${VOSTOK_WARNING_FLAGS}
 )
-
-add_library(vostok STATIC ${VOSTOK_SOURCES} ${VOSTOK_HEADERS})
 
 target_include_directories(vostok
     PUBLIC
@@ -126,12 +184,18 @@ target_compile_definitions(vostok
     PRIVATE
         $<$<CONFIG:Debug>:VOSTOK_DEBUG>
         $<$<BOOL:${VOSTOK_ENABLE_VALIDATION}>:VOSTOK_ENABLE_VALIDATION>
+        VK_NO_PROTOTYPES
         VOSTOK_HAS_GLFW
+        VOSTOK_HAS_VULKAN
 )
 
-add_subdirectory(shaders)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/shaders/CMakeLists.txt)
+    add_subdirectory(shaders)
+else()
+    message(WARNING "Shaders directory not found or does not contain CMakeLists.txt")
+endif()
 
-if(VOSTOK_BUILD_EXAMPLES)
+if(VOSTOK_BUILD_EXAMPLES AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/exemples/CMakeLists.txt)
     add_subdirectory(exemples)
 endif()
 
