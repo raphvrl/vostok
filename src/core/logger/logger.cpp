@@ -332,7 +332,7 @@ LoggerHandle LogSystem::getLogger(std::string_view name)
     std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_loggers.find(KEY);
     if (it != m_loggers.end()) {
-        return { it->second };
+        return {it->second};
     }
 
     auto spdLogger = spdlog::get(KEY);
@@ -349,7 +349,7 @@ LoggerHandle LogSystem::getLogger(std::string_view name)
     auto impl = std::make_shared<LoggerHandle::Impl>(KEY, spdLogger);
     m_loggers[KEY] = impl;
 
-    return { impl };
+    return {impl};
 }
 
 void LogSystem::setDefaultLevel(LogLevel level)
@@ -466,7 +466,7 @@ std::expected<void, std::string> Logger::init(const LogConfig &config)
 
 void Logger::shutdown()
 {
-    getDefaultLogger() = LoggerHandle{ nullptr };
+    getDefaultLogger() = LoggerHandle{nullptr};
     getLogSystem().reset();
 }
 
@@ -475,7 +475,7 @@ LoggerHandle Logger::getLogger(std::string_view name)
     if (!getLogSystem()) {
         auto result = init();
         if (!result) {
-            return LoggerHandle{ nullptr };
+            return LoggerHandle{nullptr};
         }
     }
 
@@ -517,28 +517,27 @@ void Logger::flush()
     }
 }
 
-void Logger::binary(std::string_view name, const void *data, size_t size)
+void Logger::binary(std::string_view name, std::span<const byte> data)
 {
-    if (!getLogSystem() || data == nullptr || size == 0) {
+    if (!getLogSystem() || data.empty()) {
         return;
     }
 
-    const byte *byteData = static_cast<const byte *>(data);
     constexpr size_t BYTES_PER_ROW = 16;
 
-    getDefaultLogger().debug("Binary data: {} ({} bytes)", name, size);
+    getDefaultLogger().debug("Binary data: {} ({} bytes)", name, data.size());
 
-    for (size_t i = 0; i < size; i += BYTES_PER_ROW) {
+    for (size_t i = 0; i < data.size(); i += BYTES_PER_ROW) {
         std::string line = std::format("{:08X}: ", i);
         std::string ascii;
 
-        for (size_t j = 0; j < BYTES_PER_ROW && (i + j) < size; ++j) {
-            byte b = byteData[i + j];
+        for (size_t j = 0; j < BYTES_PER_ROW && (i + j) < data.size(); ++j) {
+            byte b = data[i + j];
             line += std::format("{:02X} ", b);
             ascii += (b >= 32 && b < 127) ? static_cast<char>(b) : '.';
         }
 
-        size_t padding = (BYTES_PER_ROW - ((size - i) % BYTES_PER_ROW)) % BYTES_PER_ROW;
+        size_t padding = (BYTES_PER_ROW - ((data.size() - i) % BYTES_PER_ROW)) % BYTES_PER_ROW;
         line += std::string(padding * 3, ' ');
         line += "| " + ascii;
 

@@ -8,6 +8,7 @@
 #include <memory>
 #include <optional>
 #include <source_location>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -213,7 +214,7 @@ public:
         requires(std::formattable<Args, char> && ...)
     static void critical(const FormatWithLocation &fmtLoc, Args &&...args);
 
-    static void binary(std::string_view name, const void *data, size_t size);
+    static void binary(std::string_view name, std::span<const byte> data);
 
     template <typename... Args>
         requires(std::formattable<Args, char> && ...)
