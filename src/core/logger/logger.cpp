@@ -528,16 +528,17 @@ void Logger::binary(std::string_view name, std::span<const byte> data)
     getDefaultLogger().debug("Binary data: {} ({} bytes)", name, data.size());
 
     for (size_t i = 0; i < data.size(); i += BYTES_PER_ROW) {
+        auto lineSpan = data.subspan(i, std::min(BYTES_PER_ROW, data.size() - i));
+
         std::string line = std::format("{:08X}: ", i);
         std::string ascii;
 
-        for (size_t j = 0; j < BYTES_PER_ROW && (i + j) < data.size(); ++j) {
-            byte b = data[i + j];
+        for (const auto &b : lineSpan) {
             line += std::format("{:02X} ", b);
             ascii += (b >= 32 && b < 127) ? static_cast<char>(b) : '.';
         }
 
-        size_t padding = (BYTES_PER_ROW - ((data.size() - i) % BYTES_PER_ROW)) % BYTES_PER_ROW;
+        size_t padding = BYTES_PER_ROW - lineSpan.size();
         line += std::string(padding * 3, ' ');
         line += "| " + ascii;
 
