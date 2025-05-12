@@ -1,6 +1,7 @@
 #include "graphics/vulkan/core/instance.hpp"
 
 #include "core/logger/logger.hpp"
+#include "graphics/vulkan/utils/vk_logger.hpp"
 #include "graphics/vulkan/utils/vk_utils.hpp"
 
 #include <cstring>
@@ -18,14 +19,16 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     [[maybe_unused]] void *pUserData
 )
 {
+    auto &logger = utils::getVulkanLogger();
+
     if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0) {
-        Logger::error("[Vulkan] {}", pCallbackData->pMessage);
+        logger.error("{}", pCallbackData->pMessage);
     } else if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) != 0) {
-        Logger::warning("[Vulkan] {}", pCallbackData->pMessage);
+        logger.warning("{}", pCallbackData->pMessage);
     } else if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) != 0) {
-        Logger::info("[Vulkan] {}", pCallbackData->pMessage);
+        logger.info("{}", pCallbackData->pMessage);
     } else {
-        Logger::trace("[Vulkan] {}", pCallbackData->pMessage);
+        logger.trace("{}", pCallbackData->pMessage);
     }
 
     return VK_FALSE;
@@ -232,8 +235,8 @@ std::vector<const char *> Instance::getRequiredExtensions(const CreateInfo &crea
 
     std::vector<const char *> extensions = createInfo.platform->getRequiredInstanceExtensions();
 
-    for (const char *extension : extensions) {
-        extensions.push_back(extension);
+    if (createInfo.enableValidationLayers) {
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
 
     for (const char *extension : extensions) {
