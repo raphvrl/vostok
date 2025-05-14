@@ -1,6 +1,6 @@
 #pragma once
 
-#include "graphics/gpu_device.hpp"
+#include "vostok/graphics/gpu_device.hpp"
 
 #include <expected>
 #include <memory>
@@ -26,7 +26,7 @@ public:
     std::expected<u32, std::string> beginFrame() override;
     std::expected<void, std::string> endFrame() override;
 
-    std::expected<void, std::string> resize(FramebufferSize size) override;
+    std::expected<void, std::string> resize(const FramebufferSize &size) override;
 
 private:
     VulkanDevice();

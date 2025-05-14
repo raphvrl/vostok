@@ -1,10 +1,13 @@
 #include "graphics/vulkan/core/instance.hpp"
 
 #include "core/logger/logger.hpp"
+#include "graphics/vulkan/platform/platform_interface.hpp"
 #include "graphics/vulkan/utils/vk_logger.hpp"
 #include "graphics/vulkan/utils/vk_utils.hpp"
 
 #include <cstring>
+#include <memory>
+#include <utility>
 #include <vector>
 #include <volk.h>
 #include <vulkan/vulkan_core.h>
@@ -37,9 +40,11 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 Instance::Instance(
     VkInstance instance,
     VkDebugUtilsMessengerEXT debugMessenger,
-    bool validationEnabled
+    bool validationEnabled,
+    std::shared_ptr<platform::PlatformInterface> platform
 )
-    : m_instance(instance), m_debugMessenger(debugMessenger), m_validationEnabled(validationEnabled)
+    : m_instance(instance), m_debugMessenger(debugMessenger),
+      m_validationEnabled(validationEnabled), m_platform(std::move(platform))
 {}
 
 Instance::~Instance()
@@ -171,8 +176,9 @@ std::expected<std::unique_ptr<Instance>, std::string> Instance::create(const Cre
         }
     }
 
-    auto instancePtr =
-        std::unique_ptr<Instance>(new Instance(instance, debugMessenger, validationEnabled));
+    auto instancePtr = std::unique_ptr<Instance>(
+        new Instance(instance, debugMessenger, validationEnabled, createInfo.platform)
+    );
 
     Logger::info("Vulkan instance created");
     if (validationEnabled) {

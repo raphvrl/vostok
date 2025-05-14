@@ -37,6 +37,7 @@ public:
         bool enableVSync = true;
     };
 
+    GPUDevice() = default;
     virtual ~GPUDevice() = default;
 
     GPUDevice(const GPUDevice &) = delete;
@@ -52,7 +53,7 @@ public:
     virtual std::expected<u32, std::string> beginFrame() = 0;
     virtual std::expected<void, std::string> endFrame() = 0;
 
-    virtual std::expected<void, std::string> resize(FramebufferSize size) = 0;
+    virtual std::expected<void, std::string> resize(const FramebufferSize &size) = 0;
 };
 
 } // namespace vostok::graphics

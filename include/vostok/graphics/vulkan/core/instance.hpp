@@ -39,21 +39,20 @@ public:
     Instance(Instance &&other) noexcept;
     Instance &operator=(Instance &&other) noexcept;
 
-    [[nodiscard]] VkInstance getHandle() const
-    {
-        return m_instance;
-    }
+    [[nodiscard]] VkInstance getHandle() const { return m_instance; }
 
-    [[nodiscard]] bool hasValidation() const
-    {
-        return m_validationEnabled;
-    }
+    [[nodiscard]] bool hasValidation() const { return m_validationEnabled; }
 
     std::expected<VkSurfaceKHR, std::string> createSurface(void *windowHandle);
     void destroySurface(VkSurfaceKHR surface);
 
 private:
-    Instance(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, bool validationEnabled);
+    Instance(
+        VkInstance instance,
+        VkDebugUtilsMessengerEXT debugMessenger,
+        bool validationEnabled,
+        std::shared_ptr<platform::PlatformInterface> platform
+    );
 
     static bool checkValidationLayerSupport(const std::vector<const char *> &validationLayers);
     static std::vector<const char *> getRequiredExtensions(const CreateInfo &createInfo);

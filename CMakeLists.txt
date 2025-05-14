@@ -132,7 +132,6 @@ endif()
 set(EXTERNAL_LIBS
     glfw
     spdlog::spdlog
-    Vulkan::Vulkan
     volk
     VulkanMemoryAllocator
 )

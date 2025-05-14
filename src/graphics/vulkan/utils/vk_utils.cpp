@@ -52,4 +52,22 @@ std::string vkResultToString(VkResult result)
     return "Unknown Vulkan error code: " + std::to_string(static_cast<int>(result));
 }
 
+std::string physicalDeviceTypeToString(VkPhysicalDeviceType type)
+{
+    static const std::unordered_map<VkPhysicalDeviceType, std::string> RESULT_MAP = {
+        {VK_PHYSICAL_DEVICE_TYPE_OTHER, "Other"},
+        {VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU, "Integrated GPU"},
+        {VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, "Discrete GPU"},
+        {VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU, "Virtual GPU"},
+        {VK_PHYSICAL_DEVICE_TYPE_CPU, "CPU"}
+    };
+
+    auto it = RESULT_MAP.find(type);
+    if (it != RESULT_MAP.end()) {
+        return it->second;
+    }
+
+    return "Unknown device type (" + std::to_string(static_cast<int>(type)) + ")";
+}
+
 } // namespace vostok::graphics::vulkan::utils
