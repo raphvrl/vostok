@@ -237,14 +237,13 @@ void PhysicalDevice::initializeQueueFamilyIndices(VkSurfaceKHR surface)
             m_queueFamilyIndices.presentFamily = i;
         }
     }
-
     if (m_queueFamilyIndices.isComplete()) {
         Logger::debug(
             "Queue Families: graphics={}, present={}, compute={}, transfer={}",
-            m_queueFamilyIndices.graphicsFamily.value(),
-            m_queueFamilyIndices.presentFamily.value(),
-            m_queueFamilyIndices.computeFamily.value(),
-            m_queueFamilyIndices.transferFamily.value()
+            *m_queueFamilyIndices.graphicsFamily,
+            *m_queueFamilyIndices.presentFamily,
+            *m_queueFamilyIndices.computeFamily,
+            *m_queueFamilyIndices.transferFamily
         );
     } else {
         Logger::warning("Not all required queue families are available for this device");

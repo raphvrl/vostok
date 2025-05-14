@@ -1,6 +1,7 @@
 #include "graphics/vulkan/vulkan_device.hpp"
 
 #include "graphics/gpu_device.hpp"
+#include "graphics/vulkan/core/device.hpp"
 #include "graphics/vulkan/core/instance.hpp"
 #include "graphics/vulkan/core/physical_device.hpp"
 #include "graphics/vulkan/platform/glfw_platform.hpp"
@@ -37,9 +38,11 @@ private:
     bool initInstance(const GPUDevice::CreateInfo &createInfo);
     bool initSurface(void *windowHandle);
     bool initPhysicalDevice();
+    bool initDevice(const GPUDevice::CreateInfo &createInfo);
 
     std::unique_ptr<Instance> m_instance;
     std::unique_ptr<PhysicalDevice> m_physicalDevice;
+    std::unique_ptr<Device> m_device;
 
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
 
@@ -71,6 +74,10 @@ VulkanDevice::Impl::Impl(const GPUDevice::CreateInfo &createInfo)
     }
 
     if (!initPhysicalDevice()) {
+        return;
+    }
+
+    if (!initDevice(createInfo)) {
         return;
     }
 }
@@ -130,9 +137,34 @@ bool VulkanDevice::Impl::initPhysicalDevice()
     return true;
 }
 
+bool VulkanDevice::Impl::initDevice(const GPUDevice::CreateInfo &createInfo)
+{
+    std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+    Device::CreateInfo deviceCreateInfo;
+    deviceCreateInfo.physicalDevice = m_physicalDevice.get();
+    deviceCreateInfo.surface = m_surface;
+    deviceCreateInfo.extensions = deviceExtensions;
+    deviceCreateInfo.enableValidationLayers = createInfo.enableValidationLayers;
+
+    auto result = Device::create(deviceCreateInfo);
+    if (!result) {
+        m_lastError = result.error();
+        return false;
+    }
+
+    m_device = std::move(result.value());
+
+    return true;
+}
+
 void VulkanDevice::Impl::waitIdle()
 {
-    // TODO: Implement waitIdle
+    if (!m_device) {
+        return;
+    }
+
+    m_device->waitIdle();
 }
 
 std::expected<u32, std::string> VulkanDevice::Impl::beginFrame()

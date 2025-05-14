@@ -2,6 +2,7 @@
 
 #include "vostok/core/type.hpp"
 
+#include <cassert>
 #include <expected>
 #include <memory>
 #include <optional>

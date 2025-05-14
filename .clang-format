@@ -7,6 +7,7 @@ UseTab: Never
 AccessModifierOffset: -4
 NamespaceIndentation: None
 IndentCaseLabels: true
+IndentCaseBlocks: false
 
 BreakBeforeBraces: Custom
 BraceWrapping:
@@ -14,14 +15,11 @@ BraceWrapping:
   AfterStruct: true
   AfterEnum: true
   AfterUnion: true
-
   AfterFunction: true
-
   AfterControlStatement: Never
   BeforeElse: false
   BeforeWhile: false
   AfterCaseLabel: false
-
   AfterNamespace: true
   AfterExternBlock: false
   SplitEmptyFunction: false
@@ -36,15 +34,18 @@ IncludeCategories:
     Priority:        2
 SortIncludes: CaseSensitive
 
+# Configuration pour les listes d'initialisation
 BinPackArguments: false
 BinPackParameters: false
 ExperimentalAutoDetectBinPacking: false
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
-
 AlignAfterOpenBracket: BlockIndent
-
-Cpp11BracedListStyle: true 
+Cpp11BracedListStyle: false  # Changé à false pour préserver l'espacement
+SpacesInContainerLiterals: true  # Ajouté pour l'espacement dans les accolades
+PackConstructorInitializers: Never  # Ajouté pour éviter la compaction
+ConstructorInitializerIndentWidth: 4
+AlignOperands: AlignAfterOperator
 
 SpaceBeforeParensOptions:
   AfterFunctionDeclarationName: false
@@ -71,3 +72,5 @@ MaxEmptyLinesToKeep: 1
 PointerAlignment: Right
 SpaceBeforeParens: ControlStatements
 SpacesInParentheses: false
+SpaceBeforeAssignmentOperators: true
+SpacesInSquareBrackets: false
