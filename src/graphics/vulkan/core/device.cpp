@@ -2,7 +2,7 @@
 
 #include "core/logger/logger.hpp"
 #include "graphics/vulkan/utils/vk_utils.hpp"
-#include "utils/stl/optional.inl"
+#include "utils/stl/optional.hpp"
 #include "volk.h"
 
 #include <expected>
@@ -112,39 +112,6 @@ std::expected<std::unique_ptr<Device>, std::string> Device::create(const CreateI
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
-    VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
-    deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-
-    VkPhysicalDeviceFeatures supportedFeatures;
-    vkGetPhysicalDeviceFeatures(createInfo.physicalDevice->getHandle(), &supportedFeatures);
-
-    deviceFeatures2.features.samplerAnisotropy = supportedFeatures.samplerAnisotropy;
-    deviceFeatures2.features.fillModeNonSolid = supportedFeatures.fillModeNonSolid;
-    deviceFeatures2.features.multiViewport = supportedFeatures.multiViewport;
-
-    VkPhysicalDeviceVulkan12Features features12 = {};
-    features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-    features12.descriptorIndexing = VK_TRUE;
-    features12.runtimeDescriptorArray = VK_TRUE;
-    features12.descriptorBindingPartiallyBound = VK_TRUE;
-    features12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-    features12.bufferDeviceAddress = VK_TRUE;
-    features12.timelineSemaphore = VK_TRUE;
-    features12.pNext = nullptr;
-
-    VkPhysicalDeviceVulkan13Features features13 = {};
-    features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-    features13.dynamicRendering = VK_TRUE;
-    features13.synchronization2 = VK_TRUE;
-    features13.pNext = &features12;
-
-    VkPhysicalDeviceVulkan14Features features14 = {};
-    features14.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES;
-    features14.pNext = &features13;
-    features14.maintenance6 = VK_TRUE;
-
-    deviceFeatures2.pNext = &features14;
-
     std::vector<const char *> enableLayers;
     if (createInfo.enableValidationLayers) {
         enableLayers.push_back("VK_LAYER_KHRONOS_validation");
@@ -157,7 +124,7 @@ std::expected<std::unique_ptr<Device>, std::string> Device::create(const CreateI
     deviceCreateInfo.queueCreateInfoCount = static_cast<u32>(queueCreateInfos.size());
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 
-    deviceCreateInfo.pNext = &deviceFeatures2;
+    deviceCreateInfo.pNext = createInfo.pNext;
 
     if (createInfo.enableValidationLayers) {
         deviceCreateInfo.enabledLayerCount = static_cast<u32>(enableLayers.size());

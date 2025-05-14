@@ -17,6 +17,7 @@ public:
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         std::vector<const char *> extensions;
         bool enableValidationLayers = false;
+        void *pNext = nullptr;
     };
 
     static std::expected<std::unique_ptr<Device>, std::string> create(const CreateInfo &createInfo);

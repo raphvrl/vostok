@@ -174,7 +174,7 @@ Swapchain::create(const CreateInfo &createInfo)
 
     VkSurfaceFormatKHR surfaceFormat = surfaceFormats[0];
     for (const auto &availableFormat : surfaceFormats) {
-        if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
+        if (availableFormat.format == VK_FORMAT_R8G8B8A8_UNORM &&
             availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
             surfaceFormat = availableFormat;
             break;
@@ -226,7 +226,8 @@ Swapchain::create(const CreateInfo &createInfo)
     swapchainInfo.imageColorSpace = surfaceFormat.colorSpace;
     swapchainInfo.imageExtent = extent;
     swapchainInfo.imageArrayLayers = 1;
-    swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    swapchainInfo.imageUsage =
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
     auto indices = physicalDevice->getQueueFamilyIndices();
     std::array<u32, 2> queueFamilyIndices = { vu::getValueSafe(indices.graphicsFamily, "graphics"),
