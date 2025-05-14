@@ -2,24 +2,17 @@
 
 #include "core/logger/logger.hpp"
 #include "graphics/vulkan/utils/vk_utils.hpp"
+#include "utils/stl/optional.inl"
 #include "volk.h"
 
 #include <expected>
 #include <set>
 #include <vulkan/vulkan_core.h>
 
+namespace vu = vostok::utils;
+
 namespace vostok::graphics::vulkan
 {
-
-template <typename T>
-T getValueSafe(const std::optional<T> &opt, const char *name)
-{
-    if (!opt.has_value()) {
-        Logger::critical("Attempt to access non-existent {} queue family index", name);
-        throw std::runtime_error(std::string("Missing queue family index: ") + name);
-    }
-    return opt.value();
-}
 
 Device::Device(VkDevice device, PhysicalDevice *physicalDevice)
     : m_device(device),
@@ -100,10 +93,10 @@ std::expected<std::unique_ptr<Device>, std::string> Device::create(const CreateI
     }
 
     std::set<u32> uniqueQueueFamilies = {
-        getValueSafe(queueFamilyIndices.graphicsFamily, "graphics"),
-        getValueSafe(queueFamilyIndices.presentFamily, "present"),
-        getValueSafe(queueFamilyIndices.computeFamily, "compute"),
-        getValueSafe(queueFamilyIndices.transferFamily, "transfer"),
+        vu::getValueSafe(queueFamilyIndices.graphicsFamily, "graphics"),
+        vu::getValueSafe(queueFamilyIndices.presentFamily, "present"),
+        vu::getValueSafe(queueFamilyIndices.computeFamily, "compute"),
+        vu::getValueSafe(queueFamilyIndices.transferFamily, "transfer"),
     };
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -222,10 +215,10 @@ bool Device::initQueues()
         return false;
     }
 
-    u32 graphicsFamily = getValueSafe(indices.graphicsFamily, "graphics");
-    u32 presentFamily = getValueSafe(indices.presentFamily, "present");
-    u32 computeFamily = getValueSafe(indices.computeFamily, "compute");
-    u32 transferFamily = getValueSafe(indices.transferFamily, "transfer");
+    u32 graphicsFamily = vu::getValueSafe(indices.graphicsFamily, "graphics");
+    u32 presentFamily = vu::getValueSafe(indices.presentFamily, "present");
+    u32 computeFamily = vu::getValueSafe(indices.computeFamily, "compute");
+    u32 transferFamily = vu::getValueSafe(indices.transferFamily, "transfer");
 
     vkGetDeviceQueue(m_device, graphicsFamily, 0, &m_graphicsQueue);
     vkGetDeviceQueue(m_device, presentFamily, 0, &m_presentQueue);
@@ -253,7 +246,7 @@ bool Device::createCommandPool()
 
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.queueFamilyIndex = getValueSafe(indices.graphicsFamily, "graphics");
+    poolInfo.queueFamilyIndex = vu::getValueSafe(indices.graphicsFamily, "graphics");
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
     VkResult result = vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool);

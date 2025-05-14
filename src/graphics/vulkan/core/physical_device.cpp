@@ -2,12 +2,15 @@
 
 #include "core/logger/logger.hpp"
 #include "graphics/vulkan/utils/vk_utils.hpp"
+#include "utils/stl/optional.inl"
 
 #include <algorithm>
 #include <cstring>
 #include <vector>
 #include <volk.h>
 #include <vulkan/vulkan.h>
+
+namespace vu = vostok::utils;
 
 namespace vostok::graphics::vulkan
 {
@@ -38,8 +41,10 @@ PhysicalDevice::~PhysicalDevice()
 }
 
 PhysicalDevice::PhysicalDevice(PhysicalDevice &&other) noexcept
-    : m_physicalDevice(other.m_physicalDevice), m_properties(other.m_properties),
-      m_memoryProperties(other.m_memoryProperties), m_features(other.m_features),
+    : m_physicalDevice(other.m_physicalDevice),
+      m_properties(other.m_properties),
+      m_memoryProperties(other.m_memoryProperties),
+      m_features(other.m_features),
       m_supportedFeatures(other.m_supportedFeatures),
       m_queueFamilyIndices(other.m_queueFamilyIndices),
       m_supportedExtensions(std::move(other.m_supportedExtensions))
@@ -240,10 +245,10 @@ void PhysicalDevice::initializeQueueFamilyIndices(VkSurfaceKHR surface)
     if (m_queueFamilyIndices.isComplete()) {
         Logger::debug(
             "Queue Families: graphics={}, present={}, compute={}, transfer={}",
-            *m_queueFamilyIndices.graphicsFamily,
-            *m_queueFamilyIndices.presentFamily,
-            *m_queueFamilyIndices.computeFamily,
-            *m_queueFamilyIndices.transferFamily
+            vu::getValueSafe(m_queueFamilyIndices.graphicsFamily, "graphics"),
+            vu::getValueSafe(m_queueFamilyIndices.presentFamily, "present"),
+            vu::getValueSafe(m_queueFamilyIndices.computeFamily, "compute"),
+            vu::getValueSafe(m_queueFamilyIndices.transferFamily, "transfer")
         );
     } else {
         Logger::warning("Not all required queue families are available for this device");

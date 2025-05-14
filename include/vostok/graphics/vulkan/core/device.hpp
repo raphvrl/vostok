@@ -27,6 +27,14 @@ public:
     Device(Device &&other) noexcept;
     Device &operator=(Device &&other) noexcept;
 
+    [[nodiscard]] VkDevice getHandle() const { return m_device; }
+    [[nodiscard]] PhysicalDevice *getPhysicalDevice() const { return m_physicalDevice; }
+    [[nodiscard]] VkQueue getGraphicsQueue() const { return m_graphicsQueue; }
+    [[nodiscard]] VkQueue getPresentQueue() const { return m_presentQueue; }
+    [[nodiscard]] VkQueue getComputeQueue() const { return m_computeQueue; }
+    [[nodiscard]] VkQueue getTransferQueue() const { return m_transferQueue; }
+    [[nodiscard]] VkCommandPool getCommandPool() const { return m_commandPool; }
+
     void waitIdle() const;
 
 private:

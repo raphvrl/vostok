@@ -4,10 +4,11 @@
 #include "graphics/vulkan/core/device.hpp"
 #include "graphics/vulkan/core/instance.hpp"
 #include "graphics/vulkan/core/physical_device.hpp"
+#include "graphics/vulkan/core/surface.hpp"
+#include "graphics/vulkan/core/swapchain.hpp"
 #include "graphics/vulkan/platform/glfw_platform.hpp"
 
 #include <memory>
-#include <vulkan/vulkan.h>
 
 namespace vostok::graphics::vulkan
 {
@@ -16,7 +17,7 @@ class VulkanDevice::Impl
 {
 public:
     Impl(const GPUDevice::CreateInfo &createInfo);
-    ~Impl();
+    ~Impl() = default;
 
     Impl(const Impl &) = delete;
     Impl &operator=(const Impl &) = delete;
@@ -39,12 +40,13 @@ private:
     bool initSurface(void *windowHandle);
     bool initPhysicalDevice();
     bool initDevice(const GPUDevice::CreateInfo &createInfo);
+    bool initSwapchain(const SwapchainExtent &size);
 
     std::unique_ptr<Instance> m_instance;
+    std::unique_ptr<Surface> m_surface;
     std::unique_ptr<PhysicalDevice> m_physicalDevice;
     std::unique_ptr<Device> m_device;
-
-    VkSurfaceKHR m_surface = VK_NULL_HANDLE;
+    std::unique_ptr<Swapchain> m_swapchain;
 
     std::string m_lastError;
 };
@@ -80,12 +82,9 @@ VulkanDevice::Impl::Impl(const GPUDevice::CreateInfo &createInfo)
     if (!initDevice(createInfo)) {
         return;
     }
-}
 
-VulkanDevice::Impl::~Impl()
-{
-    if (m_surface != VK_NULL_HANDLE) {
-        m_instance->destroySurface(m_surface);
+    if (!initSwapchain({ .width = createInfo.width, .height = createInfo.height })) {
+        return;
     }
 }
 
@@ -114,19 +113,25 @@ bool VulkanDevice::Impl::initInstance(const GPUDevice::CreateInfo &createInfo)
 
 bool VulkanDevice::Impl::initSurface(void *windowHandle)
 {
-    auto result = m_instance->createSurface(windowHandle);
+    if (!m_instance) {
+        m_lastError = "Instance is not initialized";
+        return false;
+    }
+
+    auto result = Surface::create(m_instance.get(), windowHandle);
     if (!result) {
         m_lastError = result.error();
         return false;
     }
 
-    m_surface = result.value();
+    m_surface = std::move(result.value());
+
     return true;
 }
 
 bool VulkanDevice::Impl::initPhysicalDevice()
 {
-    auto result = PhysicalDevice::create(m_instance->getHandle(), m_surface);
+    auto result = PhysicalDevice::create(m_instance->getHandle(), m_surface->getHandle());
     if (!result) {
         m_lastError = result.error();
         return false;
@@ -139,21 +144,45 @@ bool VulkanDevice::Impl::initPhysicalDevice()
 
 bool VulkanDevice::Impl::initDevice(const GPUDevice::CreateInfo &createInfo)
 {
-    std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    std::vector<const char *> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
-    Device::CreateInfo deviceCreateInfo;
-    deviceCreateInfo.physicalDevice = m_physicalDevice.get();
-    deviceCreateInfo.surface = m_surface;
-    deviceCreateInfo.extensions = deviceExtensions;
-    deviceCreateInfo.enableValidationLayers = createInfo.enableValidationLayers;
+    Device::CreateInfo creatInfo;
+    creatInfo.physicalDevice = m_physicalDevice.get();
+    creatInfo.surface = m_surface->getHandle();
+    creatInfo.extensions = deviceExtensions;
+    creatInfo.enableValidationLayers = createInfo.enableValidationLayers;
 
-    auto result = Device::create(deviceCreateInfo);
+    auto result = Device::create(creatInfo);
     if (!result) {
         m_lastError = result.error();
         return false;
     }
 
     m_device = std::move(result.value());
+
+    return true;
+}
+
+bool VulkanDevice::Impl::initSwapchain(const SwapchainExtent &size)
+{
+    if (!m_device) {
+        m_lastError = "Device is not initialized";
+        return false;
+    }
+
+    Swapchain::CreateInfo createInfo;
+    createInfo.device = m_device.get();
+    createInfo.surface = m_surface->getHandle();
+    createInfo.width = size.width;
+    createInfo.height = size.height;
+
+    auto result = Swapchain::create(createInfo);
+    if (!result) {
+        m_lastError = result.error();
+        return false;
+    }
+
+    m_swapchain = std::move(result.value());
 
     return true;
 }
@@ -201,7 +230,9 @@ std::expected<void, std::string> VulkanDevice::Impl::resize(const FramebufferSiz
     return std::unexpected("Not implemented");
 }
 
-VulkanDevice::VulkanDevice() : m_impl(nullptr) {}
+VulkanDevice::VulkanDevice()
+    : m_impl(nullptr)
+{}
 
 VulkanDevice::~VulkanDevice()
 {
