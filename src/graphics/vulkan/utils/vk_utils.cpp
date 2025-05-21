@@ -1,6 +1,8 @@
 #include "graphics/vulkan/utils/vk_utils.hpp"
 
+#include <cstring>
 #include <unordered_map>
+
 
 namespace vostok::graphics::vulkan::utils
 {
@@ -215,6 +217,13 @@ std::string vkPresentModeToString(VkPresentModeKHR mode)
     }
 
     return "Unknown present mode (" + std::to_string(static_cast<int>(mode)) + ")";
+}
+
+std::vector<u32> vectorCharToU32(const std::vector<char> &vec)
+{
+    std::vector<u32> result(vec.size() / sizeof(u32));
+    std::memcpy(result.data(), vec.data(), vec.size());
+    return result;
 }
 
 } // namespace vostok::graphics::vulkan::utils

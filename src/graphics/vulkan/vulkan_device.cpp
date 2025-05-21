@@ -9,6 +9,7 @@
 #include "graphics/vulkan/core/swapchain.hpp"
 #include "graphics/vulkan/platform/glfw_platform.hpp"
 #include "graphics/vulkan/utils/vk_utils.hpp"
+#include "graphics/vulkan/vulkan_pipeline.hpp"
 #include "volk.h"
 
 #include <memory>
@@ -19,7 +20,7 @@ namespace vostok::graphics::vulkan
 class VulkanDevice::Impl
 {
 public:
-    Impl(const GPUDevice::CreateInfo &createInfo);
+    Impl(VulkanDevice *parent, const GPUDevice::CreateInfo &createInfo);
     ~Impl() = default;
 
     Impl(const Impl &) = delete;
@@ -34,9 +35,20 @@ public:
 
     std::expected<void, std::string> resize(const FramebufferSize &size);
 
+    void draw(u32 vertexCount, u32 instanceCount = 1, u32 firstVertex = 0, u32 firstInstance = 0);
+
     [[nodiscard]] bool isInitialized() const { return m_instance != nullptr; }
 
     [[nodiscard]] const std::string &getLastError() const { return m_lastError; }
+
+    [[nodiscard]] Instance *getInstance() const { return m_instance.get(); }
+    [[nodiscard]] Surface *getSurface() const { return m_surface.get(); }
+    [[nodiscard]] PhysicalDevice *getPhysicalDevice() const { return m_physicalDevice.get(); }
+    [[nodiscard]] Device *getDevice() const { return m_device.get(); }
+    [[nodiscard]] Swapchain *getSwapchain() const { return m_swapchain.get(); }
+    [[nodiscard]] FrameSync *getFrameSync() const { return m_frameSync.get(); }
+
+    std::expected<std::unique_ptr<Pipeline::Builder>, std::string> createPipelineBuilder();
 
 private:
     bool initInstance(const GPUDevice::CreateInfo &createInfo);
@@ -52,10 +64,11 @@ private:
     std::unique_ptr<Device> m_device;
     std::unique_ptr<Swapchain> m_swapchain;
     std::unique_ptr<FrameSync> m_frameSync;
-
     std::string m_lastError;
 
     u32 m_currentImageIndex = 0;
+
+    VulkanDevice *m_parent;
 };
 
 std::expected<std::unique_ptr<GPUDevice>, std::string>
@@ -63,7 +76,7 @@ VulkanDevice::create(const CreateInfo &createInfo)
 {
     auto device = Factory::create();
 
-    device->m_impl = std::make_unique<Impl>(createInfo);
+    device->m_impl = std::make_unique<Impl>(device.get(), createInfo);
 
     if (!device->m_impl->isInitialized()) {
         return std::unexpected(device->m_impl->getLastError());
@@ -72,7 +85,8 @@ VulkanDevice::create(const CreateInfo &createInfo)
     return device;
 }
 
-VulkanDevice::Impl::Impl(const GPUDevice::CreateInfo &createInfo)
+VulkanDevice::Impl::Impl(VulkanDevice *parent, const GPUDevice::CreateInfo &createInfo)
+    : m_parent(parent)
 {
     if (!initInstance(createInfo)) {
         return;
@@ -320,6 +334,20 @@ std::expected<u32, std::string> VulkanDevice::Impl::beginFrame()
 
     vkCmdBeginRendering(m_frameSync->getCommandBuffer(), &renderingInfo);
 
+    VkViewport viewport = {};
+    viewport.x = 0.0F;
+    viewport.y = 0.0F;
+    viewport.width = static_cast<float>(m_swapchain->getExtent().width);
+    viewport.height = static_cast<float>(m_swapchain->getExtent().height);
+    viewport.minDepth = 0.0F;
+    viewport.maxDepth = 1.0F;
+    vkCmdSetViewport(m_frameSync->getCommandBuffer(), 0, 1, &viewport);
+
+    VkRect2D scissor = {};
+    scissor.offset = { .x = 0, .y = 0 };
+    scissor.extent = m_swapchain->getExtent();
+    vkCmdSetScissor(m_frameSync->getCommandBuffer(), 0, 1, &scissor);
+
     return {};
 }
 
@@ -430,6 +458,30 @@ std::expected<void, std::string> VulkanDevice::Impl::resize(const FramebufferSiz
     return std::unexpected("Not implemented");
 }
 
+void VulkanDevice::Impl::draw(
+    u32 vertexCount,
+    u32 instanceCount,
+    u32 firstVertex,
+    u32 firstInstance
+)
+{
+    if (!m_device || !m_frameSync) {
+        return;
+    }
+
+    m_frameSync->cmdDraw(vertexCount, instanceCount, firstVertex, firstInstance);
+}
+
+std::expected<std::unique_ptr<Pipeline::Builder>, std::string>
+VulkanDevice::Impl::createPipelineBuilder()
+{
+    if (!m_device) {
+        return std::unexpected("Device is not initialized");
+    }
+
+    return VulkanPipeline::Builder::create(m_parent);
+}
+
 VulkanDevice::VulkanDevice()
     : m_impl(nullptr)
 {}
@@ -470,6 +522,69 @@ std::expected<void, std::string> VulkanDevice::resize(const FramebufferSize &siz
         return m_impl->resize(size);
     }
     return std::unexpected("VulkanDevice is not initialized");
+}
+
+void VulkanDevice::draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance)
+{
+    if (m_impl) {
+        m_impl->draw(vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+}
+
+std::expected<std::unique_ptr<Pipeline::Builder>, std::string> VulkanDevice::createPipelineBuilder()
+{
+    if (m_impl) {
+        return m_impl->createPipelineBuilder();
+    }
+    return std::unexpected("VulkanDevice is not initialized");
+}
+
+Instance *VulkanDevice::getInstance() const
+{
+    if (m_impl) {
+        return m_impl->getInstance();
+    }
+    return nullptr;
+}
+
+Surface *VulkanDevice::getSurface() const
+{
+    if (m_impl) {
+        return m_impl->getSurface();
+    }
+    return nullptr;
+}
+
+PhysicalDevice *VulkanDevice::getPhysicalDevice() const
+{
+    if (m_impl) {
+        return m_impl->getPhysicalDevice();
+    }
+    return nullptr;
+}
+
+Device *VulkanDevice::getDevice() const
+{
+    if (m_impl) {
+        return m_impl->getDevice();
+    }
+    return nullptr;
+}
+
+Swapchain *VulkanDevice::getSwapchain() const
+{
+    if (m_impl) {
+        return m_impl->getSwapchain();
+    }
+    return nullptr;
+}
+
+FrameSync *VulkanDevice::getFrameSync() const
+{
+    if (m_impl) {
+        return m_impl->getFrameSync();
+    }
+    return nullptr;
 }
 
 } // namespace vostok::graphics::vulkan

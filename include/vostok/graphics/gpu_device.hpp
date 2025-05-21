@@ -2,6 +2,7 @@
 
 #include "vostok/core/type.hpp"
 #include "vostok/core/version.hpp"
+#include "vostok/graphics/pipeline.hpp"
 
 #include <expected>
 #include <memory>
@@ -27,9 +28,9 @@ public:
     struct CreateInfo
     {
         std::string appName = "Vostok App";
-        core::Version appVersion = core::Version{.major = 0, .minor = 1, .patch = 0};
+        core::Version appVersion = core::Version{ .major = 0, .minor = 1, .patch = 0 };
         std::string engineName = "Vostok Engine";
-        core::Version engineVersion = core::Version{.major = 0, .minor = 1, .patch = 0};
+        core::Version engineVersion = core::Version{ .major = 0, .minor = 1, .patch = 0 };
         void *windowHandle = nullptr;
         u32 width = 800;
         u32 height = 600;
@@ -54,6 +55,15 @@ public:
     virtual std::expected<void, std::string> endFrame() = 0;
 
     virtual std::expected<void, std::string> resize(const FramebufferSize &size) = 0;
+
+    virtual void
+    draw(u32 vertexCount, u32 instanceCount = 1, u32 firstVertex = 0, u32 firstInstance = 0) = 0;
+
+    virtual std::expected<std::unique_ptr<Pipeline::Builder>, std::string>
+    createPipelineBuilder() = 0;
+
+private:
+    RenderBackend m_backend = RenderBackend::VULKAN;
 };
 
 } // namespace vostok::graphics

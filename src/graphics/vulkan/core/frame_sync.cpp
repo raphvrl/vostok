@@ -187,4 +187,15 @@ std::expected<void, std::string> FrameSync::endCommandBuffer()
     return {};
 }
 
+void FrameSync::cmdDraw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance)
+{
+    vkCmdDraw(
+        m_frames[m_currentFrame].commandBuffer,
+        vertexCount,
+        instanceCount,
+        firstVertex,
+        firstInstance
+    );
+}
+
 } // namespace vostok::graphics::vulkan

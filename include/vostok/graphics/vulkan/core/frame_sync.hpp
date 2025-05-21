@@ -52,6 +52,9 @@ public:
     std::expected<void, std::string> beginCommandBuffer();
     std::expected<void, std::string> endCommandBuffer();
 
+    void
+    cmdDraw(u32 vertexCount, u32 instanceCount = 1, u32 firstVertex = 0, u32 firstInstance = 0);
+
 private:
     FrameSync(Device *device, VkCommandPool commandPool, u32 maxFramesInFlight);
     bool init();

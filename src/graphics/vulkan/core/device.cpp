@@ -2,7 +2,7 @@
 
 #include "core/logger/logger.hpp"
 #include "graphics/vulkan/utils/vk_utils.hpp"
-#include "utils/stl/optional.hpp"
+#include "utils/stl/optional.inl"
 #include "volk.h"
 
 #include <expected>
@@ -10,7 +10,6 @@
 #include <vulkan/vulkan_core.h>
 
 namespace vu = vostok::utils;
-
 namespace vostok::graphics::vulkan
 {
 
