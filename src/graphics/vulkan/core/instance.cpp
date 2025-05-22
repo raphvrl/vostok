@@ -31,7 +31,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     } else if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) != 0) {
         logger.info("{}", pCallbackData->pMessage);
     } else {
-        logger.trace("{}", pCallbackData->pMessage);
+        logger.debug("{}", pCallbackData->pMessage);
     }
 
     return VK_FALSE;
@@ -43,8 +43,10 @@ Instance::Instance(
     bool validationEnabled,
     std::shared_ptr<platform::PlatformInterface> platform
 )
-    : m_instance(instance), m_debugMessenger(debugMessenger),
-      m_validationEnabled(validationEnabled), m_platform(std::move(platform))
+    : m_instance(instance),
+      m_debugMessenger(debugMessenger),
+      m_validationEnabled(validationEnabled),
+      m_platform(std::move(platform))
 {}
 
 Instance::~Instance()
@@ -68,7 +70,8 @@ Instance::~Instance()
 }
 
 Instance::Instance(Instance &&other) noexcept
-    : m_instance(other.m_instance), m_debugMessenger(other.m_debugMessenger),
+    : m_instance(other.m_instance),
+      m_debugMessenger(other.m_debugMessenger),
       m_validationEnabled(other.m_validationEnabled)
 {
     other.m_instance = VK_NULL_HANDLE;
