@@ -1,0 +1,16 @@
+cmake_minimum_required(VERSION 3.25)
+
+add_subdirectory(shaders)
+
+add_executable(hello_triangle main.cpp)
+target_link_libraries(hello_triangle PRIVATE vostok)
+
+add_dependencies(hello_triangle hello_triangle_shaders)
+
+install(TARGETS hello_triangle
+    RUNTIME DESTINATION bin
+)
+
+message(STATUS "Configured hello_triangle example")
+message(STATUS "Shaders will be compiled to: ${CMAKE_BINARY_DIR}/bin/shaders/hello_triangle")
+message(STATUS "and copied to: $<TARGET_FILE_DIR:hello_triangle>/shaders")

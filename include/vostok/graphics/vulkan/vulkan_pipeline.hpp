@@ -3,7 +3,6 @@
 #include "vostok/graphics/pipeline.hpp"
 
 #include <expected>
-#include <functional>
 #include <memory>
 #include <vulkan/vulkan.h>
 

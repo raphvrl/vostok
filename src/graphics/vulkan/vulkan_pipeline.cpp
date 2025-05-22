@@ -137,7 +137,13 @@ VulkanPipeline::Impl::Impl(VulkanDevice *device, VkPipeline pipeline, VkPipeline
     : m_ctx(device),
       m_pipeline(pipeline),
       m_layout(layout)
-{}
+{
+    Logger::info(
+        "Created VulkanPipeline [handle: {:#x}, layout: {:#x}]",
+        std::bit_cast<u64>(m_pipeline),
+        std::bit_cast<u64>(m_layout)
+    );
+}
 
 VulkanPipeline::Impl::~Impl()
 {
@@ -147,11 +153,16 @@ VulkanPipeline::Impl::~Impl()
     }
 
     if (m_pipeline != VK_NULL_HANDLE) {
+        Logger::debug("Destroying VulkanPipeline [handle: {:#x}]", std::bit_cast<u64>(m_pipeline));
         vkDestroyPipeline(device->getHandle(), m_pipeline, nullptr);
         m_pipeline = VK_NULL_HANDLE;
     }
 
     if (m_layout != VK_NULL_HANDLE) {
+        Logger::debug(
+            "Destroying VulkanPipelineLayout [handle: {:#x}]",
+            std::bit_cast<u64>(m_layout)
+        );
         vkDestroyPipelineLayout(device->getHandle(), m_layout, nullptr);
         m_layout = VK_NULL_HANDLE;
     }
@@ -161,23 +172,29 @@ void VulkanPipeline::Impl::bind()
 {
     auto *device = m_ctx->getDevice();
     if (device == nullptr) {
+        Logger::warning("Cannot bind pipeline: device is null");
         return;
     }
 
     auto *syncFrame = m_ctx->getFrameSync();
     if (syncFrame == nullptr) {
+        Logger::warning("Cannot bind pipeline: frame sync is null");
         return;
     }
 
+    Logger::trace("Binding pipeline [handle: {:#x}]", std::bit_cast<u64>(m_pipeline));
     vkCmdBindPipeline(syncFrame->getCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 }
 
 VulkanPipeline::Builder::Impl::Impl(VulkanDevice *device)
     : m_ctx(device)
-{}
+{
+    Logger::debug("Created VulkanPipeline Builder");
+}
 
 VulkanPipeline::Builder::Impl &VulkanPipeline::Builder::Impl::setVertexShader(const fs::path &path)
 {
+    Logger::debug("Setting vertex shader: {}", path.string());
     m_shaderStages.push_back({ path, VK_SHADER_STAGE_VERTEX_BIT });
     return *this;
 }
@@ -185,6 +202,7 @@ VulkanPipeline::Builder::Impl &VulkanPipeline::Builder::Impl::setVertexShader(co
 VulkanPipeline::Builder::Impl &
 VulkanPipeline::Builder::Impl::setFragmentShader(const fs::path &path)
 {
+    Logger::debug("Setting fragment shader: {}", path.string());
     m_shaderStages.push_back({ path, VK_SHADER_STAGE_FRAGMENT_BIT });
     return *this;
 }
@@ -192,6 +210,7 @@ VulkanPipeline::Builder::Impl::setFragmentShader(const fs::path &path)
 VulkanPipeline::Builder::Impl &
 VulkanPipeline::Builder::Impl::setGeometryShader(const fs::path &path)
 {
+    Logger::debug("Setting geometry shader: {}", path.string());
     m_shaderStages.push_back({ path, VK_SHADER_STAGE_GEOMETRY_BIT });
     return *this;
 }
@@ -199,6 +218,7 @@ VulkanPipeline::Builder::Impl::setGeometryShader(const fs::path &path)
 VulkanPipeline::Builder::Impl &
 VulkanPipeline::Builder::Impl::setTessellationControlShader(const fs::path &path)
 {
+    Logger::debug("Setting tessellation control shader: {}", path.string());
     m_shaderStages.push_back({ path, VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT });
     return *this;
 }
@@ -206,12 +226,14 @@ VulkanPipeline::Builder::Impl::setTessellationControlShader(const fs::path &path
 VulkanPipeline::Builder::Impl &
 VulkanPipeline::Builder::Impl::setTessellationEvaluationShader(const fs::path &path)
 {
+    Logger::debug("Setting tessellation evaluation shader: {}", path.string());
     m_shaderStages.push_back({ path, VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT });
     return *this;
 }
 
 VulkanPipeline::Builder::Impl &VulkanPipeline::Builder::Impl::setComputeShader(const fs::path &path)
 {
+    Logger::debug("Setting compute shader: {}", path.string());
     m_shaderStages.push_back({ path, VK_SHADER_STAGE_COMPUTE_BIT });
     return *this;
 }
@@ -234,6 +256,8 @@ VulkanPipeline::Builder::Impl::setPrimitiveTopology(const PrimitiveTopology &top
         Logger::error("Invalid primitive topology");
     }
 
+    Logger::debug("Setting primitive topology: {}", utils::vkPrimitiveTopologyToString(m_topology));
+
     return *this;
 }
 
@@ -255,6 +279,8 @@ VulkanPipeline::Builder::Impl::setPolygonMode(const PolygonMode &mode)
         Logger::error("Invalid polygon mode");
     }
 
+    Logger::debug("Setting polygon mode: {}", utils::vkPolygonModeToString(m_polygonMode));
+
     return *this;
 }
 
@@ -274,6 +300,8 @@ VulkanPipeline::Builder::Impl &VulkanPipeline::Builder::Impl::setCullMode(const 
         Logger::error("Invalid cull mode");
     }
 
+    Logger::debug("Setting cull mode: {}", utils::vkCullModeToString(m_cullMode));
+
     return *this;
 }
 
@@ -291,23 +319,31 @@ VulkanPipeline::Builder::Impl &VulkanPipeline::Builder::Impl::setFrontFace(const
         Logger::error("Invalid front face");
     }
 
+    Logger::debug("Setting front face: {}", utils::vkFrontFaceToString(m_frontFace));
+
     return *this;
 }
 
 VulkanPipeline::Builder::Impl &VulkanPipeline::Builder::Impl::setLineWidth(f32 width)
 {
+    Logger::debug("Setting line width: {}", width);
+
     m_lineWidth = width;
     return *this;
 }
 
 VulkanPipeline::Builder::Impl &VulkanPipeline::Builder::Impl::setDepthTest(bool enable)
 {
+    Logger::debug("Setting depth test: {}", enable ? "true" : "false");
+
     m_depthTestEnable = enable;
     return *this;
 }
 
 VulkanPipeline::Builder::Impl &VulkanPipeline::Builder::Impl::setDepthWrite(bool enable)
 {
+    Logger::debug("Setting depth write: {}", enable ? "true" : "false");
+
     m_depthWriteEnable = enable;
     return *this;
 }
@@ -332,11 +368,18 @@ VulkanPipeline::Builder::Impl &VulkanPipeline::Builder::Impl::setDepthCompareOp(
         Logger::error("Invalid depth compare operation");
     }
 
+    Logger::debug(
+        "Setting depth compare operation: {}",
+        utils::vkCompareOpToString(m_depthCompareOp)
+    );
+
     return *this;
 }
 
 VulkanPipeline::Builder::Impl &VulkanPipeline::Builder::Impl::setStencilTest(bool enable)
 {
+    Logger::debug("Setting stencil test: {}", enable ? "true" : "false");
+
     m_stencilTestEnable = enable;
     return *this;
 }
@@ -379,11 +422,20 @@ VulkanPipeline::Builder::Impl &VulkanPipeline::Builder::Impl::setStencilOp(
         Logger::error("Invalid stencil depth fail operation");
     }
 
+    Logger::debug(
+        "Setting stencil operations: failOp: {}, passOp: {}, depthFailOp: {}",
+        utils::vkStencilOpToString(m_frontStencil.failOp),
+        utils::vkStencilOpToString(m_frontStencil.passOp),
+        utils::vkStencilOpToString(m_frontStencil.depthFailOp)
+    );
+
     return *this;
 }
 
 VulkanPipeline::Builder::Impl &VulkanPipeline::Builder::Impl::setBlend(bool enable)
 {
+    Logger::debug("Setting blend: {}", enable ? "true" : "false");
+
     m_blendEnable = enable;
     return *this;
 }
@@ -439,6 +491,15 @@ VulkanPipeline::Builder::Impl &VulkanPipeline::Builder::Impl::setBlendFactor(
     } else {
         Logger::error("Invalid destination alpha blend factor");
     }
+
+    Logger::debug(
+        "Setting blend factors: srcColor: {}, dstColor: {}, srcAlpha: {}, dstAlpha: {}",
+        utils::vkBlendFactorToString(m_srcColorBlendFactor),
+        utils::vkBlendFactorToString(m_dstColorBlendFactor),
+        utils::vkBlendFactorToString(m_srcAlphaBlendFactor),
+        utils::vkBlendFactorToString(m_dstAlphaBlendFactor)
+    );
+
     return *this;
 }
 
@@ -467,6 +528,12 @@ VulkanPipeline::Builder::Impl::setBlendOp(const BlendOp &colorOp, const BlendOp 
         Logger::error("Invalid alpha blend operation");
     }
 
+    Logger::debug(
+        "Setting blend operations: colorOp: {}, alphaOp: {}",
+        utils::vkBlendOpToString(m_colorBlendOp),
+        utils::vkBlendOpToString(m_alphaBlendOp)
+    );
+
     return *this;
 }
 
@@ -490,17 +557,26 @@ VulkanPipeline::Builder::Impl::setColorWriteMask(const ColorComponentFlags &mask
         Logger::error("Invalid color write mask");
     }
 
+    Logger::debug(
+        "Setting color write mask: {}",
+        utils::vkColorComponentFlagsToString(m_colorWriteMask)
+    );
+
     return *this;
 }
 
 VulkanPipeline::Builder::Impl &VulkanPipeline::Builder::Impl::addPushConstant(u32 size)
 {
+    Logger::debug("Adding push constant: size = {}", size);
+
     m_pushConstants.push_back({ VK_SHADER_STAGE_ALL, 0, size });
     return *this;
 }
 
 VulkanPipeline::Builder::Impl &VulkanPipeline::Builder::Impl::setName(const std::string &name)
 {
+    Logger::debug("Setting pipeline name: {}", name);
+
     m_name = name;
     return *this;
 }

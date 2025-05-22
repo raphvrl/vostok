@@ -3,7 +3,6 @@
 #include <cstring>
 #include <unordered_map>
 
-
 namespace vostok::graphics::vulkan::utils
 {
 
@@ -223,6 +222,191 @@ std::vector<u32> vectorCharToU32(const std::vector<char> &vec)
 {
     std::vector<u32> result(vec.size() / sizeof(u32));
     std::memcpy(result.data(), vec.data(), vec.size());
+    return result;
+}
+
+std::string vkPrimitiveTopologyToString(VkPrimitiveTopology topology)
+{
+    static const std::unordered_map<VkPrimitiveTopology, std::string> TOPOLOGY_MAP = {
+        { VK_PRIMITIVE_TOPOLOGY_POINT_LIST, "Point List" },
+        { VK_PRIMITIVE_TOPOLOGY_LINE_LIST, "Line List" },
+        { VK_PRIMITIVE_TOPOLOGY_LINE_STRIP, "Line Strip" },
+        { VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, "Triangle List" },
+        { VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, "Triangle Strip" },
+        { VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN, "Triangle Fan" },
+        { VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY, "Line List With Adjacency" },
+        { VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY, "Line Strip With Adjacency" },
+        { VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY, "Triangle List With Adjacency" },
+        { VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY, "Triangle Strip With Adjacency" },
+        { VK_PRIMITIVE_TOPOLOGY_PATCH_LIST, "Patch List" }
+    };
+
+    auto it = TOPOLOGY_MAP.find(topology);
+    if (it != TOPOLOGY_MAP.end()) {
+        return it->second;
+    }
+
+    return "Unknown primitive topology (" + std::to_string(static_cast<int>(topology)) + ")";
+}
+
+std::string vkPolygonModeToString(VkPolygonMode mode)
+{
+    static const std::unordered_map<VkPolygonMode, std::string> POLYGON_MODE_MAP = {
+        { VK_POLYGON_MODE_FILL, "Fill" },
+        { VK_POLYGON_MODE_LINE, "Line" },
+        { VK_POLYGON_MODE_POINT, "Point" },
+        { VK_POLYGON_MODE_FILL_RECTANGLE_NV, "Fill Rectangle" }
+    };
+
+    auto it = POLYGON_MODE_MAP.find(mode);
+    if (it != POLYGON_MODE_MAP.end()) {
+        return it->second;
+    }
+
+    return "Unknown polygon mode (" + std::to_string(static_cast<int>(mode)) + ")";
+}
+
+std::string vkCullModeToString(VkCullModeFlags mode)
+{
+    static const std::unordered_map<VkCullModeFlags, std::string> CULL_MODE_MAP = {
+        { VK_CULL_MODE_NONE, "None" },
+        { VK_CULL_MODE_FRONT_BIT, "Front" },
+        { VK_CULL_MODE_BACK_BIT, "Back" },
+        { VK_CULL_MODE_FRONT_AND_BACK, "Front and Back" }
+    };
+
+    auto it = CULL_MODE_MAP.find(mode);
+    if (it != CULL_MODE_MAP.end()) {
+        return it->second;
+    }
+
+    return "Unknown cull mode (" + std::to_string(static_cast<int>(mode)) + ")";
+}
+
+std::string vkFrontFaceToString(VkFrontFace frontFace)
+{
+    static const std::unordered_map<VkFrontFace, std::string> FRONT_FACE_MAP = {
+        { VK_FRONT_FACE_COUNTER_CLOCKWISE, "Counter Clockwise" },
+        { VK_FRONT_FACE_CLOCKWISE, "Clockwise" }
+    };
+
+    auto it = FRONT_FACE_MAP.find(frontFace);
+    if (it != FRONT_FACE_MAP.end()) {
+        return it->second;
+    }
+
+    return "Unknown front face (" + std::to_string(static_cast<int>(frontFace)) + ")";
+}
+
+std::string vkCompareOpToString(VkCompareOp compareOp)
+{
+    static const std::unordered_map<VkCompareOp, std::string> COMPARE_OP_MAP = {
+        { VK_COMPARE_OP_NEVER, "Never" },
+        { VK_COMPARE_OP_LESS, "Less" },
+        { VK_COMPARE_OP_EQUAL, "Equal" },
+        { VK_COMPARE_OP_LESS_OR_EQUAL, "Less or Equal" },
+        { VK_COMPARE_OP_GREATER, "Greater" },
+        { VK_COMPARE_OP_NOT_EQUAL, "Not Equal" },
+        { VK_COMPARE_OP_GREATER_OR_EQUAL, "Greater or Equal" },
+        { VK_COMPARE_OP_ALWAYS, "Always" }
+    };
+
+    auto it = COMPARE_OP_MAP.find(compareOp);
+    if (it != COMPARE_OP_MAP.end()) {
+        return it->second;
+    }
+
+    return "Unknown compare operation (" + std::to_string(static_cast<int>(compareOp)) + ")";
+}
+
+std::string vkStencilOpToString(VkStencilOp stencilOp)
+{
+    static const std::unordered_map<VkStencilOp, std::string> STENCIL_OP_MAP = {
+        { VK_STENCIL_OP_KEEP, "Keep" },
+        { VK_STENCIL_OP_ZERO, "Zero" },
+        { VK_STENCIL_OP_REPLACE, "Replace" },
+        { VK_STENCIL_OP_INCREMENT_AND_CLAMP, "Increment and Clamp" },
+        { VK_STENCIL_OP_DECREMENT_AND_CLAMP, "Decrement and Clamp" },
+        { VK_STENCIL_OP_INVERT, "Invert" },
+        { VK_STENCIL_OP_INCREMENT_AND_WRAP, "Increment and Wrap" },
+        { VK_STENCIL_OP_DECREMENT_AND_WRAP, "Decrement and Wrap" }
+    };
+
+    auto it = STENCIL_OP_MAP.find(stencilOp);
+    if (it != STENCIL_OP_MAP.end()) {
+        return it->second;
+    }
+
+    return "Unknown stencil operation (" + std::to_string(static_cast<int>(stencilOp)) + ")";
+}
+
+std::string vkBlendFactorToString(VkBlendFactor blendFactor)
+{
+    static const std::unordered_map<VkBlendFactor, std::string> BLEND_FACTOR_MAP = {
+        { VK_BLEND_FACTOR_ZERO, "Zero" },
+        { VK_BLEND_FACTOR_ONE, "One" },
+        { VK_BLEND_FACTOR_SRC_COLOR, "Source Color" },
+        { VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR, "One Minus Source Color" },
+        { VK_BLEND_FACTOR_DST_COLOR, "Destination Color" },
+        { VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR, "One Minus Destination Color" },
+        { VK_BLEND_FACTOR_SRC_ALPHA, "Source Alpha" },
+        { VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, "One Minus Source Alpha" },
+        { VK_BLEND_FACTOR_DST_ALPHA, "Destination Alpha" },
+        { VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA, "One Minus Destination Alpha" },
+        { VK_BLEND_FACTOR_CONSTANT_COLOR, "Constant Color" },
+        { VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR, "One Minus Constant Color" },
+        { VK_BLEND_FACTOR_CONSTANT_ALPHA, "Constant Alpha" },
+        { VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA, "One Minus Constant Alpha" }
+    };
+
+    auto it = BLEND_FACTOR_MAP.find(blendFactor);
+    if (it != BLEND_FACTOR_MAP.end()) {
+        return it->second;
+    }
+
+    return "Unknown blend factor (" + std::to_string(static_cast<int>(blendFactor)) + ")";
+}
+
+std::string vkBlendOpToString(VkBlendOp blendOp)
+{
+    static const std::unordered_map<VkBlendOp, std::string> BLEND_OP_MAP = {
+        { VK_BLEND_OP_ADD, "Add" },
+        { VK_BLEND_OP_SUBTRACT, "Subtract" },
+        { VK_BLEND_OP_REVERSE_SUBTRACT, "Reverse Subtract" },
+        { VK_BLEND_OP_MIN, "Min" },
+        { VK_BLEND_OP_MAX, "Max" }
+    };
+
+    auto it = BLEND_OP_MAP.find(blendOp);
+    if (it != BLEND_OP_MAP.end()) {
+        return it->second;
+    }
+
+    return "Unknown blend operation (" + std::to_string(static_cast<int>(blendOp)) + ")";
+}
+
+std::string vkColorComponentFlagsToString(VkColorComponentFlags flags)
+{
+    static const std::unordered_map<VkColorComponentFlags, std::string>
+        COLOR_COMPONENT_FLAGS_MAP = { { VK_COLOR_COMPONENT_R_BIT, "Red" },
+                                      { VK_COLOR_COMPONENT_G_BIT, "Green" },
+                                      { VK_COLOR_COMPONENT_B_BIT, "Blue" },
+                                      { VK_COLOR_COMPONENT_A_BIT, "Alpha" } };
+
+    std::string result;
+    for (const auto &[flag, name] : COLOR_COMPONENT_FLAGS_MAP) {
+        if ((flags & flag) == flag) {
+            if (!result.empty()) {
+                result += " | ";
+            }
+            result += name;
+        }
+    }
+
+    if (result.empty()) {
+        result = "None";
+    }
+
     return result;
 }
 
