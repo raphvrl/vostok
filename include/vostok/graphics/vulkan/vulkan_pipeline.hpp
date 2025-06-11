@@ -17,66 +17,64 @@ public:
     ~VulkanPipeline() override;
 
     VulkanPipeline(const VulkanPipeline &) = delete;
-    VulkanPipeline &operator=(const VulkanPipeline &) = delete;
+    auto operator=(const VulkanPipeline &) -> VulkanPipeline & = delete;
     VulkanPipeline(VulkanPipeline &&) = delete;
-    VulkanPipeline &operator=(VulkanPipeline &&) = delete;
+    auto operator=(VulkanPipeline &&) -> VulkanPipeline & = delete;
 
-    [[nodiscard]] VkPipeline getHandle() const;
-    [[nodiscard]] VkPipelineLayout getLayout() const;
+    [[nodiscard]] auto getHandle() const -> VkPipeline;
+    [[nodiscard]] auto getLayout() const -> VkPipelineLayout;
 
     class Builder : public Pipeline::Builder
     {
     public:
-        static std::expected<std::unique_ptr<Pipeline::Builder>, std::string>
-        create(VulkanDevice *device);
+        static auto create(VulkanDevice *device)
+            -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string>;
 
         Builder(VulkanDevice *device);
         ~Builder() override;
 
         Builder(Builder &) = delete;
-        Builder &operator=(const Builder &) = delete;
+        auto operator=(const Builder &) -> Builder & = delete;
         Builder(Builder &&) = delete;
-        Builder &operator=(Builder &&) = delete;
+        auto operator=(Builder &&) -> Builder & = delete;
 
-        Builder &setVertexShader(const fs::path &path) override;
-        Builder &setFragmentShader(const fs::path &path) override;
-        Builder &setGeometryShader(const fs::path &path) override;
-        Builder &setTessellationControlShader(const fs::path &path) override;
-        Builder &setTessellationEvaluationShader(const fs::path &path) override;
-        Builder &setComputeShader(const fs::path &path) override;
+        auto setVertexShader(const fs::path &path) -> Builder & override;
+        auto setFragmentShader(const fs::path &path) -> Builder & override;
+        auto setGeometryShader(const fs::path &path) -> Builder & override;
+        auto setTessellationControlShader(const fs::path &path) -> Builder & override;
+        auto setTessellationEvaluationShader(const fs::path &path) -> Builder & override;
+        auto setComputeShader(const fs::path &path) -> Builder & override;
 
-        Builder &setPrimitiveTopology(const PrimitiveTopology &topology) override;
+        auto setPrimitiveTopology(const PrimitiveTopology &topology) -> Builder & override;
 
-        Builder &setPolygonMode(const PolygonMode &mode) override;
-        Builder &setCullMode(const CullMode &mode) override;
-        Builder &setFrontFace(const FrontFace &face) override;
-        Builder &setLineWidth(f32 width) override;
+        auto setPolygonMode(const PolygonMode &mode) -> Builder & override;
+        auto setCullMode(const CullMode &mode) -> Builder & override;
+        auto setFrontFace(const FrontFace &face) -> Builder & override;
+        auto setLineWidth(f32 width) -> Builder & override;
 
-        Builder &setDepthTest(bool enable) override;
-        Builder &setDepthWrite(bool enable) override;
-        Builder &setDepthCompareOp(const CompareOp &op) override;
-        Builder &setStencilTest(bool enable) override;
-        Builder &setStencilOp(
-            const StencilOp &failOp,
-            const StencilOp &passOp,
-            const StencilOp &depthFailOp
-        ) override;
+        auto setDepthTest(bool enable) -> Builder & override;
+        auto setDepthWrite(bool enable) -> Builder & override;
+        auto setDepthCompareOp(const CompareOp &op) -> Builder & override;
+        auto setStencilTest(bool enable) -> Builder & override;
+        auto
+        setStencilOp(const StencilOp &failOp, const StencilOp &passOp, const StencilOp &depthFailOp)
+            -> Builder & override;
 
-        Builder &setBlend(bool enable) override;
-        Builder &setBlendFactor(
+        auto setBlend(bool enable) -> Builder & override;
+        auto setBlendFactor(
             const BlendFactor &srcColor,
             const BlendFactor &dstColor,
             const BlendFactor &srcAlpha,
             const BlendFactor &dstAlpha
-        ) override;
-        Builder &setBlendOp(const BlendOp &colorOp, const BlendOp &alphaOp) override;
-        Builder &setColorWriteMask(const ColorComponentFlags &mask) override;
+        ) -> Builder & override;
+        auto setBlendOp(const BlendOp &colorOp, const BlendOp &alphaOp) -> Builder & override;
+        auto setColorWriteMask(const ColorComponentFlags &mask) -> Builder & override;
 
-        Builder &addPushConstant(u32 size) override;
+        auto addPushConstant(u32 size) -> Builder & override;
 
-        Builder &setName(const std::string &name) override;
+        auto setName(const std::string &name) -> Builder & override;
 
-        std::expected<std::unique_ptr<Pipeline>, std::string> build() override;
+        auto build() -> std::expected<std::unique_ptr<Pipeline>, std::string> override;
 
     private:
         class Impl;
@@ -90,8 +88,8 @@ private:
 
     struct Factory
     {
-        static std::unique_ptr<VulkanPipeline>
-        create(VulkanDevice *device, VkPipeline pipeline, VkPipelineLayout layout)
+        static auto create(VulkanDevice *device, VkPipeline pipeline, VkPipelineLayout layout)
+            -> std::unique_ptr<VulkanPipeline>
         {
             return std::unique_ptr<VulkanPipeline>(new VulkanPipeline(device, pipeline, layout));
         }

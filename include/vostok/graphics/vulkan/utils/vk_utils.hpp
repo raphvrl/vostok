@@ -9,24 +9,24 @@
 namespace vostok::graphics::vulkan::utils
 {
 
-std::string vkResultToString(VkResult result);
+auto vkResultToString(VkResult result) -> std::string;
 
-std::string physicalDeviceTypeToString(VkPhysicalDeviceType type);
+auto physicalDeviceTypeToString(VkPhysicalDeviceType type) -> std::string;
 
-std::string vkFormatToString(VkFormat format);
+auto vkFormatToString(VkFormat format) -> std::string;
 
-std::string vkPresentModeToString(VkPresentModeKHR mode);
+auto vkPresentModeToString(VkPresentModeKHR mode) -> std::string;
 
-std::vector<u32> vectorCharToU32(const std::vector<char> &vec);
+auto vectorCharToU32(const std::vector<char> &vec) -> std::vector<u32>;
 
-std::string vkPrimitiveTopologyToString(VkPrimitiveTopology topology);
-std::string vkPolygonModeToString(VkPolygonMode mode);
-std::string vkCullModeToString(VkCullModeFlags mode);
-std::string vkFrontFaceToString(VkFrontFace frontFace);
-std::string vkCompareOpToString(VkCompareOp compareOp);
-std::string vkStencilOpToString(VkStencilOp stencilOp);
-std::string vkBlendFactorToString(VkBlendFactor blendFactor);
-std::string vkBlendOpToString(VkBlendOp blendOp);
-std::string vkColorComponentFlagsToString(VkColorComponentFlags flags);
+auto vkPrimitiveTopologyToString(VkPrimitiveTopology topology) -> std::string;
+auto vkPolygonModeToString(VkPolygonMode mode) -> std::string;
+auto vkCullModeToString(VkCullModeFlags mode) -> std::string;
+auto vkFrontFaceToString(VkFrontFace frontFace) -> std::string;
+auto vkCompareOpToString(VkCompareOp compareOp) -> std::string;
+auto vkStencilOpToString(VkStencilOp stencilOp) -> std::string;
+auto vkBlendFactorToString(VkBlendFactor blendFactor) -> std::string;
+auto vkBlendOpToString(VkBlendOp blendOp) -> std::string;
+auto vkColorComponentFlagsToString(VkColorComponentFlags flags) -> std::string;
 
 } // namespace vostok::graphics::vulkan::utils

@@ -24,39 +24,42 @@ public:
     ~Impl() = default;
 
     Impl(const Impl &) = delete;
-    Impl &operator=(const Impl &) = delete;
+    auto operator=(const Impl &) -> Impl & = delete;
     Impl(Impl &&) = delete;
-    Impl &operator=(Impl &&) = delete;
+    auto operator=(Impl &&) -> Impl & = delete;
 
     void waitIdle();
 
-    std::expected<u32, std::string> beginFrame();
-    std::expected<void, std::string> endFrame();
+    auto beginFrame() -> std::expected<u32, std::string>;
+    auto endFrame() -> std::expected<void, std::string>;
 
-    std::expected<void, std::string> resize(const FramebufferSize &size);
+    auto resize(const FramebufferSize &size) -> std::expected<void, std::string>;
 
     void draw(u32 vertexCount, u32 instanceCount = 1, u32 firstVertex = 0, u32 firstInstance = 0);
 
-    [[nodiscard]] bool isInitialized() const { return m_instance != nullptr; }
+    [[nodiscard]] auto isInitialized() const -> bool { return m_instance != nullptr; }
 
-    [[nodiscard]] const std::string &getLastError() const { return m_lastError; }
+    [[nodiscard]] auto getLastError() const -> const std::string & { return m_lastError; }
 
-    [[nodiscard]] Instance *getInstance() const { return m_instance.get(); }
-    [[nodiscard]] Surface *getSurface() const { return m_surface.get(); }
-    [[nodiscard]] PhysicalDevice *getPhysicalDevice() const { return m_physicalDevice.get(); }
-    [[nodiscard]] Device *getDevice() const { return m_device.get(); }
-    [[nodiscard]] Swapchain *getSwapchain() const { return m_swapchain.get(); }
-    [[nodiscard]] FrameSync *getFrameSync() const { return m_frameSync.get(); }
+    [[nodiscard]] auto getInstance() const -> Instance * { return m_instance.get(); }
+    [[nodiscard]] auto getSurface() const -> Surface * { return m_surface.get(); }
+    [[nodiscard]] auto getPhysicalDevice() const -> PhysicalDevice *
+    {
+        return m_physicalDevice.get();
+    }
+    [[nodiscard]] auto getDevice() const -> Device * { return m_device.get(); }
+    [[nodiscard]] auto getSwapchain() const -> Swapchain * { return m_swapchain.get(); }
+    [[nodiscard]] auto getFrameSync() const -> FrameSync * { return m_frameSync.get(); }
 
-    std::expected<std::unique_ptr<Pipeline::Builder>, std::string> createPipelineBuilder();
+    auto createPipelineBuilder() -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string>;
 
 private:
-    bool initInstance(const GPUDevice::CreateInfo &createInfo);
-    bool initSurface(void *windowHandle);
-    bool initPhysicalDevice();
-    bool initDevice(const GPUDevice::CreateInfo &createInfo);
-    bool initSwapchain(const SwapchainExtent &size);
-    bool initFrameSync();
+    auto initInstance(const GPUDevice::CreateInfo &createInfo) -> bool;
+    auto initSurface(void *windowHandle) -> bool;
+    auto initPhysicalDevice() -> bool;
+    auto initDevice(const GPUDevice::CreateInfo &createInfo) -> bool;
+    auto initSwapchain(const SwapchainExtent &size) -> bool;
+    auto initFrameSync() -> bool;
 
     std::unique_ptr<Instance> m_instance;
     std::unique_ptr<Surface> m_surface;
@@ -71,8 +74,8 @@ private:
     VulkanDevice *m_parent;
 };
 
-std::expected<std::unique_ptr<GPUDevice>, std::string>
-VulkanDevice::create(const CreateInfo &createInfo)
+auto VulkanDevice::create(const CreateInfo &createInfo)
+    -> std::expected<std::unique_ptr<GPUDevice>, std::string>
 {
     auto device = Factory::create();
 
@@ -113,7 +116,7 @@ VulkanDevice::Impl::Impl(VulkanDevice *parent, const GPUDevice::CreateInfo &crea
     }
 }
 
-bool VulkanDevice::Impl::initInstance(const GPUDevice::CreateInfo &createInfo)
+auto VulkanDevice::Impl::initInstance(const GPUDevice::CreateInfo &createInfo) -> bool
 {
     auto platform = std::make_unique<platform::GlfwPlatform>();
 
@@ -136,7 +139,7 @@ bool VulkanDevice::Impl::initInstance(const GPUDevice::CreateInfo &createInfo)
     return true;
 }
 
-bool VulkanDevice::Impl::initSurface(void *windowHandle)
+auto VulkanDevice::Impl::initSurface(void *windowHandle) -> bool
 {
     if (!m_instance) {
         m_lastError = "Instance is not initialized";
@@ -154,7 +157,7 @@ bool VulkanDevice::Impl::initSurface(void *windowHandle)
     return true;
 }
 
-bool VulkanDevice::Impl::initPhysicalDevice()
+auto VulkanDevice::Impl::initPhysicalDevice() -> bool
 {
     auto result = PhysicalDevice::create(m_instance->getHandle(), m_surface->getHandle());
     if (!result) {
@@ -167,7 +170,7 @@ bool VulkanDevice::Impl::initPhysicalDevice()
     return true;
 }
 
-bool VulkanDevice::Impl::initDevice(const GPUDevice::CreateInfo &createInfo)
+auto VulkanDevice::Impl::initDevice(const GPUDevice::CreateInfo &createInfo) -> bool
 {
     Device::CreateInfo deviceInfo;
     deviceInfo.physicalDevice = m_physicalDevice.get();
@@ -214,7 +217,7 @@ bool VulkanDevice::Impl::initDevice(const GPUDevice::CreateInfo &createInfo)
     return true;
 }
 
-bool VulkanDevice::Impl::initSwapchain(const SwapchainExtent &size)
+auto VulkanDevice::Impl::initSwapchain(const SwapchainExtent &size) -> bool
 {
     if (!m_device) {
         m_lastError = "Device is not initialized";
@@ -238,7 +241,7 @@ bool VulkanDevice::Impl::initSwapchain(const SwapchainExtent &size)
     return true;
 }
 
-bool VulkanDevice::Impl::initFrameSync()
+auto VulkanDevice::Impl::initFrameSync() -> bool
 {
     if (!m_device) {
         m_lastError = "Device is not initialized";
@@ -270,7 +273,7 @@ void VulkanDevice::Impl::waitIdle()
     m_device->waitIdle();
 }
 
-std::expected<u32, std::string> VulkanDevice::Impl::beginFrame()
+auto VulkanDevice::Impl::beginFrame() -> std::expected<u32, std::string>
 {
     if (!m_device || !m_swapchain || !m_frameSync) {
         return std::unexpected("Instance is not initialized");
@@ -351,7 +354,7 @@ std::expected<u32, std::string> VulkanDevice::Impl::beginFrame()
     return {};
 }
 
-std::expected<void, std::string> VulkanDevice::Impl::endFrame()
+auto VulkanDevice::Impl::endFrame() -> std::expected<void, std::string>
 {
     if (!m_device || !m_swapchain || !m_frameSync) {
         return std::unexpected("Instance is not initialized");
@@ -444,7 +447,7 @@ std::expected<void, std::string> VulkanDevice::Impl::endFrame()
     return {};
 }
 
-std::expected<void, std::string> VulkanDevice::Impl::resize(const FramebufferSize &size)
+auto VulkanDevice::Impl::resize(const FramebufferSize &size) -> std::expected<void, std::string>
 {
     if (size.width == 0 || size.height == 0) {
         return std::unexpected("Invalid framebuffer size");
@@ -472,8 +475,8 @@ void VulkanDevice::Impl::draw(
     m_frameSync->cmdDraw(vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-std::expected<std::unique_ptr<Pipeline::Builder>, std::string>
-VulkanDevice::Impl::createPipelineBuilder()
+auto VulkanDevice::Impl::createPipelineBuilder()
+    -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string>
 {
     if (!m_device) {
         return std::unexpected("Device is not initialized");
@@ -500,7 +503,7 @@ void VulkanDevice::waitIdle()
     }
 }
 
-std::expected<u32, std::string> VulkanDevice::beginFrame()
+auto VulkanDevice::beginFrame() -> std::expected<u32, std::string>
 {
     if (m_impl) {
         return m_impl->beginFrame();
@@ -508,7 +511,7 @@ std::expected<u32, std::string> VulkanDevice::beginFrame()
     return std::unexpected("VulkanDevice is not initialized");
 }
 
-std::expected<void, std::string> VulkanDevice::endFrame()
+auto VulkanDevice::endFrame() -> std::expected<void, std::string>
 {
     if (m_impl) {
         return m_impl->endFrame();
@@ -516,7 +519,7 @@ std::expected<void, std::string> VulkanDevice::endFrame()
     return std::unexpected("VulkanDevice is not initialized");
 }
 
-std::expected<void, std::string> VulkanDevice::resize(const FramebufferSize &size)
+auto VulkanDevice::resize(const FramebufferSize &size) -> std::expected<void, std::string>
 {
     if (m_impl) {
         return m_impl->resize(size);
@@ -531,7 +534,8 @@ void VulkanDevice::draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32
     }
 }
 
-std::expected<std::unique_ptr<Pipeline::Builder>, std::string> VulkanDevice::createPipelineBuilder()
+auto VulkanDevice::createPipelineBuilder()
+    -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string>
 {
     if (m_impl) {
         return m_impl->createPipelineBuilder();
@@ -539,7 +543,7 @@ std::expected<std::unique_ptr<Pipeline::Builder>, std::string> VulkanDevice::cre
     return std::unexpected("VulkanDevice is not initialized");
 }
 
-Instance *VulkanDevice::getInstance() const
+auto VulkanDevice::getInstance() const -> Instance *
 {
     if (m_impl) {
         return m_impl->getInstance();
@@ -547,7 +551,7 @@ Instance *VulkanDevice::getInstance() const
     return nullptr;
 }
 
-Surface *VulkanDevice::getSurface() const
+auto VulkanDevice::getSurface() const -> Surface *
 {
     if (m_impl) {
         return m_impl->getSurface();
@@ -555,7 +559,7 @@ Surface *VulkanDevice::getSurface() const
     return nullptr;
 }
 
-PhysicalDevice *VulkanDevice::getPhysicalDevice() const
+auto VulkanDevice::getPhysicalDevice() const -> PhysicalDevice *
 {
     if (m_impl) {
         return m_impl->getPhysicalDevice();
@@ -563,7 +567,7 @@ PhysicalDevice *VulkanDevice::getPhysicalDevice() const
     return nullptr;
 }
 
-Device *VulkanDevice::getDevice() const
+auto VulkanDevice::getDevice() const -> Device *
 {
     if (m_impl) {
         return m_impl->getDevice();
@@ -571,7 +575,7 @@ Device *VulkanDevice::getDevice() const
     return nullptr;
 }
 
-Swapchain *VulkanDevice::getSwapchain() const
+auto VulkanDevice::getSwapchain() const -> Swapchain *
 {
     if (m_impl) {
         return m_impl->getSwapchain();
@@ -579,7 +583,7 @@ Swapchain *VulkanDevice::getSwapchain() const
     return nullptr;
 }
 
-FrameSync *VulkanDevice::getFrameSync() const
+auto VulkanDevice::getFrameSync() const -> FrameSync *
 {
     if (m_impl) {
         return m_impl->getFrameSync();

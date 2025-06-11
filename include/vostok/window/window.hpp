@@ -19,27 +19,27 @@ struct WindowSize
 class Window
 {
 public:
-    static std::expected<std::unique_ptr<Window>, std::string>
-    create(const WindowConfig &config = {});
+    static auto create(const WindowConfig &config = {})
+        -> std::expected<std::unique_ptr<Window>, std::string>;
 
     virtual ~Window() = default;
 
     Window(const Window &) = delete;
-    Window &operator=(const Window &) = delete;
+    auto operator=(const Window &) -> Window & = delete;
     Window(Window &&) = delete;
-    Window &operator=(Window &&) = delete;
+    auto operator=(Window &&) -> Window & = delete;
 
     virtual void pollEvents() = 0;
-    [[nodiscard]] virtual bool shouldClose() const = 0;
+    [[nodiscard]] virtual auto shouldClose() const -> bool = 0;
     virtual void close() = 0;
 
-    [[nodiscard]] virtual u32 getWidth() const = 0;
-    [[nodiscard]] virtual u32 getHeight() const = 0;
-    [[nodiscard]] virtual f32 getAspectRatio() const = 0;
-    [[nodiscard]] virtual std::string getTitle() const = 0;
+    [[nodiscard]] virtual auto getWidth() const -> u32 = 0;
+    [[nodiscard]] virtual auto getHeight() const -> u32 = 0;
+    [[nodiscard]] virtual auto getAspectRatio() const -> f32 = 0;
+    [[nodiscard]] virtual auto getTitle() const -> std::string = 0;
 
-    [[nodiscard]] virtual void *getNativeHandle() const = 0;
-    [[nodiscard]] virtual void *getNativeDisplay() const = 0;
+    [[nodiscard]] virtual auto getNativeHandle() const -> void * = 0;
+    [[nodiscard]] virtual auto getNativeDisplay() const -> void * = 0;
 
     virtual void setTitle(std::string_view title) = 0;
     virtual void setSize(const WindowSize &size) = 0;
@@ -56,8 +56,8 @@ public:
     virtual void hide() = 0;
     virtual void show() = 0;
 
-    [[nodiscard]] virtual bool isKeyPressed(KeyCode key) const = 0;
-    [[nodiscard]] virtual std::pair<f64, f64> getMousePosition() const = 0;
+    [[nodiscard]] virtual auto isKeyPressed(KeyCode key) const -> bool = 0;
+    [[nodiscard]] virtual auto getMousePosition() const -> std::pair<f64, f64> = 0;
     virtual void setMousePosition(f64 x, f64 y) = 0;
     virtual void showCursor(bool show) = 0;
 

@@ -7,7 +7,7 @@ Checks: >
   performance-*,
   portability-*,
   readability-*,
-  -modernize-use-trailing-return-type,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,
   -cppcoreguidelines-owning-memory,
   -cppcoreguidelines-avoid-magic-numbers,

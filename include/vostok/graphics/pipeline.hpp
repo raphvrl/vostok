@@ -115,9 +115,9 @@ public:
     virtual ~Pipeline() = default;
 
     Pipeline(Pipeline &) = delete;
-    Pipeline &operator=(const Pipeline &) = delete;
+    auto operator=(const Pipeline &) -> Pipeline & = delete;
     Pipeline(Pipeline &&) = delete;
-    Pipeline &operator=(Pipeline &&) = delete;
+    auto operator=(Pipeline &&) -> Pipeline & = delete;
 
     class Builder
     {
@@ -126,49 +126,49 @@ public:
         virtual ~Builder() = default;
 
         Builder(Builder &) = delete;
-        Builder &operator=(const Builder &) = delete;
+        auto operator=(const Builder &) -> Builder & = delete;
         Builder(Builder &&) = delete;
-        Builder &operator=(Builder &&) = delete;
+        auto operator=(Builder &&) -> Builder & = delete;
 
-        virtual Builder &setVertexShader(const fs::path &path) = 0;
-        virtual Builder &setFragmentShader(const fs::path &path) = 0;
-        virtual Builder &setGeometryShader(const fs::path &path) = 0;
-        virtual Builder &setTessellationControlShader(const fs::path &path) = 0;
-        virtual Builder &setTessellationEvaluationShader(const fs::path &path) = 0;
-        virtual Builder &setComputeShader(const fs::path &path) = 0;
+        virtual auto setVertexShader(const fs::path &path) -> Builder & = 0;
+        virtual auto setFragmentShader(const fs::path &path) -> Builder & = 0;
+        virtual auto setGeometryShader(const fs::path &path) -> Builder & = 0;
+        virtual auto setTessellationControlShader(const fs::path &path) -> Builder & = 0;
+        virtual auto setTessellationEvaluationShader(const fs::path &path) -> Builder & = 0;
+        virtual auto setComputeShader(const fs::path &path) -> Builder & = 0;
 
-        virtual Builder &setPrimitiveTopology(const PrimitiveTopology &topology) = 0;
+        virtual auto setPrimitiveTopology(const PrimitiveTopology &topology) -> Builder & = 0;
 
-        virtual Builder &setPolygonMode(const PolygonMode &mode) = 0;
-        virtual Builder &setCullMode(const CullMode &mode) = 0;
-        virtual Builder &setFrontFace(const FrontFace &face) = 0;
-        virtual Builder &setLineWidth(f32 width) = 0;
+        virtual auto setPolygonMode(const PolygonMode &mode) -> Builder & = 0;
+        virtual auto setCullMode(const CullMode &mode) -> Builder & = 0;
+        virtual auto setFrontFace(const FrontFace &face) -> Builder & = 0;
+        virtual auto setLineWidth(f32 width) -> Builder & = 0;
 
-        virtual Builder &setDepthTest(bool enable) = 0;
-        virtual Builder &setDepthWrite(bool enable) = 0;
-        virtual Builder &setDepthCompareOp(const CompareOp &op) = 0;
-        virtual Builder &setStencilTest(bool enable) = 0;
-        virtual Builder &setStencilOp(
+        virtual auto setDepthTest(bool enable) -> Builder & = 0;
+        virtual auto setDepthWrite(bool enable) -> Builder & = 0;
+        virtual auto setDepthCompareOp(const CompareOp &op) -> Builder & = 0;
+        virtual auto setStencilTest(bool enable) -> Builder & = 0;
+        virtual auto setStencilOp(
             const StencilOp &failOp,
             const StencilOp &passOp,
             const StencilOp &depthFailOp
-        ) = 0;
+        ) -> Builder & = 0;
 
-        virtual Builder &setBlend(bool enable) = 0;
-        virtual Builder &setBlendFactor(
+        virtual auto setBlend(bool enable) -> Builder & = 0;
+        virtual auto setBlendFactor(
             const BlendFactor &srcColor,
             const BlendFactor &dstColor,
             const BlendFactor &srcAlpha,
             const BlendFactor &dstAlpha
-        ) = 0;
-        virtual Builder &setBlendOp(const BlendOp &colorOp, const BlendOp &alphaOp) = 0;
-        virtual Builder &setColorWriteMask(const ColorComponentFlags &mask) = 0;
+        ) -> Builder & = 0;
+        virtual auto setBlendOp(const BlendOp &colorOp, const BlendOp &alphaOp) -> Builder & = 0;
+        virtual auto setColorWriteMask(const ColorComponentFlags &mask) -> Builder & = 0;
 
-        virtual Builder &addPushConstant(u32 size);
+        virtual auto addPushConstant(u32 size) -> Builder &;
 
-        virtual Builder &setName(const std::string &name) = 0;
+        virtual auto setName(const std::string &name) -> Builder & = 0;
 
-        virtual std::expected<std::unique_ptr<Pipeline>, std::string> build() = 0;
+        virtual auto build() -> std::expected<std::unique_ptr<Pipeline>, std::string> = 0;
     };
 
     virtual void bind() = 0;

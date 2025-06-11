@@ -5,7 +5,7 @@
 namespace vostok::graphics::vulkan::utils
 {
 
-inline LoggerHandle &getVulkanLogger()
+inline auto getVulkanLogger() -> LoggerHandle &
 {
     static LoggerHandle s_vulkanLogger = Logger::getLogger("vulkan");
     return s_vulkanLogger;

@@ -20,7 +20,7 @@ struct QueueFamilyIndices
     std::optional<u32> computeFamily;
     std::optional<u32> transferFamily;
 
-    [[nodiscard]] bool isComplete() const
+    [[nodiscard]] auto isComplete() const -> bool
     {
         return graphicsFamily.has_value() && presentFamily.has_value() &&
                computeFamily.has_value() && transferFamily.has_value();
@@ -35,34 +35,41 @@ public:
         bool geometryShader = false;
     };
 
-    static std::expected<std::unique_ptr<PhysicalDevice>, std::string>
-    create(VkInstance instance, VkSurfaceKHR surface);
+    static auto create(VkInstance instance, VkSurfaceKHR surface)
+        -> std::expected<std::unique_ptr<PhysicalDevice>, std::string>;
 
     ~PhysicalDevice();
 
     PhysicalDevice(const PhysicalDevice &) = delete;
-    PhysicalDevice &operator=(const PhysicalDevice &) = delete;
+    auto operator=(const PhysicalDevice &) -> PhysicalDevice & = delete;
     PhysicalDevice(PhysicalDevice &&other) noexcept;
-    PhysicalDevice &operator=(PhysicalDevice &&other) noexcept;
+    auto operator=(PhysicalDevice &&other) noexcept -> PhysicalDevice &;
 
-    [[nodiscard]] VkPhysicalDevice getHandle() const { return m_physicalDevice; }
-    [[nodiscard]] const VkPhysicalDeviceProperties &getProperties() const { return m_properties; }
-    [[nodiscard]] const VkPhysicalDeviceMemoryProperties &getMemoryProperties() const
+    [[nodiscard]] auto getHandle() const -> VkPhysicalDevice { return m_physicalDevice; }
+    [[nodiscard]] auto getProperties() const -> const VkPhysicalDeviceProperties &
+    {
+        return m_properties;
+    }
+    [[nodiscard]] auto getMemoryProperties() const -> const VkPhysicalDeviceMemoryProperties &
     {
         return m_memoryProperties;
     }
 
-    [[nodiscard]] const Features &getSupportedFeatures() const { return m_supportedFeatures; }
-    [[nodiscard]] const QueueFamilyIndices &getQueueFamilyIndices() const
+    [[nodiscard]] auto getSupportedFeatures() const -> const Features &
+    {
+        return m_supportedFeatures;
+    }
+    [[nodiscard]] auto getQueueFamilyIndices() const -> const QueueFamilyIndices &
     {
         return m_queueFamilyIndices;
     }
 
-    [[nodiscard]] bool
-    isFormatSupported(VkFormat format, VkImageTiling tiling, VkFormatFeatureFlags features) const;
+    [[nodiscard]] auto
+    isFormatSupported(VkFormat format, VkImageTiling tiling, VkFormatFeatureFlags features) const
+        -> bool;
 
-    [[nodiscard]] bool
-    checkDeviceExtensionSupport(const std::vector<const char *> &requiredExtensions) const;
+    [[nodiscard]] auto
+    checkDeviceExtensionSupport(const std::vector<const char *> &requiredExtensions) const -> bool;
 
 private:
     PhysicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);

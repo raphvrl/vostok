@@ -14,17 +14,14 @@ struct Version
     u32 minor = 0;
     u32 patch = 0;
 
-    [[nodiscard]] std::string toString() const
+    [[nodiscard]] auto toString() const -> std::string
     {
         return std::format("{}.{}.{}", major, minor, patch);
     }
 
-    [[nodiscard]] u32 toPackedInt() const
-    {
-        return (major << 22) | (minor << 12) | patch;
-    }
+    [[nodiscard]] auto toPackedInt() const -> u32 { return (major << 22) | (minor << 12) | patch; }
 
-    static Version fromPackedInt(u32 packed)
+    static auto fromPackedInt(u32 packed) -> Version
     {
         return Version{
             .major = (packed >> 22) & 0x3FF,
@@ -33,17 +30,14 @@ struct Version
         };
     }
 
-    bool operator==(const Version &other) const
+    auto operator==(const Version &other) const -> bool
     {
         return major == other.major && minor == other.minor && patch == other.patch;
     }
 
-    bool operator!=(const Version &other) const
-    {
-        return !(*this == other);
-    }
+    auto operator!=(const Version &other) const -> bool { return !(*this == other); }
 
-    bool operator<(const Version &other) const
+    auto operator<(const Version &other) const -> bool
     {
         if (major != other.major) {
             return major < other.major;
@@ -54,20 +48,11 @@ struct Version
         return patch < other.patch;
     }
 
-    bool operator>(const Version &other) const
-    {
-        return other < *this;
-    }
+    auto operator>(const Version &other) const -> bool { return other < *this; }
 
-    bool operator<=(const Version &other) const
-    {
-        return !(*this > other);
-    }
+    auto operator<=(const Version &other) const -> bool { return !(*this > other); }
 
-    bool operator>=(const Version &other) const
-    {
-        return !(*this < other);
-    }
+    auto operator>=(const Version &other) const -> bool { return !(*this < other); }
 };
 
 } // namespace vostok::core

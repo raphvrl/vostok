@@ -52,7 +52,7 @@ PhysicalDevice::PhysicalDevice(PhysicalDevice &&other) noexcept
     other.m_physicalDevice = VK_NULL_HANDLE;
 }
 
-PhysicalDevice &PhysicalDevice::operator=(PhysicalDevice &&other) noexcept
+auto PhysicalDevice::operator=(PhysicalDevice &&other) noexcept -> PhysicalDevice &
 {
     if (this != &other) {
         m_physicalDevice = other.m_physicalDevice;
@@ -68,8 +68,8 @@ PhysicalDevice &PhysicalDevice::operator=(PhysicalDevice &&other) noexcept
     return *this;
 }
 
-std::expected<std::unique_ptr<PhysicalDevice>, std::string>
-PhysicalDevice::create(VkInstance instance, VkSurfaceKHR surface)
+auto PhysicalDevice::create(VkInstance instance, VkSurfaceKHR surface)
+    -> std::expected<std::unique_ptr<PhysicalDevice>, std::string>
 {
     Logger::info("try to creating Vulkan physical device");
 
@@ -255,11 +255,11 @@ void PhysicalDevice::initializeQueueFamilyIndices(VkSurfaceKHR surface)
     }
 }
 
-bool PhysicalDevice::isFormatSupported(
+auto PhysicalDevice::isFormatSupported(
     VkFormat format,
     VkImageTiling tiling,
     VkFormatFeatureFlags features
-) const
+) const -> bool
 {
     VkFormatProperties props;
     vkGetPhysicalDeviceFormatProperties(m_physicalDevice, format, &props);
@@ -275,9 +275,9 @@ bool PhysicalDevice::isFormatSupported(
     return false;
 }
 
-bool PhysicalDevice::checkDeviceExtensionSupport(
+auto PhysicalDevice::checkDeviceExtensionSupport(
     const std::vector<const char *> &requiredExtensions
-) const
+) const -> bool
 {
     std::vector<std::string> requiredExtensionsStr(
         requiredExtensions.begin(),

@@ -20,22 +20,22 @@ class FrameSync;
 class VulkanDevice : public graphics::GPUDevice
 {
 public:
-    static std::expected<std::unique_ptr<GPUDevice>, std::string>
-    create(const CreateInfo &createInfo);
+    static auto create(const CreateInfo &createInfo)
+        -> std::expected<std::unique_ptr<GPUDevice>, std::string>;
 
     ~VulkanDevice() override;
 
     VulkanDevice(const VulkanDevice &) = delete;
-    VulkanDevice &operator=(const VulkanDevice &) = delete;
+    auto operator=(const VulkanDevice &) -> VulkanDevice & = delete;
     VulkanDevice(VulkanDevice &&) = delete;
-    VulkanDevice &operator=(VulkanDevice &&) = delete;
+    auto operator=(VulkanDevice &&) -> VulkanDevice & = delete;
 
     void waitIdle() override;
 
-    std::expected<u32, std::string> beginFrame() override;
-    std::expected<void, std::string> endFrame() override;
+    auto beginFrame() -> std::expected<u32, std::string> override;
+    auto endFrame() -> std::expected<void, std::string> override;
 
-    std::expected<void, std::string> resize(const FramebufferSize &size) override;
+    auto resize(const FramebufferSize &size) -> std::expected<void, std::string> override;
 
     void draw(
         u32 vertexCount,
@@ -44,21 +44,22 @@ public:
         u32 firstInstance = 0
     ) override;
 
-    std::expected<std::unique_ptr<Pipeline::Builder>, std::string> createPipelineBuilder() override;
+    auto createPipelineBuilder()
+        -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string> override;
 
-    [[nodiscard]] Instance *getInstance() const;
-    [[nodiscard]] Surface *getSurface() const;
-    [[nodiscard]] PhysicalDevice *getPhysicalDevice() const;
-    [[nodiscard]] Device *getDevice() const;
-    [[nodiscard]] Swapchain *getSwapchain() const;
-    [[nodiscard]] FrameSync *getFrameSync() const;
+    [[nodiscard]] auto getInstance() const -> Instance *;
+    [[nodiscard]] auto getSurface() const -> Surface *;
+    [[nodiscard]] auto getPhysicalDevice() const -> PhysicalDevice *;
+    [[nodiscard]] auto getDevice() const -> Device *;
+    [[nodiscard]] auto getSwapchain() const -> Swapchain *;
+    [[nodiscard]] auto getFrameSync() const -> FrameSync *;
 
 private:
     VulkanDevice();
 
     struct Factory
     {
-        static std::unique_ptr<VulkanDevice> create()
+        static auto create() -> std::unique_ptr<VulkanDevice>
         {
             return std::unique_ptr<VulkanDevice>(new VulkanDevice());
         }

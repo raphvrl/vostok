@@ -5,8 +5,8 @@
 namespace vostok::graphics
 {
 
-std::expected<std::unique_ptr<GPUDevice>, std::string>
-GPUDevice::create(const CreateInfo &createInfo, RenderBackend backend)
+auto GPUDevice::create(const CreateInfo &createInfo, RenderBackend backend)
+    -> std::expected<std::unique_ptr<GPUDevice>, std::string>
 {
     switch (backend) {
         case RenderBackend::VULKAN:

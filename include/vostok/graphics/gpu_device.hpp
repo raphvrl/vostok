@@ -42,25 +42,28 @@ public:
     virtual ~GPUDevice() = default;
 
     GPUDevice(const GPUDevice &) = delete;
-    GPUDevice &operator=(const GPUDevice &) = delete;
+    auto operator=(const GPUDevice &) -> GPUDevice & = delete;
     GPUDevice(GPUDevice &&) = delete;
-    GPUDevice &operator=(GPUDevice &&) = delete;
+    auto operator=(GPUDevice &&) -> GPUDevice & = delete;
 
-    static std::expected<std::unique_ptr<GPUDevice>, std::string>
-    create(const CreateInfo &createInfo, RenderBackend backend = RenderBackend::VULKAN);
+    static auto create(const CreateInfo &createInfo, RenderBackend backend = RenderBackend::VULKAN)
+        -> std::expected<std::unique_ptr<GPUDevice>, std::string>;
 
     virtual void waitIdle() = 0;
 
-    virtual std::expected<u32, std::string> beginFrame() = 0;
-    virtual std::expected<void, std::string> endFrame() = 0;
+    virtual auto beginFrame()
+        -> std::expected<u32, std::string> = 0;
+    virtual auto endFrame()
+        -> std::expected<void, std::string> = 0;
 
-    virtual std::expected<void, std::string> resize(const FramebufferSize &size) = 0;
+    virtual auto resize(const FramebufferSize &size)
+        -> std::expected<void, std::string> = 0;
 
     virtual void
     draw(u32 vertexCount, u32 instanceCount = 1, u32 firstVertex = 0, u32 firstInstance = 0) = 0;
 
-    virtual std::expected<std::unique_ptr<Pipeline::Builder>, std::string>
-    createPipelineBuilder() = 0;
+    virtual auto createPipelineBuilder()
+        -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string> = 0;
 
 private:
     RenderBackend m_backend = RenderBackend::VULKAN;

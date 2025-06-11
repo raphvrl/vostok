@@ -8,10 +8,10 @@ namespace vostok::graphics::vulkan::platform
 class GlfwPlatform : public PlatformInterface
 {
 public:
-    [[nodiscard]] std::vector<const char *> getRequiredInstanceExtensions() const override;
+    [[nodiscard]] auto getRequiredInstanceExtensions() const -> std::vector<const char *> override;
 
-    std::expected<VkSurfaceKHR, std::string>
-    createSurface(VkInstance instance, void *window) const override;
+    auto createSurface(VkInstance instance, void *window) const
+        -> std::expected<VkSurfaceKHR, std::string> override;
 };
 
 } // namespace vostok::graphics::vulkan::platform

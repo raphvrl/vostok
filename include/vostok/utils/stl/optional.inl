@@ -8,7 +8,7 @@ namespace vostok::utils
 {
 
 template <typename T>
-T getValueSafe(const std::optional<T> &opt, const char *name)
+auto getValueSafe(const std::optional<T> &opt, const char *name) -> T
 {
     if (!opt.has_value()) {
         Logger::critical("Attempt to access non-existent {} queue family index", name);

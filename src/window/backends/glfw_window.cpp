@@ -30,21 +30,21 @@ public:
     ~Impl();
 
     Impl(const Impl &) = delete;
-    Impl &operator=(const Impl &) = delete;
+    auto operator=(const Impl &) -> Impl & = delete;
     Impl(Impl &&) = delete;
-    Impl &operator=(Impl &&) = delete;
+    auto operator=(Impl &&) -> Impl & = delete;
 
     void pollEvents();
-    [[nodiscard]] bool shouldClose() const;
+    [[nodiscard]] auto shouldClose() const -> bool;
     void close();
 
-    [[nodiscard]] u32 getWidth() const;
-    [[nodiscard]] u32 getHeight() const;
-    [[nodiscard]] f32 getAspectRatio() const;
-    [[nodiscard]] std::string getTitle() const;
+    [[nodiscard]] auto getWidth() const -> u32;
+    [[nodiscard]] auto getHeight() const -> u32;
+    [[nodiscard]] auto getAspectRatio() const -> f32;
+    [[nodiscard]] auto getTitle() const -> std::string;
 
-    [[nodiscard]] void *getNativeHandle() const;
-    [[nodiscard]] void *getNativeDisplay() const;
+    [[nodiscard]] auto getNativeHandle() const -> void *;
+    [[nodiscard]] auto getNativeDisplay() const -> void *;
 
     void setTitle(std::string_view title);
     void setSize(const WindowSize &size);
@@ -60,8 +60,8 @@ public:
     void hide();
     void show();
 
-    [[nodiscard]] bool isKeyPressed(KeyCode key) const;
-    [[nodiscard]] std::pair<f64, f64> getMousePosition() const;
+    [[nodiscard]] auto isKeyPressed(KeyCode key) const -> bool;
+    [[nodiscard]] auto getMousePosition() const -> std::pair<f64, f64>;
     void setMousePosition(f64 x, f64 y);
     void showCursor(bool show);
 
@@ -85,8 +85,8 @@ private:
     static bool g_glfwInitialized;
     static int g_windowCount;
 
-    static int toGlfwKey(KeyCode key);
-    static KeyCode fromGlfwKey(int key);
+    static auto toGlfwKey(KeyCode key) -> int;
+    static auto fromGlfwKey(int key) -> KeyCode;
 };
 
 bool GlfwWindow::Impl::g_glfwInitialized = false;
@@ -159,7 +159,7 @@ void GlfwWindow::Impl::pollEvents()
     glfwPollEvents();
 }
 
-bool GlfwWindow::Impl::shouldClose() const
+auto GlfwWindow::Impl::shouldClose() const -> bool
 {
     if (m_window == nullptr) {
         return true;
@@ -177,32 +177,32 @@ void GlfwWindow::Impl::close()
     glfwSetWindowShouldClose(m_window, GLFW_TRUE);
 }
 
-u32 GlfwWindow::Impl::getWidth() const
+auto GlfwWindow::Impl::getWidth() const -> u32
 {
     return m_width;
 }
 
-u32 GlfwWindow::Impl::getHeight() const
+auto GlfwWindow::Impl::getHeight() const -> u32
 {
     return m_height;
 }
 
-f32 GlfwWindow::Impl::getAspectRatio() const
+auto GlfwWindow::Impl::getAspectRatio() const -> f32
 {
     return static_cast<f32>(m_width) / static_cast<f32>(m_height);
 }
 
-std::string GlfwWindow::Impl::getTitle() const
+auto GlfwWindow::Impl::getTitle() const -> std::string
 {
     return m_title;
 }
 
-void *GlfwWindow::Impl::getNativeHandle() const
+auto GlfwWindow::Impl::getNativeHandle() const -> void *
 {
     return static_cast<void *>(m_window);
 }
 
-void *GlfwWindow::Impl::getNativeDisplay() const
+auto GlfwWindow::Impl::getNativeDisplay() const -> void *
 {
 #if defined(_WIN32)
     return static_cast<void *>(GetDC(glfwGetWin32Window(m_window)));
@@ -381,7 +381,7 @@ void GlfwWindow::Impl::show()
     glfwShowWindow(m_window);
 }
 
-bool GlfwWindow::Impl::isKeyPressed(KeyCode key) const
+auto GlfwWindow::Impl::isKeyPressed(KeyCode key) const -> bool
 {
     if (m_window == nullptr) {
         return false;
@@ -392,7 +392,7 @@ bool GlfwWindow::Impl::isKeyPressed(KeyCode key) const
     return state == GLFW_PRESS || state == GLFW_REPEAT;
 }
 
-std::pair<f64, f64> GlfwWindow::Impl::getMousePosition() const
+auto GlfwWindow::Impl::getMousePosition() const -> std::pair<f64, f64>
 {
     if (m_window == nullptr) {
         return {0.0, 0.0};
@@ -567,7 +567,7 @@ void GlfwWindow::Impl::setupCallbacks()
     });
 }
 
-int GlfwWindow::Impl::toGlfwKey(KeyCode key)
+auto GlfwWindow::Impl::toGlfwKey(KeyCode key) -> int
 {
     switch (key) {
         case KeyCode::ESCAPE:
@@ -655,7 +655,7 @@ int GlfwWindow::Impl::toGlfwKey(KeyCode key)
     }
 }
 
-KeyCode GlfwWindow::Impl::fromGlfwKey(int key)
+auto GlfwWindow::Impl::fromGlfwKey(int key) -> KeyCode
 {
     switch (key) {
         case GLFW_KEY_ESCAPE:
@@ -701,8 +701,8 @@ GlfwWindow::GlfwWindow(const WindowConfig &config) : m_impl(std::make_unique<Imp
 
 GlfwWindow::~GlfwWindow() = default;
 
-std::expected<std::unique_ptr<GlfwWindow>, std::string>
-GlfwWindow::create(const WindowConfig &config)
+auto GlfwWindow::create(const WindowConfig &config)
+    -> std::expected<std::unique_ptr<GlfwWindow>, std::string>
 {
     try {
         return std::unique_ptr<GlfwWindow>(new GlfwWindow(config));
@@ -718,7 +718,7 @@ void GlfwWindow::pollEvents()
     m_impl->pollEvents();
 }
 
-bool GlfwWindow::shouldClose() const
+auto GlfwWindow::shouldClose() const -> bool
 {
     return m_impl->shouldClose();
 }
@@ -728,32 +728,32 @@ void GlfwWindow::close()
     m_impl->close();
 }
 
-u32 GlfwWindow::getWidth() const
+auto GlfwWindow::getWidth() const -> u32
 {
     return m_impl->getWidth();
 }
 
-u32 GlfwWindow::getHeight() const
+auto GlfwWindow::getHeight() const -> u32
 {
     return m_impl->getHeight();
 }
 
-f32 GlfwWindow::getAspectRatio() const
+auto GlfwWindow::getAspectRatio() const -> f32
 {
     return m_impl->getAspectRatio();
 }
 
-std::string GlfwWindow::getTitle() const
+auto GlfwWindow::getTitle() const -> std::string
 {
     return m_impl->getTitle();
 }
 
-void *GlfwWindow::getNativeHandle() const
+auto GlfwWindow::getNativeHandle() const -> void *
 {
     return m_impl->getNativeHandle();
 }
 
-void *GlfwWindow::getNativeDisplay() const
+auto GlfwWindow::getNativeDisplay() const -> void *
 {
     return m_impl->getNativeDisplay();
 }
@@ -813,12 +813,12 @@ void GlfwWindow::show()
     m_impl->show();
 }
 
-bool GlfwWindow::isKeyPressed(KeyCode key) const
+auto GlfwWindow::isKeyPressed(KeyCode key) const -> bool
 {
     return m_impl->isKeyPressed(key);
 }
 
-std::pair<f64, f64> GlfwWindow::getMousePosition() const
+auto GlfwWindow::getMousePosition() const -> std::pair<f64, f64>
 {
     return m_impl->getMousePosition();
 }

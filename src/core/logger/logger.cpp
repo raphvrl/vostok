@@ -30,11 +30,11 @@ public:
     ~LogSystem();
 
     LogSystem(const LogSystem &) = delete;
-    LogSystem &operator=(const LogSystem &) = delete;
+    auto operator=(const LogSystem &) -> LogSystem & = delete;
     LogSystem(LogSystem &&) = delete;
-    LogSystem &operator=(LogSystem &&) = delete;
+    auto operator=(LogSystem &&) -> LogSystem & = delete;
 
-    [[nodiscard]] LoggerHandle getLogger(std::string_view name);
+    [[nodiscard]] auto getLogger(std::string_view name) -> LoggerHandle;
     void setDefaultLevel(LogLevel level);
     void setLevel(std::string_view component, LogLevel level);
     void setPattern(std::string_view pattern);
@@ -44,15 +44,16 @@ public:
 
 private:
     std::unordered_map<std::string, std::shared_ptr<LoggerHandle::Impl>> m_loggers;
-    std::shared_ptr<spdlog::logger> createSpdLogger(std::string_view name);
-    static std::string formatLogFilename(const std::string &pattern, std::string_view loggerName);
+    auto createSpdLogger(std::string_view name) -> std::shared_ptr<spdlog::logger>;
+    static auto formatLogFilename(const std::string &pattern, std::string_view loggerName)
+        -> std::string;
 
     LogConfig m_config;
     std::vector<spdlog::sink_ptr> m_sinks;
     mutable std::mutex m_mutex;
 
-    static spdlog::level::level_enum convertLevel(LogLevel level);
-    static LogLevel convertLevel(spdlog::level::level_enum level);
+    static auto convertLevel(LogLevel level) -> spdlog::level::level_enum;
+    static auto convertLevel(spdlog::level::level_enum level) -> LogLevel;
 };
 
 class LoggerHandle::Impl
@@ -91,7 +92,7 @@ public:
         }
     }
 
-    [[nodiscard]] bool shouldLog(LogLevel level) const
+    [[nodiscard]] auto shouldLog(LogLevel level) const -> bool
     {
         return m_logger->should_log(convertLevel(level));
     }
@@ -101,15 +102,9 @@ public:
         m_logger->set_level(convertLevel(level));
     }
 
-    [[nodiscard]] LogLevel getLevel() const
-    {
-        return convertLevel(m_logger->level());
-    }
+    [[nodiscard]] auto getLevel() const -> LogLevel { return convertLevel(m_logger->level()); }
 
-    [[nodiscard]] std::string_view getName() const
-    {
-        return m_name;
-    }
+    [[nodiscard]] auto getName() const -> std::string_view { return m_name; }
 
 private:
     friend class LogSystem;
@@ -117,7 +112,7 @@ private:
     std::string m_name;
     std::shared_ptr<spdlog::logger> m_logger;
 
-    static spdlog::level::level_enum convertLevel(LogLevel level)
+    static auto convertLevel(LogLevel level) -> spdlog::level::level_enum
     {
         switch (level) {
             case LogLevel::TRACE:
@@ -138,7 +133,7 @@ private:
         return spdlog::level::info;
     }
 
-    static LogLevel convertLevel(spdlog::level::level_enum level)
+    static auto convertLevel(spdlog::level::level_enum level) -> LogLevel
     {
         if (level == spdlog::level::trace) {
             return LogLevel::TRACE;
@@ -166,19 +161,19 @@ private:
     };
 };
 
-std::unique_ptr<LogSystem> &getLogSystem()
+auto getLogSystem() -> std::unique_ptr<LogSystem> &
 {
     static std::unique_ptr<LogSystem> s_instance;
     return s_instance;
 }
 
-std::unordered_map<std::string, std::string> &getContextMap()
+auto getContextMap() -> std::unordered_map<std::string, std::string> &
 {
     static thread_local std::unordered_map<std::string, std::string> s_contextMap;
     return s_contextMap;
 }
 
-LoggerHandle &getDefaultLogger()
+auto getDefaultLogger() -> LoggerHandle &
 {
     static LoggerHandle s_defaultLogger(nullptr);
     return s_defaultLogger;
@@ -237,7 +232,7 @@ LogSystem::~LogSystem()
     spdlog::shutdown();
 }
 
-std::shared_ptr<spdlog::logger> LogSystem::createSpdLogger(std::string_view name)
+auto LogSystem::createSpdLogger(std::string_view name) -> std::shared_ptr<spdlog::logger>
 {
     const std::string LOGGER_NAME = !name.empty() ? std::string(name) : "default";
     std::shared_ptr<spdlog::logger> logger;
@@ -307,7 +302,8 @@ std::shared_ptr<spdlog::logger> LogSystem::createSpdLogger(std::string_view name
     return logger;
 }
 
-std::string LogSystem::formatLogFilename(const std::string &pattern, std::string_view loggerName)
+auto LogSystem::formatLogFilename(const std::string &pattern, std::string_view loggerName)
+    -> std::string
 {
     std::string result = pattern;
 
@@ -325,7 +321,7 @@ std::string LogSystem::formatLogFilename(const std::string &pattern, std::string
     return result;
 }
 
-LoggerHandle LogSystem::getLogger(std::string_view name)
+auto LogSystem::getLogger(std::string_view name) -> LoggerHandle
 {
     const std::string KEY = !name.empty() ? std::string(name) : "default";
 
@@ -407,24 +403,24 @@ void LogSystem::enableBacktrace(size_t size)
     m_config.backtraceSize = size;
 }
 
-spdlog::level::level_enum LogSystem::convertLevel(LogLevel level)
+auto LogSystem::convertLevel(LogLevel level) -> spdlog::level::level_enum
 {
     return LoggerHandle::Impl::convertLevel(level);
 }
 
-LogLevel LogSystem::convertLevel(spdlog::level::level_enum level)
+auto LogSystem::convertLevel(spdlog::level::level_enum level) -> LogLevel
 {
     return LoggerHandle::Impl::convertLevel(level);
 }
 
 LoggerHandle::LoggerHandle(std::shared_ptr<Impl> impl) : m_impl(std::move(impl)) {}
 
-bool LoggerHandle::shouldLog(LogLevel level) const
+auto LoggerHandle::shouldLog(LogLevel level) const -> bool
 {
     return m_impl && m_impl->shouldLog(level);
 }
 
-LogLevel LoggerHandle::getLevel() const
+auto LoggerHandle::getLevel() const -> LogLevel
 {
     return m_impl ? m_impl->getLevel() : LogLevel::OFF;
 }
@@ -436,7 +432,7 @@ void LoggerHandle::setLevel(LogLevel level)
     }
 }
 
-std::string_view LoggerHandle::getName() const
+auto LoggerHandle::getName() const -> std::string_view
 {
     static const std::string EMPTY;
     return m_impl ? m_impl->getName() : EMPTY;
@@ -453,7 +449,7 @@ void LoggerHandle::logImpl(
     }
 }
 
-std::expected<void, std::string> Logger::init(const LogConfig &config)
+auto Logger::init(const LogConfig &config) -> std::expected<void, std::string>
 {
     try {
         getLogSystem() = std::make_unique<LogSystem>(config);
@@ -470,7 +466,7 @@ void Logger::shutdown()
     getLogSystem().reset();
 }
 
-LoggerHandle Logger::getLogger(std::string_view name)
+auto Logger::getLogger(std::string_view name) -> LoggerHandle
 {
     if (!getLogSystem()) {
         auto result = init();
@@ -546,7 +542,7 @@ void Logger::binary(std::string_view name, std::span<const byte> data)
     }
 }
 
-LoggerHandle &Logger::getDefaultLogger()
+auto Logger::getDefaultLogger() -> LoggerHandle &
 {
     static LoggerHandle s_defaultLogger(nullptr);
 

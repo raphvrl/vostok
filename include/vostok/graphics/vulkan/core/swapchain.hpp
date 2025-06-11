@@ -29,26 +29,27 @@ public:
         bool vsync = false;
     };
 
-    static std::expected<std::unique_ptr<Swapchain>, std::string>
-    create(const CreateInfo &createInfo);
+    static auto create(const CreateInfo &createInfo)
+        -> std::expected<std::unique_ptr<Swapchain>, std::string>;
 
     ~Swapchain();
 
     Swapchain(const Swapchain &) = delete;
-    Swapchain &operator=(const Swapchain &) = delete;
+    auto operator=(const Swapchain &) -> Swapchain & = delete;
     Swapchain(Swapchain &&other) noexcept;
-    Swapchain &operator=(Swapchain &&other) noexcept;
+    auto operator=(Swapchain &&other) noexcept -> Swapchain &;
 
-    [[nodiscard]] VkSwapchainKHR getHandle() const { return m_swapchain; }
-    [[nodiscard]] VkFormat getFormat() const { return m_format; }
-    [[nodiscard]] VkExtent2D getExtent() const { return m_extent; }
-    [[nodiscard]] VkImage getImage(u32 index) const { return m_images[index]; }
-    [[nodiscard]] VkImageView getImageView(u32 index) const { return m_imageViews[index]; }
+    [[nodiscard]] auto getHandle() const -> VkSwapchainKHR { return m_swapchain; }
+    [[nodiscard]] auto getFormat() const -> VkFormat { return m_format; }
+    [[nodiscard]] auto getExtent() const -> VkExtent2D { return m_extent; }
+    [[nodiscard]] auto getImage(u32 index) const -> VkImage { return m_images[index]; }
+    [[nodiscard]] auto getImageView(u32 index) const -> VkImageView { return m_imageViews[index]; }
 
-    std::expected<u32, std::string> acquireNextImage(VkSemaphore semaphore, VkFence fence);
-    std::expected<void, std::string> present(u32 imageIndex, VkSemaphore renderSemaphore);
+    auto acquireNextImage(VkSemaphore semaphore, VkFence fence) -> std::expected<u32, std::string>;
+    auto present(u32 imageIndex, VkSemaphore renderSemaphore) -> std::expected<void, std::string>;
 
-    std::expected<std::unique_ptr<Swapchain>, std::string> recreate(const SwapchainExtent &size);
+    auto recreate(const SwapchainExtent &size)
+        -> std::expected<std::unique_ptr<Swapchain>, std::string>;
 
 private:
     Swapchain(
@@ -59,7 +60,7 @@ private:
         VkExtent2D extent
     );
 
-    bool createImageViews();
+    auto createImageViews() -> bool;
     void cleanup();
 
     Device *m_device = nullptr;

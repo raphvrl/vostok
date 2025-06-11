@@ -54,7 +54,7 @@ Device::Device(Device &&other) noexcept
     other.m_commandPool = VK_NULL_HANDLE;
 }
 
-Device &Device::operator=(Device &&other) noexcept
+auto Device::operator=(Device &&other) noexcept -> Device &
 {
     if (this != &other) {
         this->~Device();
@@ -78,7 +78,8 @@ Device &Device::operator=(Device &&other) noexcept
     return *this;
 }
 
-std::expected<std::unique_ptr<Device>, std::string> Device::create(const CreateInfo &createInfo)
+auto Device::create(const CreateInfo &createInfo)
+    -> std::expected<std::unique_ptr<Device>, std::string>
 {
     if (createInfo.physicalDevice == nullptr) {
         return std::unexpected("Physical device is null is required");
@@ -172,7 +173,7 @@ std::expected<std::unique_ptr<Device>, std::string> Device::create(const CreateI
     return devicePtr;
 }
 
-bool Device::initQueues()
+auto Device::initQueues() -> bool
 {
     const QueueFamilyIndices &indices = m_physicalDevice->getQueueFamilyIndices();
 
@@ -201,7 +202,7 @@ bool Device::initQueues()
     return true;
 }
 
-bool Device::createCommandPool()
+auto Device::createCommandPool() -> bool
 {
     const QueueFamilyIndices &indices = m_physicalDevice->getQueueFamilyIndices();
 

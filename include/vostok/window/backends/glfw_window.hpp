@@ -10,27 +10,27 @@ namespace vostok
 class GlfwWindow : public Window
 {
 public:
-    static std::expected<std::unique_ptr<GlfwWindow>, std::string>
-    create(const WindowConfig &config = {});
+    static auto create(const WindowConfig &config = {})
+        -> std::expected<std::unique_ptr<GlfwWindow>, std::string>;
 
     ~GlfwWindow() override;
 
     GlfwWindow(const GlfwWindow &) = delete;
-    GlfwWindow &operator=(const GlfwWindow &) = delete;
+    auto operator=(const GlfwWindow &) -> GlfwWindow & = delete;
     GlfwWindow(GlfwWindow &&) = delete;
-    GlfwWindow &operator=(GlfwWindow &&) = delete;
+    auto operator=(GlfwWindow &&) -> GlfwWindow & = delete;
 
     void pollEvents() override;
-    [[nodiscard]] bool shouldClose() const override;
+    [[nodiscard]] auto shouldClose() const -> bool override;
     void close() override;
 
-    [[nodiscard]] u32 getWidth() const override;
-    [[nodiscard]] u32 getHeight() const override;
-    [[nodiscard]] f32 getAspectRatio() const override;
-    [[nodiscard]] std::string getTitle() const override;
+    [[nodiscard]] auto getWidth() const -> u32 override;
+    [[nodiscard]] auto getHeight() const -> u32 override;
+    [[nodiscard]] auto getAspectRatio() const -> f32 override;
+    [[nodiscard]] auto getTitle() const -> std::string override;
 
-    [[nodiscard]] void *getNativeHandle() const override;
-    [[nodiscard]] void *getNativeDisplay() const override;
+    [[nodiscard]] auto getNativeHandle() const -> void * override;
+    [[nodiscard]] auto getNativeDisplay() const -> void * override;
 
     void setTitle(std::string_view title) override;
     void setSize(const WindowSize &size) override;
@@ -47,8 +47,8 @@ public:
     void hide() override;
     void show() override;
 
-    [[nodiscard]] bool isKeyPressed(KeyCode key) const override;
-    [[nodiscard]] std::pair<f64, f64> getMousePosition() const override;
+    [[nodiscard]] auto isKeyPressed(KeyCode key) const -> bool override;
+    [[nodiscard]] auto getMousePosition() const -> std::pair<f64, f64> override;
     void setMousePosition(f64 x, f64 y) override;
     void showCursor(bool show) override;
 

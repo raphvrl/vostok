@@ -9,7 +9,8 @@
 namespace vostok
 {
 
-std::expected<std::unique_ptr<Window>, std::string> Window::create(const WindowConfig &config)
+auto Window::create(const WindowConfig &config)
+    -> std::expected<std::unique_ptr<Window>, std::string>
 {
     WindowBackend backend = config.backend;
     if (backend == WindowBackend::AUTO) {

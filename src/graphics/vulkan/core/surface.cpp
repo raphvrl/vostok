@@ -24,7 +24,7 @@ Surface::Surface(Surface &&other) noexcept
     other.m_surface = VK_NULL_HANDLE;
 }
 
-Surface &Surface::operator=(Surface &&other) noexcept
+auto Surface::operator=(Surface &&other) noexcept -> Surface &
 {
     if (this != &other) {
         if (m_surface != VK_NULL_HANDLE) {
@@ -40,8 +40,8 @@ Surface &Surface::operator=(Surface &&other) noexcept
     return *this;
 }
 
-std::expected<std::unique_ptr<Surface>, std::string>
-Surface::create(Instance *instance, void *windowHandle)
+auto Surface::create(Instance *instance, void *windowHandle)
+    -> std::expected<std::unique_ptr<Surface>, std::string>
 {
     auto result = instance->createSurface(windowHandle);
     if (!result) {

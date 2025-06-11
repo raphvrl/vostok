@@ -46,7 +46,7 @@ Swapchain::Swapchain(Swapchain &&other) noexcept
     other.m_extent = {};
 }
 
-Swapchain &Swapchain::operator=(Swapchain &&other) noexcept
+auto Swapchain::operator=(Swapchain &&other) noexcept -> Swapchain &
 {
     if (this != &other) {
         cleanup();
@@ -86,8 +86,8 @@ void Swapchain::cleanup()
     Logger::debug("Swapchain destroyed");
 }
 
-std::expected<std::unique_ptr<Swapchain>, std::string>
-Swapchain::create(const CreateInfo &createInfo)
+auto Swapchain::create(const CreateInfo &createInfo)
+    -> std::expected<std::unique_ptr<Swapchain>, std::string>
 {
     if (createInfo.device == nullptr) {
         return std::unexpected("Device is null");
@@ -297,7 +297,7 @@ Swapchain::create(const CreateInfo &createInfo)
     return swapchainPtr;
 }
 
-bool Swapchain::createImageViews()
+auto Swapchain::createImageViews() -> bool
 {
     m_imageViews.resize(m_images.size());
 
@@ -329,7 +329,8 @@ bool Swapchain::createImageViews()
     return true;
 }
 
-std::expected<u32, std::string> Swapchain::acquireNextImage(VkSemaphore semaphore, VkFence fence)
+auto Swapchain::acquireNextImage(VkSemaphore semaphore, VkFence fence)
+    -> std::expected<u32, std::string>
 {
     if (m_swapchain == VK_NULL_HANDLE || m_device == nullptr) {
         return std::unexpected("Swapchain is invalid");
@@ -360,7 +361,8 @@ std::expected<u32, std::string> Swapchain::acquireNextImage(VkSemaphore semaphor
     return imageIndex;
 }
 
-std::expected<void, std::string> Swapchain::present(u32 imageIndex, VkSemaphore renderSemaphore)
+auto Swapchain::present(u32 imageIndex, VkSemaphore renderSemaphore)
+    -> std::expected<void, std::string>
 {
     if (m_device == nullptr || m_swapchain == VK_NULL_HANDLE) {
         return std::unexpected("Swapchain is invalid");
@@ -396,8 +398,8 @@ std::expected<void, std::string> Swapchain::present(u32 imageIndex, VkSemaphore 
     return {};
 }
 
-std::expected<std::unique_ptr<Swapchain>, std::string>
-Swapchain::recreate(const SwapchainExtent &size)
+auto Swapchain::recreate(const SwapchainExtent &size)
+    -> std::expected<std::unique_ptr<Swapchain>, std::string>
 {
     if (m_device == nullptr) {
         return std::unexpected("Device is null");

@@ -6,7 +6,7 @@ namespace vostok::utils
 {
 
 template <typename T>
-T getValueSafe(const std::optional<T> &opt, const char *name);
+auto getValueSafe(const std::optional<T> &opt, const char *name) -> T;
 
 } // namespace vostok::utils
 

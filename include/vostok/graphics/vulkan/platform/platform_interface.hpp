@@ -15,14 +15,15 @@ public:
     virtual ~PlatformInterface() = default;
 
     PlatformInterface(const PlatformInterface &) = delete;
-    PlatformInterface &operator=(const PlatformInterface &) = delete;
+    auto operator=(const PlatformInterface &) -> PlatformInterface & = delete;
     PlatformInterface(PlatformInterface &&) = delete;
-    PlatformInterface &operator=(PlatformInterface &&) = delete;
+    auto operator=(PlatformInterface &&) -> PlatformInterface & = delete;
 
-    [[nodiscard]] virtual std::vector<const char *> getRequiredInstanceExtensions() const = 0;
+    [[nodiscard]] virtual auto getRequiredInstanceExtensions() const
+        -> std::vector<const char *> = 0;
 
-    virtual std::expected<VkSurfaceKHR, std::string>
-    createSurface(VkInstance instance, void *window) const = 0;
+    virtual auto createSurface(VkInstance instance, void *window) const
+        -> std::expected<VkSurfaceKHR, std::string> = 0;
 };
 
 } // namespace vostok::graphics::vulkan::platform

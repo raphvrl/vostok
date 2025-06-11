@@ -107,6 +107,33 @@ else()
     message(WARNING "spdlog directory not found, please clone spdlog in ${THIRD_PARTY_DIR}/spdlog")
 endif()
 
+find_package(glm CONFIG QUIET)
+if(NOT glm_FOUND)
+    message(STATUS "GLM not found via find_package, adding manually")
+    if(EXISTS ${THIRD_PARTY_DIR}/glm/glm/glm.hpp)
+        # GLM est header-only, créez un target interface
+        add_library(glm INTERFACE)
+        target_include_directories(glm INTERFACE 
+            $<BUILD_INTERFACE:${THIRD_PARTY_DIR}/glm>
+            $<INSTALL_INTERFACE:include>
+        )
+        target_compile_definitions(glm INTERFACE
+            GLM_FORCE_DEPTH_ZERO_TO_ONE
+            GLM_FORCE_LEFT_HANDED
+            GLM_FORCE_RADIANS
+        )
+        
+        # Créer un alias pour la compatibilité
+        add_library(glm::glm ALIAS glm)
+        
+        message(STATUS "GLM added manually from third_party: ${THIRD_PARTY_DIR}/glm")
+    else()
+        message(FATAL_ERROR "GLM headers not found in ${THIRD_PARTY_DIR}/glm/glm/glm.hpp")
+    endif()
+else()
+    message(STATUS "GLM found via find_package")
+endif()
+
 find_package(Vulkan REQUIRED)
 
 if(EXISTS ${THIRD_PARTY_DIR}/volk/CMakeLists.txt)
@@ -134,6 +161,7 @@ set(EXTERNAL_LIBS
     spdlog::spdlog
     volk
     VulkanMemoryAllocator
+    glm::glm
 )
 
 set(VOSTOK_SOURCES "")

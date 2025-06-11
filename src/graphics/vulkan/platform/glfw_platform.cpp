@@ -11,15 +11,15 @@
 namespace vostok::graphics::vulkan::platform
 {
 
-std::vector<const char *> GlfwPlatform::getRequiredInstanceExtensions() const
+auto GlfwPlatform::getRequiredInstanceExtensions() const -> std::vector<const char *>
 {
     u32 count = 0;
     const char **extensions = glfwGetRequiredInstanceExtensions(&count);
     return {extensions, extensions + count};
 }
 
-std::expected<VkSurfaceKHR, std::string>
-GlfwPlatform::createSurface(VkInstance instance, void *window) const
+auto GlfwPlatform::createSurface(VkInstance instance, void *window) const
+    -> std::expected<VkSurfaceKHR, std::string>
 {
     if (window == nullptr) {
         return std::unexpected("Window handle is null");

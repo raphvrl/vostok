@@ -28,22 +28,22 @@ public:
         std::shared_ptr<platform::PlatformInterface> platform;
     };
 
-    static std::expected<std::unique_ptr<Instance>, std::string>
-    create(const CreateInfo &createInfo);
+    static auto create(const CreateInfo &createInfo)
+        -> std::expected<std::unique_ptr<Instance>, std::string>;
 
     ~Instance();
 
     Instance(const Instance &) = delete;
-    Instance &operator=(const Instance &) = delete;
+    auto operator=(const Instance &) -> Instance & = delete;
 
     Instance(Instance &&other) noexcept;
-    Instance &operator=(Instance &&other) noexcept;
+    auto operator=(Instance &&other) noexcept -> Instance &;
 
-    [[nodiscard]] VkInstance getHandle() const { return m_instance; }
+    [[nodiscard]] auto getHandle() const -> VkInstance { return m_instance; }
 
-    [[nodiscard]] bool hasValidation() const { return m_validationEnabled; }
+    [[nodiscard]] auto hasValidation() const -> bool { return m_validationEnabled; }
 
-    std::expected<VkSurfaceKHR, std::string> createSurface(void *windowHandle);
+    auto createSurface(void *windowHandle) -> std::expected<VkSurfaceKHR, std::string>;
     void destroySurface(VkSurfaceKHR surface);
 
 private:
@@ -54,8 +54,9 @@ private:
         std::shared_ptr<platform::PlatformInterface> platform
     );
 
-    static bool checkValidationLayerSupport(const std::vector<const char *> &validationLayers);
-    static std::vector<const char *> getRequiredExtensions(const CreateInfo &createInfo);
+    static auto checkValidationLayerSupport(const std::vector<const char *> &validationLayers)
+        -> bool;
+    static auto getRequiredExtensions(const CreateInfo &createInfo) -> std::vector<const char *>;
 
     VkInstance m_instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;

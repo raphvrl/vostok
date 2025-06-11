@@ -27,7 +27,7 @@ enum class LogLevel : u8
     OFF
 };
 
-constexpr std::string_view toString(LogLevel level)
+constexpr auto toString(LogLevel level) -> std::string_view
 {
     switch (level) {
         case LogLevel::TRACE:
@@ -92,26 +92,28 @@ struct FormatWithLocation
         std::string_view f,
         const std::source_location &loc = std::source_location::current()
     )
-        : fmt(f), location(loc)
+        : fmt(f),
+          location(loc)
     {}
 
     FormatWithLocation(
         const char *f,
         const std::source_location &loc = std::source_location::current()
     )
-        : fmt(f), location(loc)
+        : fmt(f),
+          location(loc)
     {}
 
     template <typename T>
-    static FormatWithLocation
-    at(T &&fmt, const std::source_location &loc = std::source_location::current())
+    static auto at(T &&fmt, const std::source_location &loc = std::source_location::current())
+        -> FormatWithLocation
     {
         return FormatWithLocation(std::forward<T>(fmt), loc);
     }
 
     template <typename... Args>
         requires(std::formattable<Args, char> && ...)
-    [[nodiscard]] std::string format(Args &&...args) const
+    [[nodiscard]] auto format(Args &&...args) const -> std::string
     {
         try {
             auto argsTuple = std::forward_as_tuple(std::forward<Args>(args)...);
@@ -131,12 +133,12 @@ struct FormatWithLocation
 class LoggerHandle
 {
 public:
-    [[nodiscard]] bool shouldLog(LogLevel level) const;
+    [[nodiscard]] auto shouldLog(LogLevel level) const -> bool;
 
-    [[nodiscard]] LogLevel getLevel() const;
+    [[nodiscard]] auto getLevel() const -> LogLevel;
     void setLevel(LogLevel level);
 
-    [[nodiscard]] std::string_view getName() const;
+    [[nodiscard]] auto getName() const -> std::string_view;
 
     template <typename... Args>
         requires(std::formattable<Args, char> && ...)
@@ -170,7 +172,7 @@ private:
 
     friend class Logger;
     friend class LogSystem;
-    friend LoggerHandle &getDefaultLogger();
+    friend auto getDefaultLogger() -> LoggerHandle &;
 
     void
     logImpl(LogLevel level, std::string_view message, const std::source_location &location) const;
@@ -179,10 +181,10 @@ private:
 class Logger
 {
 public:
-    static std::expected<void, std::string> init(const LogConfig &config = {});
+    static auto init(const LogConfig &config = {}) -> std::expected<void, std::string>;
     static void shutdown();
 
-    static LoggerHandle getLogger(std::string_view name);
+    static auto getLogger(std::string_view name) -> LoggerHandle;
 
     static void setDefaultLevel(LogLevel level);
     static void setLevel(std::string_view component, LogLevel level);
@@ -223,7 +225,7 @@ public:
 private:
     Logger() = default;
 
-    static LoggerHandle &getDefaultLogger();
+    static auto getDefaultLogger() -> LoggerHandle &;
 };
 
 class ScopedContext
@@ -233,9 +235,9 @@ public:
     ~ScopedContext();
 
     ScopedContext(const ScopedContext &) = delete;
-    ScopedContext &operator=(const ScopedContext &) = delete;
+    auto operator=(const ScopedContext &) -> ScopedContext & = delete;
     ScopedContext(ScopedContext &&) = delete;
-    ScopedContext &operator=(ScopedContext &&) = delete;
+    auto operator=(ScopedContext &&) -> ScopedContext & = delete;
 
 private:
     std::string m_key;
@@ -248,9 +250,9 @@ public:
     ~ScopedTimer() noexcept;
 
     ScopedTimer(const ScopedTimer &) = delete;
-    ScopedTimer &operator=(const ScopedTimer &) = delete;
+    auto operator=(const ScopedTimer &) -> ScopedTimer & = delete;
     ScopedTimer(ScopedTimer &&) = delete;
-    ScopedTimer &operator=(ScopedTimer &&) = delete;
+    auto operator=(ScopedTimer &&) -> ScopedTimer & = delete;
 
 private:
     std::string m_name;

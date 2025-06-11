@@ -20,29 +20,30 @@ public:
         void *pNext = nullptr;
     };
 
-    static std::expected<std::unique_ptr<Device>, std::string> create(const CreateInfo &createInfo);
+    static auto create(const CreateInfo &createInfo)
+        -> std::expected<std::unique_ptr<Device>, std::string>;
 
     ~Device();
     Device(const Device &) = delete;
-    Device &operator=(const Device &) = delete;
+    auto operator=(const Device &) -> Device & = delete;
     Device(Device &&other) noexcept;
-    Device &operator=(Device &&other) noexcept;
+    auto operator=(Device &&other) noexcept -> Device &;
 
-    [[nodiscard]] VkDevice getHandle() const { return m_device; }
-    [[nodiscard]] PhysicalDevice *getPhysicalDevice() const { return m_physicalDevice; }
-    [[nodiscard]] VkQueue getGraphicsQueue() const { return m_graphicsQueue; }
-    [[nodiscard]] VkQueue getPresentQueue() const { return m_presentQueue; }
-    [[nodiscard]] VkQueue getComputeQueue() const { return m_computeQueue; }
-    [[nodiscard]] VkQueue getTransferQueue() const { return m_transferQueue; }
-    [[nodiscard]] VkCommandPool getCommandPool() const { return m_commandPool; }
+    [[nodiscard]] auto getHandle() const -> VkDevice { return m_device; }
+    [[nodiscard]] auto getPhysicalDevice() const -> PhysicalDevice * { return m_physicalDevice; }
+    [[nodiscard]] auto getGraphicsQueue() const -> VkQueue { return m_graphicsQueue; }
+    [[nodiscard]] auto getPresentQueue() const -> VkQueue { return m_presentQueue; }
+    [[nodiscard]] auto getComputeQueue() const -> VkQueue { return m_computeQueue; }
+    [[nodiscard]] auto getTransferQueue() const -> VkQueue { return m_transferQueue; }
+    [[nodiscard]] auto getCommandPool() const -> VkCommandPool { return m_commandPool; }
 
     void waitIdle() const;
 
 private:
     Device(VkDevice device, PhysicalDevice *physicalDevice);
 
-    bool initQueues();
-    bool createCommandPool();
+    auto initQueues() -> bool;
+    auto createCommandPool() -> bool;
 
     VkDevice m_device = VK_NULL_HANDLE;
     PhysicalDevice *m_physicalDevice = nullptr;

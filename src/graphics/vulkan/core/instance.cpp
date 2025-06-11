@@ -78,7 +78,7 @@ Instance::Instance(Instance &&other) noexcept
     other.m_debugMessenger = VK_NULL_HANDLE;
 }
 
-Instance &Instance::operator=(Instance &&other) noexcept
+auto Instance::operator=(Instance &&other) noexcept -> Instance &
 {
     if (this != &other) {
         m_instance = other.m_instance;
@@ -91,7 +91,8 @@ Instance &Instance::operator=(Instance &&other) noexcept
     return *this;
 }
 
-std::expected<std::unique_ptr<Instance>, std::string> Instance::create(const CreateInfo &createInfo)
+auto Instance::create(const CreateInfo &createInfo)
+    -> std::expected<std::unique_ptr<Instance>, std::string>
 {
     VkResult volkResult = volkInitialize();
     if (volkResult != VK_SUCCESS) {
@@ -191,7 +192,7 @@ std::expected<std::unique_ptr<Instance>, std::string> Instance::create(const Cre
     return instancePtr;
 }
 
-std::expected<VkSurfaceKHR, std::string> Instance::createSurface(void *windowHandle)
+auto Instance::createSurface(void *windowHandle) -> std::expected<VkSurfaceKHR, std::string>
 {
     if (m_platform == nullptr) {
         return std::unexpected("No platform interface available");
@@ -208,7 +209,8 @@ void Instance::destroySurface(VkSurfaceKHR surface)
     }
 }
 
-bool Instance::checkValidationLayerSupport(const std::vector<const char *> &validationLayers)
+auto Instance::checkValidationLayerSupport(const std::vector<const char *> &validationLayers)
+    -> bool
 {
     u32 layerCount = 0;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -235,7 +237,7 @@ bool Instance::checkValidationLayerSupport(const std::vector<const char *> &vali
     return true;
 }
 
-std::vector<const char *> Instance::getRequiredExtensions(const CreateInfo &createInfo)
+auto Instance::getRequiredExtensions(const CreateInfo &createInfo) -> std::vector<const char *>
 {
     if (createInfo.platform == nullptr) {
         Logger::warning("No platform interface available");

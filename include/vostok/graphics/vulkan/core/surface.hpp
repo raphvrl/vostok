@@ -15,14 +15,14 @@ public:
     ~Surface();
 
     Surface(const Surface &) = delete;
-    Surface &operator=(const Surface &) = delete;
+    auto operator=(const Surface &) -> Surface & = delete;
     Surface(Surface &&other) noexcept;
-    Surface &operator=(Surface &&other) noexcept;
+    auto operator=(Surface &&other) noexcept -> Surface &;
 
-    static std::expected<std::unique_ptr<Surface>, std::string>
-    create(Instance *instance, void *windowHandle);
+    static auto create(Instance *instance, void *windowHandle)
+        -> std::expected<std::unique_ptr<Surface>, std::string>;
 
-    [[nodiscard]] VkSurfaceKHR getHandle() const { return m_surface; }
+    [[nodiscard]] auto getHandle() const -> VkSurfaceKHR { return m_surface; }
 
 private:
     Surface(Instance *instance, VkSurfaceKHR surface);

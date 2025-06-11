@@ -6,7 +6,7 @@
 namespace vostok::graphics::vulkan::utils
 {
 
-std::string vkResultToString(VkResult result)
+auto vkResultToString(VkResult result) -> std::string
 {
     static const std::unordered_map<VkResult, std::string> RESULT_MAP = {
         { VK_SUCCESS, "Success" },
@@ -53,7 +53,7 @@ std::string vkResultToString(VkResult result)
     return "Unknown Vulkan error code: " + std::to_string(static_cast<int>(result));
 }
 
-std::string physicalDeviceTypeToString(VkPhysicalDeviceType type)
+auto physicalDeviceTypeToString(VkPhysicalDeviceType type) -> std::string
 {
     static const std::unordered_map<VkPhysicalDeviceType, std::string> RESULT_MAP = {
         { VK_PHYSICAL_DEVICE_TYPE_OTHER, "Other" },
@@ -71,7 +71,7 @@ std::string physicalDeviceTypeToString(VkPhysicalDeviceType type)
     return "Unknown device type (" + std::to_string(static_cast<int>(type)) + ")";
 }
 
-std::string vkFormatToString(VkFormat format)
+auto vkFormatToString(VkFormat format) -> std::string
 {
     static const std::unordered_map<VkFormat, std::string> FORMAT_MAP = {
         { VK_FORMAT_UNDEFINED, "Undefined" },
@@ -199,7 +199,7 @@ std::string vkFormatToString(VkFormat format)
     return "Unknown format (" + std::to_string(static_cast<int>(format)) + ")";
 }
 
-std::string vkPresentModeToString(VkPresentModeKHR mode)
+auto vkPresentModeToString(VkPresentModeKHR mode) -> std::string
 {
     static const std::unordered_map<VkPresentModeKHR, std::string> PRESENT_MODE_MAP = {
         { VK_PRESENT_MODE_IMMEDIATE_KHR, "Immediate" },
@@ -218,14 +218,14 @@ std::string vkPresentModeToString(VkPresentModeKHR mode)
     return "Unknown present mode (" + std::to_string(static_cast<int>(mode)) + ")";
 }
 
-std::vector<u32> vectorCharToU32(const std::vector<char> &vec)
+auto vectorCharToU32(const std::vector<char> &vec) -> std::vector<u32>
 {
     std::vector<u32> result(vec.size() / sizeof(u32));
     std::memcpy(result.data(), vec.data(), vec.size());
     return result;
 }
 
-std::string vkPrimitiveTopologyToString(VkPrimitiveTopology topology)
+auto vkPrimitiveTopologyToString(VkPrimitiveTopology topology) -> std::string
 {
     static const std::unordered_map<VkPrimitiveTopology, std::string> TOPOLOGY_MAP = {
         { VK_PRIMITIVE_TOPOLOGY_POINT_LIST, "Point List" },
@@ -249,7 +249,7 @@ std::string vkPrimitiveTopologyToString(VkPrimitiveTopology topology)
     return "Unknown primitive topology (" + std::to_string(static_cast<int>(topology)) + ")";
 }
 
-std::string vkPolygonModeToString(VkPolygonMode mode)
+auto vkPolygonModeToString(VkPolygonMode mode) -> std::string
 {
     static const std::unordered_map<VkPolygonMode, std::string> POLYGON_MODE_MAP = {
         { VK_POLYGON_MODE_FILL, "Fill" },
@@ -266,7 +266,7 @@ std::string vkPolygonModeToString(VkPolygonMode mode)
     return "Unknown polygon mode (" + std::to_string(static_cast<int>(mode)) + ")";
 }
 
-std::string vkCullModeToString(VkCullModeFlags mode)
+auto vkCullModeToString(VkCullModeFlags mode) -> std::string
 {
     static const std::unordered_map<VkCullModeFlags, std::string> CULL_MODE_MAP = {
         { VK_CULL_MODE_NONE, "None" },
@@ -283,7 +283,7 @@ std::string vkCullModeToString(VkCullModeFlags mode)
     return "Unknown cull mode (" + std::to_string(static_cast<int>(mode)) + ")";
 }
 
-std::string vkFrontFaceToString(VkFrontFace frontFace)
+auto vkFrontFaceToString(VkFrontFace frontFace) -> std::string
 {
     static const std::unordered_map<VkFrontFace, std::string> FRONT_FACE_MAP = {
         { VK_FRONT_FACE_COUNTER_CLOCKWISE, "Counter Clockwise" },
@@ -298,7 +298,7 @@ std::string vkFrontFaceToString(VkFrontFace frontFace)
     return "Unknown front face (" + std::to_string(static_cast<int>(frontFace)) + ")";
 }
 
-std::string vkCompareOpToString(VkCompareOp compareOp)
+auto vkCompareOpToString(VkCompareOp compareOp) -> std::string
 {
     static const std::unordered_map<VkCompareOp, std::string> COMPARE_OP_MAP = {
         { VK_COMPARE_OP_NEVER, "Never" },
@@ -319,7 +319,7 @@ std::string vkCompareOpToString(VkCompareOp compareOp)
     return "Unknown compare operation (" + std::to_string(static_cast<int>(compareOp)) + ")";
 }
 
-std::string vkStencilOpToString(VkStencilOp stencilOp)
+auto vkStencilOpToString(VkStencilOp stencilOp) -> std::string
 {
     static const std::unordered_map<VkStencilOp, std::string> STENCIL_OP_MAP = {
         { VK_STENCIL_OP_KEEP, "Keep" },
@@ -340,7 +340,7 @@ std::string vkStencilOpToString(VkStencilOp stencilOp)
     return "Unknown stencil operation (" + std::to_string(static_cast<int>(stencilOp)) + ")";
 }
 
-std::string vkBlendFactorToString(VkBlendFactor blendFactor)
+auto vkBlendFactorToString(VkBlendFactor blendFactor) -> std::string
 {
     static const std::unordered_map<VkBlendFactor, std::string> BLEND_FACTOR_MAP = {
         { VK_BLEND_FACTOR_ZERO, "Zero" },
@@ -367,7 +367,7 @@ std::string vkBlendFactorToString(VkBlendFactor blendFactor)
     return "Unknown blend factor (" + std::to_string(static_cast<int>(blendFactor)) + ")";
 }
 
-std::string vkBlendOpToString(VkBlendOp blendOp)
+auto vkBlendOpToString(VkBlendOp blendOp) -> std::string
 {
     static const std::unordered_map<VkBlendOp, std::string> BLEND_OP_MAP = {
         { VK_BLEND_OP_ADD, "Add" },
@@ -385,7 +385,7 @@ std::string vkBlendOpToString(VkBlendOp blendOp)
     return "Unknown blend operation (" + std::to_string(static_cast<int>(blendOp)) + ")";
 }
 
-std::string vkColorComponentFlagsToString(VkColorComponentFlags flags)
+auto vkColorComponentFlagsToString(VkColorComponentFlags flags) -> std::string
 {
     static const std::unordered_map<VkColorComponentFlags, std::string>
         COLOR_COMPONENT_FLAGS_MAP = { { VK_COLOR_COMPONENT_R_BIT, "Red" },

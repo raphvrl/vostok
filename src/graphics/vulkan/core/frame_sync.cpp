@@ -38,7 +38,7 @@ FrameSync::~FrameSync()
     m_frames.clear();
 }
 
-bool FrameSync::init()
+auto FrameSync::init() -> bool
 {
     Logger::debug("Command pool created");
 
@@ -104,8 +104,8 @@ bool FrameSync::init()
     return true;
 }
 
-std::expected<std::unique_ptr<FrameSync>, std::string>
-FrameSync::create(const CreateInfo &createInfo)
+auto FrameSync::create(const CreateInfo &createInfo)
+    -> std::expected<std::unique_ptr<FrameSync>, std::string>
 {
     auto frameSync = std::unique_ptr<FrameSync>(
         new FrameSync(createInfo.device, createInfo.commandPool, createInfo.maxFramesInFlight)
@@ -141,27 +141,27 @@ void FrameSync::nextFrame()
     m_currentFrame = (m_currentFrame + 1) % m_maxFramesInFlight;
 }
 
-VkSemaphore FrameSync::getImageAvailableSemaphore() const
+auto FrameSync::getImageAvailableSemaphore() const -> VkSemaphore
 {
     return m_frames[m_currentFrame].imageAvailable;
 }
 
-VkSemaphore FrameSync::getRenderFinishedSemaphore() const
+auto FrameSync::getRenderFinishedSemaphore() const -> VkSemaphore
 {
     return m_frames[m_currentFrame].renderFinished;
 }
 
-VkFence FrameSync::getInFlightFence() const
+auto FrameSync::getInFlightFence() const -> VkFence
 {
     return m_frames[m_currentFrame].inFlight;
 }
 
-VkCommandBuffer FrameSync::getCommandBuffer() const
+auto FrameSync::getCommandBuffer() const -> VkCommandBuffer
 {
     return m_frames[m_currentFrame].commandBuffer;
 }
 
-std::expected<void, std::string> FrameSync::beginCommandBuffer()
+auto FrameSync::beginCommandBuffer() -> std::expected<void, std::string>
 {
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -176,7 +176,7 @@ std::expected<void, std::string> FrameSync::beginCommandBuffer()
     return {};
 }
 
-std::expected<void, std::string> FrameSync::endCommandBuffer()
+auto FrameSync::endCommandBuffer() -> std::expected<void, std::string>
 {
     VkResult result = vkEndCommandBuffer(m_frames[m_currentFrame].commandBuffer);
 

@@ -33,31 +33,31 @@ public:
     ~FrameSync();
 
     FrameSync(const FrameSync &) = delete;
-    FrameSync &operator=(const FrameSync &) = delete;
+    auto operator=(const FrameSync &) -> FrameSync & = delete;
     FrameSync(FrameSync &&other) noexcept;
-    FrameSync &operator=(FrameSync &&other) noexcept;
+    auto operator=(FrameSync &&other) noexcept -> FrameSync &;
 
-    static std::expected<std::unique_ptr<FrameSync>, std::string>
-    create(const CreateInfo &createInfo);
+    static auto create(const CreateInfo &createInfo)
+        -> std::expected<std::unique_ptr<FrameSync>, std::string>;
 
-    [[nodiscard]] VkSemaphore getImageAvailableSemaphore() const;
-    [[nodiscard]] VkSemaphore getRenderFinishedSemaphore() const;
-    [[nodiscard]] VkFence getInFlightFence() const;
-    [[nodiscard]] VkCommandBuffer getCommandBuffer() const;
+    [[nodiscard]] auto getImageAvailableSemaphore() const -> VkSemaphore;
+    [[nodiscard]] auto getRenderFinishedSemaphore() const -> VkSemaphore;
+    [[nodiscard]] auto getInFlightFence() const -> VkFence;
+    [[nodiscard]] auto getCommandBuffer() const -> VkCommandBuffer;
 
     void waitForFence();
     void resetFences();
     void nextFrame();
 
-    std::expected<void, std::string> beginCommandBuffer();
-    std::expected<void, std::string> endCommandBuffer();
+    auto beginCommandBuffer() -> std::expected<void, std::string>;
+    auto endCommandBuffer() -> std::expected<void, std::string>;
 
     void
     cmdDraw(u32 vertexCount, u32 instanceCount = 1, u32 firstVertex = 0, u32 firstInstance = 0);
 
 private:
     FrameSync(Device *device, VkCommandPool commandPool, u32 maxFramesInFlight);
-    bool init();
+    auto init() -> bool;
 
     Device *m_device = nullptr;
     u32 m_maxFramesInFlight = 2;
