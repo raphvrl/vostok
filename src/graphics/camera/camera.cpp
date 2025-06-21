@@ -12,7 +12,7 @@ Camera::Camera(const CreateInfo &createInfo)
       m_rotation(createInfo.rotation)
 {
     Logger::info(
-        "Camera '{}' created at position {{:.2f}, {:.2f}, {.2f}}",
+        "Camera '{}' created at position {{:.2f}, {:.2f}, {:.2f}}",
         m_name,
         m_position.x,
         m_position.y,

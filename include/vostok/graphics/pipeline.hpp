@@ -148,11 +148,9 @@ public:
         virtual auto setDepthWrite(bool enable) -> Builder & = 0;
         virtual auto setDepthCompareOp(const CompareOp &op) -> Builder & = 0;
         virtual auto setStencilTest(bool enable) -> Builder & = 0;
-        virtual auto setStencilOp(
-            const StencilOp &failOp,
-            const StencilOp &passOp,
-            const StencilOp &depthFailOp
-        ) -> Builder & = 0;
+        virtual auto
+        setStencilOp(const StencilOp &failOp, const StencilOp &passOp, const StencilOp &depthFailOp)
+            -> Builder & = 0;
 
         virtual auto setBlend(bool enable) -> Builder & = 0;
         virtual auto setBlendFactor(
@@ -164,7 +162,7 @@ public:
         virtual auto setBlendOp(const BlendOp &colorOp, const BlendOp &alphaOp) -> Builder & = 0;
         virtual auto setColorWriteMask(const ColorComponentFlags &mask) -> Builder & = 0;
 
-        virtual auto addPushConstant(u32 size) -> Builder &;
+        virtual auto addPushConstant(u32 size) -> Builder & = 0;
 
         virtual auto setName(const std::string &name) -> Builder & = 0;
 

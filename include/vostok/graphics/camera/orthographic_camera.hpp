@@ -8,10 +8,19 @@
 namespace vostok::graphics
 {
 
+struct BoundsParams
+{
+    f32 left = -1.0F;
+    f32 right = 1.0F;
+    f32 bottom = -1.0F;
+    f32 top = 1.0F;
+    f32 nearPlane = -100.0F;
+    f32 farPlane = 100.0F;
+};
 struct CenteredParams
 {
-    f32 width;
-    f32 height;
+    f32 width = 2.0F;
+    f32 height = 2.0F;
     f32 nearPlane = -100.0F;
     f32 farPlane = 100.0F;
 };
@@ -64,8 +73,7 @@ public:
 
     [[nodiscard]] static auto createCentered(const CenteredParams &params) -> OrthographicCamera;
     [[nodiscard]] static auto createUI(f32 screenWidth, f32 screenHeight) -> OrthographicCamera;
-    [[nodiscard]] static auto createFromBounds(f32 left, f32 right, f32 bottom, f32 top)
-        -> OrthographicCamera;
+    [[nodiscard]] static auto createFromBounds(const BoundsParams &params) -> OrthographicCamera;
 
 protected:
     void onTransformChanged() noexcept override;

@@ -182,11 +182,14 @@ auto OrthographicCamera::createUI(f32 screenWidth, f32 screenHeight) -> Orthogra
                                                        .farPlane = 1.0F } } };
 }
 
-auto OrthographicCamera::createFromBounds(f32 left, f32 right, f32 bottom, f32 top)
-    -> OrthographicCamera
+auto OrthographicCamera::createFromBounds(const BoundsParams &params) -> OrthographicCamera
 {
-    return OrthographicCamera{ CreateInfo{
-        .config = { .left = left, .right = right, .bottom = bottom, .top = top } } };
+    return OrthographicCamera{ CreateInfo{ .config = { .left = params.left,
+                                                       .right = params.right,
+                                                       .bottom = params.bottom,
+                                                       .top = params.top,
+                                                       .nearPlane = params.nearPlane,
+                                                       .farPlane = params.farPlane } } };
 }
 
 void OrthographicCamera::onTransformChanged() noexcept {}

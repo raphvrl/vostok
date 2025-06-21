@@ -5,6 +5,8 @@ option(VOSTOK_ENABLE_VALIDATION "Enable Vulkan validation layers" ON)
 option(VOSTOK_TREAT_WARNINGS_AS_ERRORS "Treat warnings as errors" OFF)
 option(VOSTOK_ENABLE_CLANG_TIDY "Enable clang-tidy checks" ON)
 option(VOSTOK_BUILD_EXAMPLES "Build Vostok examples" ON)
+option(VOSTOK_BUILD_TESTS "Build Vostok tests" ON)
+option(VOSTOK_ENABLE_COVERAGE "Enable coverage reporting" OFF)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -28,9 +30,24 @@ else()
     endif()
 endif()
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined -fno-omit-frame-pointer")
-    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -fsanitize=address,undefined")
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT WIN32 AND NOT VOSTOK_ENABLE_COVERAGE)
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("-fsanitize=address" HAS_ASAN)
+    check_cxx_compiler_flag("-fsanitize=undefined" HAS_UBSAN)
+    
+    if(HAS_ASAN AND HAS_UBSAN)
+        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined -fno-omit-frame-pointer")
+        set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -fsanitize=address,undefined")
+        message(STATUS "Address and UndefinedBehavior sanitizers enabled for Debug builds")
+    else()
+        message(STATUS "Sanitizers not available or incompatible with current setup")
+    endif()
+else()
+    if(WIN32)
+        message(STATUS "Sanitizers disabled on Windows")
+    elseif(VOSTOK_ENABLE_COVERAGE)
+        message(STATUS "Sanitizers disabled when coverage is enabled")
+    endif()
 endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
@@ -107,11 +124,28 @@ else()
     message(WARNING "spdlog directory not found, please clone spdlog in ${THIRD_PARTY_DIR}/spdlog")
 endif()
 
+if(EXISTS ${THIRD_PARTY_DIR}/gtest/CMakeLists.txt)
+    add_third_party_library(gtest gtest)
+    set_target_properties(gtest PROPERTIES
+        GTEST_HAS_PTHREAD OFF
+        BUILD_GMOCK ON
+        INSTALL_GTEST OFF
+    )
+
+    if(TARGET gtest AND VOSTOK_ENABLE_CLANG_TIDY)
+        set_target_properties(gtest PROPERTIES CXX_CLANG_TIDY "")
+        set_target_properties(gtest_main PROPERTIES CXX_CLANG_TIDY "")
+        set_target_properties(gmock PROPERTIES CXX_CLANG_TIDY "")
+        set_target_properties(gmock_main PROPERTIES CXX_CLANG_TIDY "")
+    endif()
+else()
+    message(WARNING "Google Test directory not found, please clone googletest in ${THIRD_PARTY_DIR}/gtest")
+endif()
+
 find_package(glm CONFIG QUIET)
 if(NOT glm_FOUND)
     message(STATUS "GLM not found via find_package, adding manually")
     if(EXISTS ${THIRD_PARTY_DIR}/glm/glm/glm.hpp)
-        # GLM est header-only, créez un target interface
         add_library(glm INTERFACE)
         target_include_directories(glm INTERFACE 
             $<BUILD_INTERFACE:${THIRD_PARTY_DIR}/glm>
@@ -122,8 +156,7 @@ if(NOT glm_FOUND)
             GLM_FORCE_LEFT_HANDED
             GLM_FORCE_RADIANS
         )
-        
-        # Créer un alias pour la compatibilité
+
         add_library(glm::glm ALIAS glm)
         
         message(STATUS "GLM added manually from third_party: ${THIRD_PARTY_DIR}/glm")
@@ -216,10 +249,19 @@ target_compile_definitions(vostok
         VOSTOK_HAS_VULKAN
 )
 
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/shaders/CMakeLists.txt)
-    add_subdirectory(shaders)
-else()
-    message(WARNING "Shaders directory not found or does not contain CMakeLists.txt")
+if(VOSTOK_BUILD_TESTS AND TARGET gtest)
+    enable_testing()
+
+    if(VOSTOK_ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(vostok PRIVATE --coverage)
+        target_link_libraries(vostok PRIVATE --coverage)
+    endif()
+
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt)
+        add_subdirectory(tests)
+    else()
+        message(WARNING "Tests directory not found or does not contain CMakeLists.txt")
+    endif()
 endif()
 
 if(VOSTOK_BUILD_EXAMPLES AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/exemples/CMakeLists.txt)
