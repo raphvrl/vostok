@@ -93,10 +93,22 @@ jobs:
       - name: Run clang-tidy
         run: |
           cd build
-          run-clang-tidy -p . \
-            -header-filter='^.*/(src|include)/vostok/.*\.hpp$' \
-            -checks='-*,readability-*,performance-*,modernize-*,bugprone-*,clang-analyzer-*' \
-            src/
+          # Create a list of source files to analyze (excluding third_party)
+          find ../src -name "*.cpp" -type f > clang_tidy_files.txt
+          find ../include -name "*.hpp" -type f >> clang_tidy_files.txt
+
+          # Remove any third_party files if they exist
+          grep -v third_party clang_tidy_files.txt > clang_tidy_files_filtered.txt || true
+
+          # Run clang-tidy only on our source files
+          if [ -s clang_tidy_files_filtered.txt ]; then
+            clang-tidy -p . \
+              --header-filter='^.*/(src|include)/vostok/.*\.hpp$' \
+              --checks='-*,readability-*,performance-*,modernize-*,bugprone-*,clang-analyzer-*' \
+              $(cat clang_tidy_files_filtered.txt)
+          else
+            echo "No source files found to analyze"
+          fi
 
   build-and-test:
     name: 🧪 Build & Test
