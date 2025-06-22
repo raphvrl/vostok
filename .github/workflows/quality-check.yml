@@ -64,7 +64,7 @@ jobs:
             libxcursor-dev \
             libxi-dev \
             libxext-dev \
-            libwayland-dev \            
+            libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
             libxkbcommon-dev
@@ -188,8 +188,7 @@ jobs:
         run: |
           if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
             export PATH="$PWD/1.4.313.0/x86_64/bin:$PATH"
-          fi
-          cmake -B build -S .\
+          fi          cmake -B build -S . \
             -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
             -DVOSTOK_BUILD_TESTS=ON \
             -DVOSTOK_ENABLE_VALIDATION=OFF \
@@ -322,8 +321,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libvulkan-dev \
-            vulkan-tools \
-            spirv-tools \            
+            vulkan-tools \            spirv-tools \
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
