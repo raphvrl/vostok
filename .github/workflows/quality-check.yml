@@ -59,7 +59,7 @@ jobs:
             libvulkan-dev \
             vulkan-tools \
             spirv-tools \
-            shaderc \
+            glslang-tools \
             libxrandr-dev \
             libxinerama-dev \
             libxcursor-dev \
@@ -148,7 +148,7 @@ jobs:
             libvulkan-dev \
             vulkan-tools \
             spirv-tools \
-            shaderc \
+            glslang-tools \
             libxrandr-dev \
             libxinerama-dev \
             libxcursor-dev \
@@ -217,7 +217,7 @@ jobs:
             libvulkan-dev \
             vulkan-tools \
             spirv-tools \
-            shaderc \
+            glslang-tools \
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
@@ -297,7 +297,7 @@ jobs:
             libvulkan-dev \
             vulkan-tools \
             spirv-tools \
-            shaderc \
+            glslang-tools \
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
