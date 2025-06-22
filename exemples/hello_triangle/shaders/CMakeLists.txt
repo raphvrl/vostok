@@ -2,13 +2,11 @@ cmake_minimum_required(VERSION 3.25)
 
 set(APP_NAME hello_triangle)
 
-# Définition des shaders spécifiques à l'application
 set(SHADER_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/triangle.vert"
     "${CMAKE_CURRENT_SOURCE_DIR}/triangle.frag"
 )
 
-# Chercher le compilateur GLSL
 find_program(GLSLC glslc HINTS
     "$ENV{VULKAN_SDK}/bin"
     "$ENV{VULKAN_SDK}/Bin"
@@ -19,17 +17,14 @@ if(NOT GLSLC)
     message(FATAL_ERROR "Could not find glslc shader compiler. Make sure Vulkan SDK is installed.")
 endif()
 
-# Définir les répertoires de sortie des shaders
 set(SHADER_BINARY_DIR "${CMAKE_BINARY_DIR}/bin/shaders")
 file(MAKE_DIRECTORY ${SHADER_BINARY_DIR})
 
-# Répertoire spécifique à l'application pour une organisation plus claire
 set(APP_SHADER_BINARY_DIR "${SHADER_BINARY_DIR}/${APP_NAME}")
 file(MAKE_DIRECTORY ${APP_SHADER_BINARY_DIR})
 
 set(SPIRV_BINARY_FILES)
 
-# Compiler les shaders
 foreach(SHADER ${SHADER_FILES})
     get_filename_component(FILENAME ${SHADER} NAME)
     set(OUTPUT "${APP_SHADER_BINARY_DIR}/${FILENAME}.spv")
@@ -55,10 +50,8 @@ foreach(SHADER ${SHADER_FILES})
     list(APPEND SPIRV_BINARY_FILES ${OUTPUT})
 endforeach()
 
-# Créer une cible pour les shaders
 add_custom_target(${APP_NAME}_shaders ALL DEPENDS ${SPIRV_BINARY_FILES})
 
-# Configuration pour copier dans le dossier de l'exécutable
 add_custom_command(
     TARGET ${APP_NAME}_shaders POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -67,7 +60,6 @@ add_custom_command(
     COMMENT "Copying shaders to executable directory"
 )
 
-# Également copier à la racine du dossier bin pour un accès global
 add_custom_command(
     TARGET ${APP_NAME}_shaders POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
