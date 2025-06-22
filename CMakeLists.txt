@@ -87,8 +87,19 @@ function(add_third_party_library NAME)
     if (NOT TARGET ${NAME})
         add_subdirectory(${THIRD_PARTY_DIR}/${DIR_NAME} ${CMAKE_BINARY_DIR}/third_party/${DIR_NAME} EXCLUDE_FROM_ALL)
         
-        if (VOSTOK_ENABLE_CLANG_TIDY AND TARGET ${NAME})
-            set_target_properties(${NAME} PROPERTIES CXX_CLANG_TIDY "")
+        # Disable clang-tidy for ALL targets created by this third-party library
+        if (VOSTOK_ENABLE_CLANG_TIDY)
+            # Get all targets created in the third_party subdirectory
+            get_directory_property(THIRD_PARTY_TARGETS 
+                DIRECTORY ${THIRD_PARTY_DIR}/${DIR_NAME} 
+                BUILDSYSTEM_TARGETS)
+            
+            foreach(TARGET_NAME ${THIRD_PARTY_TARGETS})
+                if(TARGET ${TARGET_NAME})
+                    set_target_properties(${TARGET_NAME} PROPERTIES CXX_CLANG_TIDY "")
+                    message(STATUS "Disabled clang-tidy for third-party target: ${TARGET_NAME}")
+                endif()
+            endforeach()
         endif()
         
         if (TARGET ${NAME})
@@ -131,13 +142,6 @@ if(EXISTS ${THIRD_PARTY_DIR}/gtest/CMakeLists.txt)
         BUILD_GMOCK ON
         INSTALL_GTEST OFF
     )
-
-    if(TARGET gtest AND VOSTOK_ENABLE_CLANG_TIDY)
-        set_target_properties(gtest PROPERTIES CXX_CLANG_TIDY "")
-        set_target_properties(gtest_main PROPERTIES CXX_CLANG_TIDY "")
-        set_target_properties(gmock PROPERTIES CXX_CLANG_TIDY "")
-        set_target_properties(gmock_main PROPERTIES CXX_CLANG_TIDY "")
-    endif()
 else()
     message(WARNING "Google Test directory not found, please clone googletest in ${THIRD_PARTY_DIR}/gtest")
 endif()
