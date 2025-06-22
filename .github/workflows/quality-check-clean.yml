@@ -1,0 +1,428 @@
+name: Quality Check
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - "src/**"
+      - "include/**"
+      - "tests/**"
+      - "CMakeLists.txt"
+      - ".clang-format"
+      - ".clang-tidy"
+  push:
+    branches: [dev, main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format-check:
+    name: 🎨 Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check clang-format
+        uses: jidicula/clang-format-action@v4.11.0
+        with:
+          clang-format-version: "17"
+          check-path: "."
+          include-regex: '^(src|include|tests)/.*\.(cpp|hpp)$'
+          exclude-regex: "^third_party/.*"
+
+  static-analysis:
+    name: 🔍 Static Analysis
+    runs-on: ubuntu-latest
+    needs: format-check
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup C++
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: clang
+          vcvarsall: false
+          cmake: true
+          ninja: true
+          clang-tidy: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libvulkan-dev \
+            vulkan-tools \
+            spirv-tools \
+            glslang-tools \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxext-dev \
+            libwayland-dev \
+            wayland-protocols \
+            wayland-scanner++ \
+            libxkbcommon-dev
+
+          # Install glslc - simple and reliable method
+          if ! command -v glslc &> /dev/null; then
+            echo "Installing glslc from precompiled binary..."
+            # Use a simple method: download from Ubuntu packages or build from shaderc
+            sudo apt-get install -y python3-pip
+            pip3 install cmake
+            git clone https://github.com/google/shaderc.git /tmp/shaderc
+            cd /tmp/shaderc
+            python3 utils/git-sync-deps
+            mkdir build && cd build
+            cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
+            make -j$(nproc) install/strip
+            sudo make install
+          fi
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            build/_deps
+            build/third_party
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt', 'third_party/**') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -S . \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DVOSTOK_ENABLE_CLANG_TIDY=ON \
+            -DVOSTOK_BUILD_TESTS=OFF \
+            -DVOSTOK_TREAT_WARNINGS_AS_ERRORS=ON \
+            -G Ninja
+
+      - name: Run clang-tidy
+        run: |
+          cd build
+          run-clang-tidy -p . \
+            -header-filter='^.*/(src|include)/vostok/.*\.hpp$' \
+            -checks='-*,readability-*,performance-*,modernize-*,bugprone-*,clang-analyzer-*' \
+            src/
+
+  build-and-test:
+    name: 🧪 Build & Test
+    runs-on: ${{ matrix.os }}
+    needs: [format-check, static-analysis]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        build-type: [Debug, Release]
+        include:
+          - os: ubuntu-latest
+            generator: Ninja
+            cc: clang
+            cxx: clang++
+          - os: windows-latest
+            generator: "Visual Studio 17 2022"
+            cc: cl
+            cxx: cl
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup C++ (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: clang
+          vcvarsall: false
+          cmake: true
+          ninja: true
+
+      - name: Setup C++ (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: msvc
+          vcvarsall: true
+          cmake: true
+
+      - name: Install dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libvulkan-dev \
+            vulkan-tools \
+            spirv-tools \
+            glslang-tools \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxext-dev \
+            libwayland-dev \
+            wayland-protocols \
+            wayland-scanner++ \
+            libxkbcommon-dev
+
+          # Install glslc for shader compilation
+          if ! command -v glslc &> /dev/null; then
+            echo "Installing glslc..."
+            sudo apt-get install -y python3-pip git
+            git clone --depth 1 https://github.com/google/shaderc.git /tmp/shaderc
+            cd /tmp/shaderc
+            python3 utils/git-sync-deps
+            mkdir build && cd build
+            cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
+            make -j$(nproc) glslc
+            sudo cp glslc/glslc /usr/local/bin/
+            which glslc
+          fi
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            build/_deps
+            build/third_party
+          key: ${{ runner.os }}-${{ matrix.build-type }}-deps-${{ hashFiles('**/CMakeLists.txt', 'third_party/**') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.build-type }}-deps-
+            ${{ runner.os }}-deps-
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -S . \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+            -DVOSTOK_BUILD_TESTS=ON \
+            -DVOSTOK_ENABLE_VALIDATION=OFF \
+            -DVOSTOK_TREAT_WARNINGS_AS_ERRORS=ON \
+            ${{ matrix.os == 'ubuntu-latest' && '-G Ninja' || '' }}
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+
+      - name: Build
+        run: |
+          cmake --build build --config ${{ matrix.build-type }} --parallel
+
+      - name: Run tests
+        working-directory: build
+        run: ctest --output-on-failure --build-config ${{ matrix.build-type }} --parallel
+
+  coverage:
+    name: 📊 Coverage Report
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup C++
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: gcc
+          vcvarsall: false
+          cmake: true
+          ninja: true
+          gcovr: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libvulkan-dev \
+            vulkan-tools \
+            spirv-tools \
+            glslang-tools \
+            libwayland-dev \
+            wayland-protocols \
+            wayland-scanner++ \
+            libxkbcommon-dev
+
+          # Install glslc
+          if ! command -v glslc &> /dev/null; then
+            echo "Installing glslc..."
+            sudo apt-get install -y python3-pip git
+            git clone --depth 1 https://github.com/google/shaderc.git /tmp/shaderc
+            cd /tmp/shaderc
+            python3 utils/git-sync-deps
+            mkdir build && cd build
+            cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
+            make -j$(nproc) glslc
+            sudo cp glslc/glslc /usr/local/bin/
+          fi
+
+      - name: Configure CMake with coverage
+        run: |
+          cmake -B build -S . \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DVOSTOK_BUILD_TESTS=ON \
+            -DVOSTOK_ENABLE_COVERAGE=ON \
+            -DVOSTOK_ENABLE_VALIDATION=OFF \
+            -G Ninja
+        env:
+          CC: gcc
+          CXX: g++
+
+      - name: Build with coverage
+        run: |
+          cmake --build build --parallel
+
+      - name: Run tests
+        working-directory: build
+        run: ctest --output-on-failure
+
+      - name: Generate coverage report
+        run: |
+          cd build
+          lcov --capture --directory . --output-file coverage.info
+          lcov --extract coverage.info \
+            "$(pwd)/../src/*" \
+            --output-file coverage_filtered.info
+          lcov --remove coverage_filtered.info \
+            "*test*" "*third_party*" "*build*" \
+            --output-file coverage_clean.info
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: build/coverage_clean.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: true
+
+      - name: Coverage comment
+        uses: romeovs/lcov-reporter-action@v0.3.1
+        with:
+          lcov-file: build/coverage_clean.info
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Code Coverage Report"
+
+  security-scan:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    needs: format-check
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/init@v2
+        with:
+          languages: cpp
+          queries: security-and-quality
+
+      - name: Setup C++
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: clang
+          cmake: true
+          ninja: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libvulkan-dev \
+            vulkan-tools \
+            spirv-tools \
+            glslang-tools \
+            libwayland-dev \
+            wayland-protocols \
+            wayland-scanner++ \
+            libxkbcommon-dev
+
+          # Install glslc
+          if ! command -v glslc &> /dev/null; then
+            echo "Installing glslc..."
+            sudo apt-get install -y python3-pip git
+            git clone --depth 1 https://github.com/google/shaderc.git /tmp/shaderc
+            cd /tmp/shaderc
+            python3 utils/git-sync-deps
+            mkdir build && cd build
+            cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
+            make -j$(nproc) glslc
+            sudo cp glslc/glslc /usr/local/bin/
+          fi
+
+      - name: Configure and build
+        run: |
+          cmake -B build -S . \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DVOSTOK_BUILD_TESTS=OFF \
+            -G Ninja
+          cmake --build build --parallel
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
+  quality-gate:
+    name: ✅ Quality Gate
+    runs-on: ubuntu-latest
+    needs:
+      [format-check, static-analysis, build-and-test, coverage, security-scan]
+    if: always()
+    steps:
+      - name: Check all jobs
+        run: |
+          if [[ "${{ needs.format-check.result }}" != "success" ]]; then
+            echo "❌ Format check failed"
+            exit 1
+          fi
+
+          if [[ "${{ needs.static-analysis.result }}" != "success" ]]; then
+            echo "❌ Static analysis failed"
+            exit 1
+          fi
+
+          if [[ "${{ needs.build-and-test.result }}" != "success" ]]; then
+            echo "❌ Build and test failed"
+            exit 1
+          fi
+
+          if [[ "${{ needs.security-scan.result }}" != "success" ]]; then
+            echo "❌ Security scan failed"
+            exit 1
+          fi
+
+          echo "✅ All quality checks passed!"
+
+      - name: Add PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const pr_number = context.payload.pull_request.number;
+
+            const comment = `## 🎯 Quality Check Results
+
+            ✅ **All quality checks passed!**
+
+            - 🎨 Code formatting: ✅
+            - 🔍 Static analysis: ✅  
+            - 🧪 Unit tests: ✅
+            - 📊 Coverage report: ✅
+            - 🔒 Security scan: ✅
+
+            Your code is ready to be merged! 🚀`;
+
+            github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: pr_number,
+              body: comment
+            });
