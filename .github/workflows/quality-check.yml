@@ -52,15 +52,17 @@ jobs:
           ninja: true
           clang-tidy: true
 
+      - name: Install Vulkan SDK
+        run: |
+          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+          sudo apt-get update
+          sudo apt-get install -y vulkan-sdk
+
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libvulkan-dev \
-            vulkan-tools \
-            vulkan-validationlayers-dev \
-            spirv-tools \
-            glslang-tools \
             libxrandr-dev \
             libxinerama-dev \
             libxcursor-dev \
@@ -141,16 +143,19 @@ jobs:
           vcvarsall: true
           cmake: true
 
+      - name: Install Vulkan SDK (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+          sudo apt-get update
+          sudo apt-get install -y vulkan-sdk
+
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libvulkan-dev \
-            vulkan-tools \
-            vulkan-validationlayers-dev \
-            spirv-tools \
-            glslang-tools \
             libxrandr-dev \
             libxinerama-dev \
             libxcursor-dev \
@@ -211,15 +216,17 @@ jobs:
           ninja: true
           gcovr: true
 
+      - name: Install Vulkan SDK
+        run: |
+          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+          sudo apt-get update
+          sudo apt-get install -y vulkan-sdk
+
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libvulkan-dev \
-            vulkan-tools \
-            vulkan-validationlayers-dev \
-            spirv-tools \
-            glslang-tools \
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
@@ -291,15 +298,17 @@ jobs:
           cmake: true
           ninja: true
 
+      - name: Install Vulkan SDK
+        run: |
+          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+          sudo apt-get update
+          sudo apt-get install -y vulkan-sdk
+
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libvulkan-dev \
-            vulkan-tools \
-            vulkan-validationlayers-dev \
-            spirv-tools \
-            glslang-tools \
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
