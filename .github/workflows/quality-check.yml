@@ -66,17 +66,16 @@ jobs:
             libxext-dev \
             libwayland-dev \
             wayland-protocols \
-            wayland-scanner++ \
-            libxkbcommon-dev
+            wayland-scanner++ \            libxkbcommon-dev
 
           # Get glslc from Vulkan SDK
           echo "Installing Vulkan SDK for glslc..."
-          wget -q https://sdk.lunarg.com/sdk/download/1.3.268.0/linux/vulkansdk-linux-x86_64-1.3.268.0.tar.gz
-          tar -xf vulkansdk-linux-x86_64-1.3.268.0.tar.gz
-          echo "$PWD/1.3.268.0/x86_64/bin" >> $GITHUB_PATH
+          wget -q https://sdk.lunarg.com/sdk/download/1.4.313.0/linux/vulkansdk-linux-x86_64-1.4.313.0.tar.gz
+          tar -xf vulkansdk-linux-x86_64-1.4.313.0.tar.gz
+          echo "$PWD/1.4.313.0/x86_64/bin" >> $GITHUB_PATH
 
           # Verify glslc is available
-          ls -la $PWD/1.3.268.0/x86_64/bin/glslc
+          ls -la $PWD/1.4.313.0/x86_64/bin/glslc
 
       - name: Cache dependencies
         uses: actions/cache@v3
@@ -90,7 +89,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          export PATH="$PWD/1.3.268.0/x86_64/bin:$PATH"
+          export PATH="$PWD/1.4.313.0/x86_64/bin:$PATH"
           cmake -B build -S . \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
@@ -165,13 +164,10 @@ jobs:
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
-            libxkbcommon-dev
-
-          # Get glslc from Vulkan SDK
-          echo "Installing Vulkan SDK for glslc..."
-          wget -q https://sdk.lunarg.com/sdk/download/1.3.268.0/linux/vulkansdk-linux-x86_64-1.3.268.0.tar.gz
-          tar -xf vulkansdk-linux-x86_64-1.3.268.0.tar.gz
-          echo "$PWD/1.3.268.0/x86_64/bin" >> $GITHUB_PATH
+            libxkbcommon-dev          # Get glslc from Vulkan SDK          echo "Installing Vulkan SDK for glslc..."
+          wget -q https://sdk.lunarg.com/sdk/download/1.4.313.0/linux/vulkansdk-linux-x86_64-1.4.313.0.tar.gz
+          tar -xf vulkansdk-linux-x86_64-1.4.313.0.tar.gz
+          echo "$PWD/1.4.313.0/x86_64/bin" >> $GITHUB_PATH
 
       - name: Cache dependencies
         uses: actions/cache@v3
@@ -187,9 +183,9 @@ jobs:
       - name: Configure CMake
         run: |
           if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-            export PATH="$PWD/1.3.268.0/x86_64/bin:$PATH"
+            export PATH="$PWD/1.4.313.0/x86_64/bin:$PATH"
           fi
-          cmake -B build -S . \
+          cmake -B build -S .\
             -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
             -DVOSTOK_BUILD_TESTS=ON \
             -DVOSTOK_ENABLE_VALIDATION=OFF \
@@ -202,7 +198,7 @@ jobs:
       - name: Build
         run: |
           if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-            export PATH="$PWD/1.3.268.0/x86_64/bin:$PATH"
+            export PATH="$PWD/1.4.313.0/x86_64/bin:$PATH"
           fi
           cmake --build build --config ${{ matrix.build-type }} --parallel
 
@@ -240,17 +236,14 @@ jobs:
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
-            libxkbcommon-dev
-
-          # Get glslc from Vulkan SDK
-          echo "Installing Vulkan SDK for glslc..."
-          wget -q https://sdk.lunarg.com/sdk/download/1.3.268.0/linux/vulkansdk-linux-x86_64-1.3.268.0.tar.gz
-          tar -xf vulkansdk-linux-x86_64-1.3.268.0.tar.gz
-          echo "$PWD/1.3.268.0/x86_64/bin" >> $GITHUB_PATH
+            libxkbcommon-dev          # Get glslc from Vulkan SDK          echo "Installing Vulkan SDK for glslc..."
+          wget -q https://sdk.lunarg.com/sdk/download/1.4.313.0/linux/vulkansdk-linux-x86_64-1.4.313.0.tar.gz
+          tar -xf vulkansdk-linux-x86_64-1.4.313.0.tar.gz
+          echo "$PWD/1.4.313.0/x86_64/bin" >> $GITHUB_PATH
 
       - name: Configure CMake with coverage
         run: |
-          export PATH="$PWD/1.3.268.0/x86_64/bin:$PATH"
+          export PATH="$PWD/1.4.313.0/x86_64/bin:$PATH"
           cmake -B build -S . \
             -DCMAKE_BUILD_TYPE=Debug \
             -DVOSTOK_BUILD_TESTS=ON \
@@ -263,7 +256,7 @@ jobs:
 
       - name: Build with coverage
         run: |
-          export PATH="$PWD/1.3.268.0/x86_64/bin:$PATH"
+          export PATH="$PWD/1.4.313.0/x86_64/bin:$PATH"
           cmake --build build --parallel
 
       - name: Run tests
@@ -327,17 +320,14 @@ jobs:
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
-            libxkbcommon-dev
-
-          # Get glslc from Vulkan SDK
-          echo "Installing Vulkan SDK for glslc..."
-          wget -q https://sdk.lunarg.com/sdk/download/1.3.268.0/linux/vulkansdk-linux-x86_64-1.3.268.0.tar.gz
-          tar -xf vulkansdk-linux-x86_64-1.3.268.0.tar.gz
-          echo "$PWD/1.3.268.0/x86_64/bin" >> $GITHUB_PATH
+            libxkbcommon-dev          # Get glslc from Vulkan SDK          echo "Installing Vulkan SDK for glslc..."
+          wget -q https://sdk.lunarg.com/sdk/download/1.4.313.0/linux/vulkansdk-linux-x86_64-1.4.313.0.tar.gz
+          tar -xf vulkansdk-linux-x86_64-1.4.313.0.tar.gz
+          echo "$PWD/1.4.313.0/x86_64/bin" >> $GITHUB_PATH
 
       - name: Configure and build
         run: |
-          export PATH="$PWD/1.3.268.0/x86_64/bin:$PATH"
+          export PATH="$PWD/1.4.313.0/x86_64/bin:$PATH"
           cmake -B build -S . \
             -DCMAKE_BUILD_TYPE=Release \
             -DVOSTOK_BUILD_TESTS=OFF \
