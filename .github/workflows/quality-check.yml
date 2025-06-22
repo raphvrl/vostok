@@ -65,7 +65,8 @@ jobs:
             libxext-dev \
             libwayland-dev \
             wayland-protocols \
-            wayland-scanner++
+            wayland-scanner++ \
+            libxkbcommon-dev
 
       - name: Cache dependencies
         uses: actions/cache@v3
@@ -151,7 +152,8 @@ jobs:
             libxext-dev \
             libwayland-dev \
             wayland-protocols \
-            wayland-scanner++
+            wayland-scanner++ \
+            libxkbcommon-dev
 
       - name: Cache dependencies
         uses: actions/cache@v3
@@ -211,7 +213,8 @@ jobs:
             vulkan-tools \
             libwayland-dev \
             wayland-protocols \
-            wayland-scanner++
+            wayland-scanner++ \
+            libxkbcommon-dev
 
       - name: Configure CMake with coverage
         run: |
@@ -286,7 +289,8 @@ jobs:
             libvulkan-dev \
             libwayland-dev \
             wayland-protocols \
-            wayland-scanner++
+            wayland-scanner++ \
+            libxkbcommon-dev
 
       - name: Configure and build
         run: |
