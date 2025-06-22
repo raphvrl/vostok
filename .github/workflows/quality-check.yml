@@ -52,17 +52,13 @@ jobs:
           ninja: true
           clang-tidy: true
 
-      - name: Install Vulkan SDK
-        run: |
-          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
-          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
-          sudo apt-get update
-          sudo apt-get install -y vulkan-sdk
-
-      - name: Install Linux dependencies
+      - name: Install dependencies and Vulkan SDK
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            libvulkan-dev \
+            vulkan-tools \
+            spirv-tools \
             libxrandr-dev \
             libxinerama-dev \
             libxcursor-dev \
@@ -72,6 +68,15 @@ jobs:
             wayland-protocols \
             wayland-scanner++ \
             libxkbcommon-dev
+
+          # Get glslc from Vulkan SDK
+          echo "Installing Vulkan SDK for glslc..."
+          wget -q https://sdk.lunarg.com/sdk/download/1.3.268.0/linux/vulkansdk-linux-x86_64-1.3.268.0.tar.gz
+          tar -xf vulkansdk-linux-x86_64-1.3.268.0.tar.gz
+          echo "$PWD/1.3.268.0/x86_64/bin" >> $GITHUB_PATH
+
+          # Verify glslc is available
+          ls -la $PWD/1.3.268.0/x86_64/bin/glslc
 
       - name: Cache dependencies
         uses: actions/cache@v3
@@ -85,6 +90,7 @@ jobs:
 
       - name: Configure CMake
         run: |
+          export PATH="$PWD/1.3.268.0/x86_64/bin:$PATH"
           cmake -B build -S . \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
@@ -143,19 +149,14 @@ jobs:
           vcvarsall: true
           cmake: true
 
-      - name: Install Vulkan SDK (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
-          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
-          sudo apt-get update
-          sudo apt-get install -y vulkan-sdk
-
-      - name: Install Linux dependencies
+      - name: Install dependencies and Vulkan SDK (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            libvulkan-dev \
+            vulkan-tools \
+            spirv-tools \
             libxrandr-dev \
             libxinerama-dev \
             libxcursor-dev \
@@ -165,6 +166,12 @@ jobs:
             wayland-protocols \
             wayland-scanner++ \
             libxkbcommon-dev
+
+          # Get glslc from Vulkan SDK
+          echo "Installing Vulkan SDK for glslc..."
+          wget -q https://sdk.lunarg.com/sdk/download/1.3.268.0/linux/vulkansdk-linux-x86_64-1.3.268.0.tar.gz
+          tar -xf vulkansdk-linux-x86_64-1.3.268.0.tar.gz
+          echo "$PWD/1.3.268.0/x86_64/bin" >> $GITHUB_PATH
 
       - name: Cache dependencies
         uses: actions/cache@v3
@@ -179,6 +186,9 @@ jobs:
 
       - name: Configure CMake
         run: |
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            export PATH="$PWD/1.3.268.0/x86_64/bin:$PATH"
+          fi
           cmake -B build -S . \
             -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
             -DVOSTOK_BUILD_TESTS=ON \
@@ -190,7 +200,11 @@ jobs:
           CXX: ${{ matrix.cxx }}
 
       - name: Build
-        run: cmake --build build --config ${{ matrix.build-type }} --parallel
+        run: |
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            export PATH="$PWD/1.3.268.0/x86_64/bin:$PATH"
+          fi
+          cmake --build build --config ${{ matrix.build-type }} --parallel
 
       - name: Run tests
         working-directory: build
@@ -216,24 +230,27 @@ jobs:
           ninja: true
           gcovr: true
 
-      - name: Install Vulkan SDK
-        run: |
-          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
-          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
-          sudo apt-get update
-          sudo apt-get install -y vulkan-sdk
-
-      - name: Install dependencies
+      - name: Install dependencies and Vulkan SDK
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            libvulkan-dev \
+            vulkan-tools \
+            spirv-tools \
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
             libxkbcommon-dev
 
+          # Get glslc from Vulkan SDK
+          echo "Installing Vulkan SDK for glslc..."
+          wget -q https://sdk.lunarg.com/sdk/download/1.3.268.0/linux/vulkansdk-linux-x86_64-1.3.268.0.tar.gz
+          tar -xf vulkansdk-linux-x86_64-1.3.268.0.tar.gz
+          echo "$PWD/1.3.268.0/x86_64/bin" >> $GITHUB_PATH
+
       - name: Configure CMake with coverage
         run: |
+          export PATH="$PWD/1.3.268.0/x86_64/bin:$PATH"
           cmake -B build -S . \
             -DCMAKE_BUILD_TYPE=Debug \
             -DVOSTOK_BUILD_TESTS=ON \
@@ -245,7 +262,9 @@ jobs:
           CXX: g++
 
       - name: Build with coverage
-        run: cmake --build build --parallel
+        run: |
+          export PATH="$PWD/1.3.268.0/x86_64/bin:$PATH"
+          cmake --build build --parallel
 
       - name: Run tests
         working-directory: build
@@ -298,24 +317,27 @@ jobs:
           cmake: true
           ninja: true
 
-      - name: Install Vulkan SDK
-        run: |
-          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
-          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
-          sudo apt-get update
-          sudo apt-get install -y vulkan-sdk
-
-      - name: Install dependencies
+      - name: Install dependencies and Vulkan SDK
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            libvulkan-dev \
+            vulkan-tools \
+            spirv-tools \
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
             libxkbcommon-dev
 
+          # Get glslc from Vulkan SDK
+          echo "Installing Vulkan SDK for glslc..."
+          wget -q https://sdk.lunarg.com/sdk/download/1.3.268.0/linux/vulkansdk-linux-x86_64-1.3.268.0.tar.gz
+          tar -xf vulkansdk-linux-x86_64-1.3.268.0.tar.gz
+          echo "$PWD/1.3.268.0/x86_64/bin" >> $GITHUB_PATH
+
       - name: Configure and build
         run: |
+          export PATH="$PWD/1.3.268.0/x86_64/bin:$PATH"
           cmake -B build -S . \
             -DCMAKE_BUILD_TYPE=Release \
             -DVOSTOK_BUILD_TESTS=OFF \
