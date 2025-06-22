@@ -58,6 +58,9 @@ jobs:
           sudo apt-get install -y \
             libvulkan-dev \
             vulkan-tools \
+            vulkan-validationlayers-dev \
+            spirv-tools \
+            glslang-tools \
             libxrandr-dev \
             libxinerama-dev \
             libxcursor-dev \
@@ -145,6 +148,9 @@ jobs:
           sudo apt-get install -y \
             libvulkan-dev \
             vulkan-tools \
+            vulkan-validationlayers-dev \
+            spirv-tools \
+            glslang-tools \
             libxrandr-dev \
             libxinerama-dev \
             libxcursor-dev \
@@ -211,6 +217,9 @@ jobs:
           sudo apt-get install -y \
             libvulkan-dev \
             vulkan-tools \
+            vulkan-validationlayers-dev \
+            spirv-tools \
+            glslang-tools \
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
@@ -287,6 +296,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libvulkan-dev \
+            vulkan-tools \
+            vulkan-validationlayers-dev \
+            spirv-tools \
+            glslang-tools \
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
