@@ -64,9 +64,10 @@ jobs:
             libxcursor-dev \
             libxi-dev \
             libxext-dev \
-            libwayland-dev \
+            libwayland-dev \            
             wayland-protocols \
-            wayland-scanner++ \            libxkbcommon-dev
+            wayland-scanner++ \
+            libxkbcommon-dev
 
           # Get glslc from Vulkan SDK
           echo "Installing Vulkan SDK for glslc..."
@@ -164,7 +165,10 @@ jobs:
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
-            libxkbcommon-dev          # Get glslc from Vulkan SDK          echo "Installing Vulkan SDK for glslc..."
+            libxkbcommon-dev
+
+          # Get glslc from Vulkan SDK
+          echo "Installing Vulkan SDK for glslc..."
           wget -q https://sdk.lunarg.com/sdk/download/1.4.313.0/linux/vulkansdk-linux-x86_64-1.4.313.0.tar.gz
           tar -xf vulkansdk-linux-x86_64-1.4.313.0.tar.gz
           echo "$PWD/1.4.313.0/x86_64/bin" >> $GITHUB_PATH
@@ -236,7 +240,10 @@ jobs:
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
-            libxkbcommon-dev          # Get glslc from Vulkan SDK          echo "Installing Vulkan SDK for glslc..."
+            libxkbcommon-dev
+
+          # Get glslc from Vulkan SDK
+          echo "Installing Vulkan SDK for glslc..."
           wget -q https://sdk.lunarg.com/sdk/download/1.4.313.0/linux/vulkansdk-linux-x86_64-1.4.313.0.tar.gz
           tar -xf vulkansdk-linux-x86_64-1.4.313.0.tar.gz
           echo "$PWD/1.4.313.0/x86_64/bin" >> $GITHUB_PATH
@@ -316,11 +323,14 @@ jobs:
           sudo apt-get install -y \
             libvulkan-dev \
             vulkan-tools \
-            spirv-tools \
+            spirv-tools \            
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
-            libxkbcommon-dev          # Get glslc from Vulkan SDK          echo "Installing Vulkan SDK for glslc..."
+            libxkbcommon-dev
+
+          # Get glslc from Vulkan SDK
+          echo "Installing Vulkan SDK for glslc..."
           wget -q https://sdk.lunarg.com/sdk/download/1.4.313.0/linux/vulkansdk-linux-x86_64-1.4.313.0.tar.gz
           tar -xf vulkansdk-linux-x86_64-1.4.313.0.tar.gz
           echo "$PWD/1.4.313.0/x86_64/bin" >> $GITHUB_PATH
