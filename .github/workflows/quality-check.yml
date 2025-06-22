@@ -52,6 +52,21 @@ jobs:
           ninja: true
           clang-tidy: true
 
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libvulkan-dev \
+            vulkan-tools \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxext-dev \
+            libwayland-dev \
+            wayland-protocols \
+            wayland-scanner++
+
       - name: Cache dependencies
         uses: actions/cache@v3
         with:
@@ -133,7 +148,10 @@ jobs:
             libxinerama-dev \
             libxcursor-dev \
             libxi-dev \
-            libxext-dev
+            libxext-dev \
+            libwayland-dev \
+            wayland-protocols \
+            wayland-scanner++
 
       - name: Cache dependencies
         uses: actions/cache@v3
@@ -188,7 +206,12 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libvulkan-dev vulkan-tools
+          sudo apt-get install -y \
+            libvulkan-dev \
+            vulkan-tools \
+            libwayland-dev \
+            wayland-protocols \
+            wayland-scanner++
 
       - name: Configure CMake with coverage
         run: |
@@ -255,6 +278,15 @@ jobs:
           compiler: clang
           cmake: true
           ninja: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libvulkan-dev \
+            libwayland-dev \
+            wayland-protocols \
+            wayland-scanner++
 
       - name: Configure and build
         run: |
