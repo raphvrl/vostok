@@ -69,7 +69,9 @@ jobs:
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
-            libxkbcommon-dev
+            libxkbcommon-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -166,7 +168,9 @@ jobs:
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
-            libxkbcommon-dev
+            libxkbcommon-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev
 
       - name: Cache dependencies
         uses: actions/cache@v3
@@ -237,7 +241,9 @@ jobs:
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
-            libxkbcommon-dev
+            libxkbcommon-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev
 
       - name: Configure CMake with coverage
         run: |
@@ -327,7 +333,9 @@ jobs:
             libwayland-dev \
             wayland-protocols \
             wayland-scanner++ \
-            libxkbcommon-dev
+            libxkbcommon-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev
 
       - name: Configure and build
         run: |

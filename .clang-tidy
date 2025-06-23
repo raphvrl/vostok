@@ -16,7 +16,7 @@ Checks: >
   -readability-identifier-length
 
 WarningsAsErrors: ''
-HeaderFilterRegex: '.*'
+HeaderFilterRegex: '^.*/(include/vostok|src)/.*\.(h|hpp)$'
 FormatStyle: file
 
 CheckOptions:
