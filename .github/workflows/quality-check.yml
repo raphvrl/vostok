@@ -164,7 +164,7 @@ jobs:
             libxkbcommon-dev
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v3
         with:
           path: |
             build/_deps
@@ -264,7 +264,7 @@ jobs:
             --output-file coverage_clean.info
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v3
         with:
           file: build/coverage_clean.info
           flags: unittests
@@ -329,7 +329,7 @@ jobs:
           cmake --build build --parallel
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v2
 
   quality-gate:
     name: ✅ Quality Gate
