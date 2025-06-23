@@ -51,14 +51,16 @@ jobs:
           ninja: true
           clang-tidy: true
 
+      - name: Install Vulkan SDK 1.4
+        uses: humbletim/install-vulkan-sdk@v1.2
+        with:
+          version: 1.4.313.2
+          cache: true
+
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libvulkan-dev \
-            vulkan-tools \
-            spirv-tools \
-            glslang-tools \
             libxrandr-dev \
             libxinerama-dev \
             libxcursor-dev \
@@ -144,15 +146,18 @@ jobs:
           vcvarsall: true
           cmake: true
 
+      - name: Install Vulkan SDK 1.4 (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        uses: humbletim/install-vulkan-sdk@v1.2
+        with:
+          version: 1.4.313.2
+          cache: true
+
       - name: Install dependencies (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libvulkan-dev \
-            vulkan-tools \
-            spirv-tools \
-            glslang-tools \
             libxrandr-dev \
             libxinerama-dev \
             libxcursor-dev \
@@ -214,14 +219,16 @@ jobs:
           ninja: true
           gcovr: true
 
+      - name: Install Vulkan SDK 1.4
+        uses: humbletim/install-vulkan-sdk@v1.2
+        with:
+          version: 1.4.313.2
+          cache: true
+
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libvulkan-dev \
-            vulkan-tools \
-            spirv-tools \
-            glslang-tools \
             libxrandr-dev \
             libxinerama-dev \
             libxcursor-dev \
@@ -302,14 +309,16 @@ jobs:
           cmake: true
           ninja: true
 
+      - name: Install Vulkan SDK 1.4
+        uses: humbletim/install-vulkan-sdk@v1.2
+        with:
+          version: 1.4.313.2
+          cache: true
+
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libvulkan-dev \
-            vulkan-tools \
-            spirv-tools \
-            glslang-tools \
             libxrandr-dev \
             libxinerama-dev \
             libxcursor-dev \

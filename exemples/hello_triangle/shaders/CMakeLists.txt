@@ -22,7 +22,7 @@ foreach(SHADER ${SHADERS})
     
     add_custom_command(
         OUTPUT ${OUTPUT}
-        COMMAND ${GLSLC} -V ${INPUT} -o ${OUTPUT}
+        COMMAND ${GLSLC} --target-env vulkan1.4 -V ${INPUT} -o ${OUTPUT}
         DEPENDS ${INPUT}
         COMMENT "Compiling ${SHADER}"
     )
