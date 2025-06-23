@@ -54,7 +54,7 @@ jobs:
       - name: Install Vulkan SDK 1.4
         uses: humbletim/install-vulkan-sdk@v1.2
         with:
-          version: 1.4.313.2
+          version: 1.4.313.0
           cache: true
 
       - name: Install dependencies
@@ -150,7 +150,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: humbletim/install-vulkan-sdk@v1.2
         with:
-          version: 1.4.313.2
+          version: 1.4.313.0
           cache: true
 
       - name: Install dependencies (Ubuntu)
@@ -222,7 +222,7 @@ jobs:
       - name: Install Vulkan SDK 1.4
         uses: humbletim/install-vulkan-sdk@v1.2
         with:
-          version: 1.4.313.2
+          version: 1.4.313.0
           cache: true
 
       - name: Install dependencies
@@ -312,7 +312,7 @@ jobs:
       - name: Install Vulkan SDK 1.4
         uses: humbletim/install-vulkan-sdk@v1.2
         with:
-          version: 1.4.313.2
+          version: 1.4.313.0
           cache: true
 
       - name: Install dependencies
