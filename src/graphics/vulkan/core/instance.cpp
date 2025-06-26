@@ -72,7 +72,8 @@ Instance::~Instance()
 Instance::Instance(Instance &&other) noexcept
     : m_instance(other.m_instance),
       m_debugMessenger(other.m_debugMessenger),
-      m_validationEnabled(other.m_validationEnabled)
+      m_validationEnabled(other.m_validationEnabled),
+      m_platform(std::move(other.m_platform))
 {
     other.m_instance = VK_NULL_HANDLE;
     other.m_debugMessenger = VK_NULL_HANDLE;
@@ -84,6 +85,7 @@ auto Instance::operator=(Instance &&other) noexcept -> Instance &
         m_instance = other.m_instance;
         m_debugMessenger = other.m_debugMessenger;
         m_validationEnabled = other.m_validationEnabled;
+        m_platform = std::move(other.m_platform);
 
         other.m_instance = VK_NULL_HANDLE;
         other.m_debugMessenger = VK_NULL_HANDLE;

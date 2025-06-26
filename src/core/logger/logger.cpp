@@ -60,7 +60,8 @@ class LoggerHandle::Impl
 {
 public:
     Impl(std::string name, std::shared_ptr<spdlog::logger> logger)
-        : m_name(std::move(name)), m_logger(std::move(logger))
+        : m_name(std::move(name)),
+          m_logger(std::move(logger))
     {}
 
     void log(LogLevel level, std::string_view message, const std::source_location &location)
@@ -97,10 +98,7 @@ public:
         return m_logger->should_log(convertLevel(level));
     }
 
-    void setLevel(LogLevel level)
-    {
-        m_logger->set_level(convertLevel(level));
-    }
+    void setLevel(LogLevel level) { m_logger->set_level(convertLevel(level)); }
 
     [[nodiscard]] auto getLevel() const -> LogLevel { return convertLevel(m_logger->level()); }
 
@@ -179,10 +177,13 @@ auto getDefaultLogger() -> LoggerHandle &
     return s_defaultLogger;
 }
 
-LogSystem::LogSystem(const LogConfig &config) : m_config(config)
+LogSystem::LogSystem(const LogConfig &config)
+    : m_config(config)
 {
     if (m_config.asyncMode) {
-        spdlog::init_thread_pool(8192, 1);
+        constexpr size_t THREAD_POOL_QUEUE_SIZE = 8192;
+        constexpr size_t THREAD_POOL_THREADS = 1;
+        spdlog::init_thread_pool(THREAD_POOL_QUEUE_SIZE, THREAD_POOL_THREADS);
     }
 
     if (config.console.has_value()) {
@@ -195,9 +196,10 @@ LogSystem::LogSystem(const LogConfig &config) : m_config(config)
     if (config.file.has_value() && (!config.file->separateFilesByComponent ||
                                     config.file->filePath != config.file->componentFilePattern)) {
         if (config.file->rotateOnSize) {
+            constexpr size_t BYTES_PER_MB = 1024 * 1024;
             auto fileSink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
                 config.file->filePath,
-                config.file->maxSizeMB * 1024 * 1024,
+                config.file->maxSizeMB * BYTES_PER_MB,
                 config.file->maxFiles,
                 config.file->truncateOnStart
             );
@@ -262,9 +264,10 @@ auto LogSystem::createSpdLogger(std::string_view name) -> std::shared_ptr<spdlog
 
         spdlog::sink_ptr fileSink;
         if (m_config.file->rotateOnSize) {
+            constexpr size_t BYTES_PER_MB = 1024 * 1024;
             fileSink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
                 filename,
-                m_config.file->maxSizeMB * 1024 * 1024,
+                m_config.file->maxSizeMB * BYTES_PER_MB,
                 m_config.file->maxFiles,
                 m_config.file->truncateOnStart
             );
@@ -328,7 +331,7 @@ auto LogSystem::getLogger(std::string_view name) -> LoggerHandle
     std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_loggers.find(KEY);
     if (it != m_loggers.end()) {
-        return {it->second};
+        return { it->second };
     }
 
     auto spdLogger = spdlog::get(KEY);
@@ -345,7 +348,7 @@ auto LogSystem::getLogger(std::string_view name) -> LoggerHandle
     auto impl = std::make_shared<LoggerHandle::Impl>(KEY, spdLogger);
     m_loggers[KEY] = impl;
 
-    return {impl};
+    return { impl };
 }
 
 void LogSystem::setDefaultLevel(LogLevel level)
@@ -413,7 +416,9 @@ auto LogSystem::convertLevel(spdlog::level::level_enum level) -> LogLevel
     return LoggerHandle::Impl::convertLevel(level);
 }
 
-LoggerHandle::LoggerHandle(std::shared_ptr<Impl> impl) : m_impl(std::move(impl)) {}
+LoggerHandle::LoggerHandle(std::shared_ptr<Impl> impl)
+    : m_impl(std::move(impl))
+{}
 
 auto LoggerHandle::shouldLog(LogLevel level) const -> bool
 {
@@ -462,7 +467,7 @@ auto Logger::init(const LogConfig &config) -> std::expected<void, std::string>
 
 void Logger::shutdown()
 {
-    getDefaultLogger() = LoggerHandle{nullptr};
+    getDefaultLogger() = LoggerHandle{ nullptr };
     getLogSystem().reset();
 }
 
@@ -471,7 +476,7 @@ auto Logger::getLogger(std::string_view name) -> LoggerHandle
     if (!getLogSystem()) {
         auto result = init();
         if (!result) {
-            return LoggerHandle{nullptr};
+            return LoggerHandle{ nullptr };
         }
     }
 
@@ -570,7 +575,9 @@ ScopedContext::~ScopedContext()
 }
 
 ScopedTimer::ScopedTimer(std::string_view name, LogLevel level)
-    : m_name(name), m_level(level), m_start(std::chrono::high_resolution_clock::now())
+    : m_name(name),
+      m_level(level),
+      m_start(std::chrono::high_resolution_clock::now())
 {}
 
 ScopedTimer::~ScopedTimer() noexcept

@@ -99,16 +99,25 @@ jobs:
 
       - name: Run clang-tidy
         run: |
-          # Use CMake's built-in clang-tidy integration instead of running it manually
-          # This respects the target properties that disable clang-tidy for third_party
           echo "Running clang-tidy through CMake build (respects target properties)..."
           cd build
 
-          # Build only the main vostok targets, which will run clang-tidy only on our code
-          # thanks to the CXX_CLANG_TIDY properties set in CMakeLists.txt
-          ninja -v || echo "Some clang-tidy issues found, but build completed"
+          echo "Clang-tidy configuration:"
+          echo "- Header filter excludes third_party, build, and _deps directories"
+          echo "- System headers are disabled"
+          echo "- Only analyzing include/vostok and src directories"
+
+          ninja vostok -v || {
+            echo "⚠️  Some clang-tidy issues found in main code"
+            echo "Continuing to build examples to check for more issues..."
+          }
+
+          if ninja --help | grep -q hello_triangle; then
+            ninja hello_triangle -v || echo "⚠️  Some issues in examples"
+          fi
 
           echo "✅ Clang-tidy analysis completed (third_party excluded via CMake properties)"
+          echo "📊 Analysis scope: src/ and include/vostok/ only"
 
   build-and-test:
     name: 🧪 Build & Test

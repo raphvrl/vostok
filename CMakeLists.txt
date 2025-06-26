@@ -58,13 +58,16 @@ if(VOSTOK_ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY_EXE NAMES clang-tidy)
     if(CLANG_TIDY_EXE)
         message(STATUS "Clang-Tidy enabled: ${CLANG_TIDY_EXE}")
+        set(CLANG_TIDY_HEADER_FILTER "^((?!.*third_party).*/(include/vostok|src)/.*)\\.(h|hpp)$")
         set(CMAKE_CXX_CLANG_TIDY 
             ${CLANG_TIDY_EXE}
             -p=${CMAKE_BINARY_DIR}
-            -header-filter=^${CMAKE_CURRENT_SOURCE_DIR}/include/vostok/.*
+            -header-filter=${CLANG_TIDY_HEADER_FILTER}
             --config-file=${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy
             -system-headers=false
+            --line-filter=[{"name":".*","lines":[[1,999999]]}]
         )
+        message(STATUS "Clang-Tidy header filter: ${CLANG_TIDY_HEADER_FILTER}")
     else()
         message(WARNING "Clang-Tidy requested but executable not found")
         set(VOSTOK_ENABLE_CLANG_TIDY OFF)
@@ -85,20 +88,43 @@ function(add_third_party_library NAME)
     endif()
     
     if (NOT TARGET ${NAME})
-        add_subdirectory(${THIRD_PARTY_DIR}/${DIR_NAME} ${CMAKE_BINARY_DIR}/third_party/${DIR_NAME} EXCLUDE_FROM_ALL)
+        add_subdirectory(${THIRD_PARTY_DIR}/${DIR_NAME} ${CMAKE_BINARY_DIR}/third_party/${DIR_NAME} EXCLUDE_FROM_ALL SYSTEM)
         
-        # Disable clang-tidy for ALL targets created by this third-party library
         if (VOSTOK_ENABLE_CLANG_TIDY)
-            # Get all targets created in the third_party subdirectory
             get_directory_property(THIRD_PARTY_TARGETS 
                 DIRECTORY ${THIRD_PARTY_DIR}/${DIR_NAME} 
                 BUILDSYSTEM_TARGETS)
             
             foreach(TARGET_NAME ${THIRD_PARTY_TARGETS})
                 if(TARGET ${TARGET_NAME})
-                    set_target_properties(${TARGET_NAME} PROPERTIES CXX_CLANG_TIDY "")
+                    set_target_properties(${TARGET_NAME} PROPERTIES 
+                        CXX_CLANG_TIDY ""
+                        C_CLANG_TIDY ""
+                    )
+                    
+                    set_target_properties(${TARGET_NAME} PROPERTIES
+                        CXX_CPPCHECK ""
+                        C_CPPCHECK ""
+                        CXX_CPPLINT ""
+                        C_CPPLINT ""
+                    )
+                    
                     message(STATUS "Disabled clang-tidy for third-party target: ${TARGET_NAME}")
                 endif()
+            endforeach()
+            
+            get_directory_property(SUBDIRS DIRECTORY ${THIRD_PARTY_DIR}/${DIR_NAME} SUBDIRECTORIES)
+            foreach(SUBDIR ${SUBDIRS})
+                get_directory_property(SUBDIR_TARGETS DIRECTORY ${SUBDIR} BUILDSYSTEM_TARGETS)
+                foreach(TARGET_NAME ${SUBDIR_TARGETS})
+                    if(TARGET ${TARGET_NAME})
+                        set_target_properties(${TARGET_NAME} PROPERTIES 
+                            CXX_CLANG_TIDY ""
+                            C_CLANG_TIDY ""
+                        )
+                        message(STATUS "Disabled clang-tidy for third-party subdirectory target: ${TARGET_NAME}")
+                    endif()
+                endforeach()
             endforeach()
         endif()
         
@@ -125,12 +151,10 @@ else()
 endif()
 
 if(EXISTS ${THIRD_PARTY_DIR}/spdlog/CMakeLists.txt)
+    set(SPDLOG_USE_STD_FORMAT ON CACHE BOOL "Use std::format instead of fmt library")
+    set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "Build spdlog examples")
+    set(SPDLOG_INSTALL OFF CACHE BOOL "Install spdlog")
     add_third_party_library(spdlog)
-    set_target_properties(spdlog PROPERTIES
-        SPDLOG_BUILD_EXAMPLE OFF
-        SPDLOG_INSTALL OFF
-        SPDLOG_FMT_EXTERNAL OFF
-    )
 else()
     message(WARNING "spdlog directory not found, please clone spdlog in ${THIRD_PARTY_DIR}/spdlog")
 endif()

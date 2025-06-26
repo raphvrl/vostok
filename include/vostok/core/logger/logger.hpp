@@ -45,6 +45,8 @@ constexpr auto toString(LogLevel level) -> std::string_view
         case LogLevel::OFF:
             return "OFF";
     }
+
+    return "UNKNOWN";
 }
 
 struct FileLogConfig
@@ -124,7 +126,7 @@ struct FormatWithLocation
                 },
                 argsTuple
             );
-        } catch (const std::format_error &e) {
+        } catch (const std::format_error & /* e */) {
             return std::string(fmt) + " [Format error]";
         }
     }

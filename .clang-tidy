@@ -16,8 +16,9 @@ Checks: >
   -readability-identifier-length
 
 WarningsAsErrors: ''
-HeaderFilterRegex: '^.*/(include/vostok|src)/.*\.(h|hpp)$'
+HeaderFilterRegex: '^((?!.*third_party|.*build|.*_deps).*/(include/vostok|src)/.*)\\.(h|hpp)$'
 FormatStyle: file
+SystemHeaders: false
 
 CheckOptions:
   - key: readability-identifier-naming.ClassCase

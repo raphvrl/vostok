@@ -164,32 +164,50 @@ auto OrthographicCamera::createCentered(const CenteredParams &params) -> Orthogr
     const f32 HALF_WIDTH = params.width * 0.5F;
     const f32 HALF_HEIGHT = params.height * 0.5F;
 
-    return OrthographicCamera{ CreateInfo{ .config = { .left = -HALF_WIDTH,
-                                                       .right = HALF_WIDTH,
-                                                       .bottom = -HALF_HEIGHT,
-                                                       .top = HALF_HEIGHT,
-                                                       .nearPlane = params.nearPlane,
-                                                       .farPlane = params.farPlane } } };
+    CreateInfo createInfo{};
+    createInfo.name = "OrthographicCamera";
+    createInfo.position = { 0.0F, 0.0F, 0.0F };
+    createInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
+    createInfo.config = { .left = -HALF_WIDTH,
+                          .right = HALF_WIDTH,
+                          .bottom = -HALF_HEIGHT,
+                          .top = HALF_HEIGHT,
+                          .nearPlane = params.nearPlane,
+                          .farPlane = params.farPlane };
+
+    return OrthographicCamera{ createInfo };
 }
 
 auto OrthographicCamera::createUI(f32 screenWidth, f32 screenHeight) -> OrthographicCamera
 {
-    return OrthographicCamera{ CreateInfo{ .config = { .left = 0.0F,
-                                                       .right = screenWidth,
-                                                       .bottom = screenHeight,
-                                                       .top = 0.0F,
-                                                       .nearPlane = -1.0F,
-                                                       .farPlane = 1.0F } } };
+    CreateInfo createInfo{};
+    createInfo.name = "OrthographicCamera_UI";
+    createInfo.position = { 0.0F, 0.0F, 0.0F };
+    createInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
+    createInfo.config = { .left = 0.0F,
+                          .right = screenWidth,
+                          .bottom = screenHeight,
+                          .top = 0.0F,
+                          .nearPlane = -1.0F,
+                          .farPlane = 1.0F };
+
+    return OrthographicCamera{ createInfo };
 }
 
 auto OrthographicCamera::createFromBounds(const BoundsParams &params) -> OrthographicCamera
 {
-    return OrthographicCamera{ CreateInfo{ .config = { .left = params.left,
-                                                       .right = params.right,
-                                                       .bottom = params.bottom,
-                                                       .top = params.top,
-                                                       .nearPlane = params.nearPlane,
-                                                       .farPlane = params.farPlane } } };
+    CreateInfo createInfo{};
+    createInfo.name = "OrthographicCamera";
+    createInfo.position = { 0.0F, 0.0F, 0.0F };
+    createInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
+    createInfo.config = { .left = params.left,
+                          .right = params.right,
+                          .bottom = params.bottom,
+                          .top = params.top,
+                          .nearPlane = params.nearPlane,
+                          .farPlane = params.farPlane };
+
+    return OrthographicCamera{ createInfo };
 }
 
 void OrthographicCamera::onTransformChanged() noexcept {}

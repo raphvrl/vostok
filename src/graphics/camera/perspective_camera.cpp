@@ -211,14 +211,24 @@ auto PerspectiveCamera::getWorldToScreenRay(
 auto PerspectiveCamera::createDefault() -> PerspectiveCamera
 {
     PerspectiveConfig defaultConfig{};
+    CreateInfo createInfo{};
+    createInfo.name = "PerspectiveCamera";
+    createInfo.position = { 0.0F, 0.0F, 0.0F };
+    createInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
+    createInfo.perspective = defaultConfig;
 
-    return PerspectiveCamera{ CreateInfo{ .perspective = defaultConfig } };
+    return PerspectiveCamera{ createInfo };
 }
 
 auto PerspectiveCamera::createWithFOV(f32 fov, f32 aspectRatio) -> PerspectiveCamera
 {
-    return PerspectiveCamera{ CreateInfo{
-        .perspective = { .fieldOfView = fov, .aspectRatio = aspectRatio } } };
+    CreateInfo createInfo{};
+    createInfo.name = "PerspectiveCamera";
+    createInfo.position = { 0.0F, 0.0F, 0.0F };
+    createInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
+    createInfo.perspective = { .fieldOfView = fov, .aspectRatio = aspectRatio };
+
+    return PerspectiveCamera{ createInfo };
 }
 
 void PerspectiveCamera::onTransformChanged() noexcept {}

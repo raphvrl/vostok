@@ -143,7 +143,8 @@ auto PhysicalDevice::create(VkInstance instance, VkSurfaceKHR surface)
             }
         }
 
-        score += static_cast<int>(totalMemory / (1024ULL * 1024ULL * 1024ULL));
+        constexpr VkDeviceSize BYTES_PER_GB = 1024ULL * 1024ULL * 1024ULL;
+        score += static_cast<int>(totalMemory / BYTES_PER_GB);
 
         return score;
     };
