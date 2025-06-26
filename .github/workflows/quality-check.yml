@@ -13,6 +13,10 @@ on:
   push:
     branches: [dev, main]
 
+permissions:
+  contents: read
+  security-events: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -346,7 +350,7 @@ jobs:
           cmake --build build --parallel
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
 
   quality-gate:
     name: ✅ Quality Gate
