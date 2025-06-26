@@ -1,6 +1,7 @@
 #include "core/logger/logger.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <filesystem>
 #include <memory>
 #include <mutex>
@@ -196,7 +197,7 @@ LogSystem::LogSystem(const LogConfig &config)
     if (config.file.has_value() && (!config.file->separateFilesByComponent ||
                                     config.file->filePath != config.file->componentFilePattern)) {
         if (config.file->rotateOnSize) {
-            constexpr size_t BYTES_PER_MB = 1024 * 1024;
+            constexpr size_t BYTES_PER_MB = static_cast<size_t>(1024) * 1024;
             auto fileSink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
                 config.file->filePath,
                 config.file->maxSizeMB * BYTES_PER_MB,
@@ -264,7 +265,7 @@ auto LogSystem::createSpdLogger(std::string_view name) -> std::shared_ptr<spdlog
 
         spdlog::sink_ptr fileSink;
         if (m_config.file->rotateOnSize) {
-            constexpr size_t BYTES_PER_MB = 1024 * 1024;
+            constexpr size_t BYTES_PER_MB = static_cast<size_t>(1024) * 1024;
             fileSink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
                 filename,
                 m_config.file->maxSizeMB * BYTES_PER_MB,

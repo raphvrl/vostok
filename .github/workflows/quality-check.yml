@@ -1,8 +1,8 @@
-name: Quality Check
+name: Release Quality Gate
 
 on:
   pull_request:
-    branches: [dev, main]
+    branches: [main]
     paths:
       - "src/**"
       - "include/**"
@@ -10,8 +10,6 @@ on:
       - "CMakeLists.txt"
       - ".clang-format"
       - ".clang-tidy"
-  push:
-    branches: [dev, main]
 
 permissions:
   contents: read
