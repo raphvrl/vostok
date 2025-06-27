@@ -1,0 +1,48 @@
+name: 🚀 Feature Validation
+
+on:
+  pull_request:
+    branches: [dev]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
+
+jobs:
+  validate:
+    name: Quick Feature Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: 🔧 Setup Vostok Environment
+        uses: ./.github/actions/setup-vostok
+        with:
+          vulkan-version: "1.4.313.0"
+          build-type: "Debug"
+          enable-examples: "false"
+          enable-clang-tidy: "false"
+
+      - name: 🎨 Format Check
+        uses: jidicula/clang-format-action@v4.11.0
+        with:
+          clang-format-version: "17"
+          check-path: "."
+          include-regex: '^(src|include|tests)/.*\.(cpp|hpp)$'
+          exclude-regex: "^third_party/.*"
+
+      - name: 🔨 Build
+        run: cmake --build build --parallel
+
+      - name: 🧪 Test
+        working-directory: build
+        run: ctest --output-on-failure
+
+      - name: ✅ Success
+        run: echo "🎉 Feature ready for develop!"
