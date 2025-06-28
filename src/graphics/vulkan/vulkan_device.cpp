@@ -1,6 +1,7 @@
 #include "graphics/vulkan/vulkan_device.hpp"
 
 #include "graphics/gpu_device.hpp"
+#include "graphics/vulkan/core/allocator.hpp"
 #include "graphics/vulkan/core/device.hpp"
 #include "graphics/vulkan/core/frame_sync.hpp"
 #include "graphics/vulkan/core/instance.hpp"
@@ -48,6 +49,7 @@ public:
         return m_physicalDevice.get();
     }
     [[nodiscard]] auto getDevice() const -> Device * { return m_device.get(); }
+    [[nodiscard]] auto getAllocator() const -> Allocator * { return m_allocator.get(); }
     [[nodiscard]] auto getSwapchain() const -> Swapchain * { return m_swapchain.get(); }
     [[nodiscard]] auto getFrameSync() const -> FrameSync * { return m_frameSync.get(); }
 
@@ -58,6 +60,7 @@ private:
     auto initSurface(void *windowHandle) -> bool;
     auto initPhysicalDevice() -> bool;
     auto initDevice(const GPUDevice::CreateInfo &createInfo) -> bool;
+    auto initAllocator() -> bool;
     auto initSwapchain(const SwapchainExtent &size) -> bool;
     auto initFrameSync() -> bool;
 
@@ -65,6 +68,7 @@ private:
     std::unique_ptr<Surface> m_surface;
     std::unique_ptr<PhysicalDevice> m_physicalDevice;
     std::unique_ptr<Device> m_device;
+    std::unique_ptr<Allocator> m_allocator;
     std::unique_ptr<Swapchain> m_swapchain;
     std::unique_ptr<FrameSync> m_frameSync;
     std::string m_lastError;
@@ -104,6 +108,10 @@ VulkanDevice::Impl::Impl(VulkanDevice *parent, const GPUDevice::CreateInfo &crea
     }
 
     if (!initDevice(createInfo)) {
+        return;
+    }
+
+    if (!initAllocator()) {
         return;
     }
 
@@ -213,6 +221,29 @@ auto VulkanDevice::Impl::initDevice(const GPUDevice::CreateInfo &createInfo) -> 
     }
 
     m_device = std::move(result.value());
+
+    return true;
+}
+
+auto VulkanDevice::Impl::initAllocator() -> bool
+{
+    if (!m_device) {
+        m_lastError = "Device is not initialized";
+        return false;
+    }
+
+    Allocator::CreateInfo allocatorInfo;
+    allocatorInfo.instance = m_instance.get();
+    allocatorInfo.physicalDevice = m_physicalDevice.get();
+    allocatorInfo.device = m_device.get();
+
+    auto result = Allocator::create(allocatorInfo);
+    if (!result) {
+        m_lastError = result.error();
+        return false;
+    }
+
+    m_allocator = std::move(result.value());
 
     return true;
 }
@@ -571,6 +602,14 @@ auto VulkanDevice::getDevice() const -> Device *
 {
     if (m_impl) {
         return m_impl->getDevice();
+    }
+    return nullptr;
+}
+
+auto VulkanDevice::getAllocator() const -> Allocator *
+{
+    if (m_impl) {
+        return m_impl->getAllocator();
     }
     return nullptr;
 }
