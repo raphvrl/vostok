@@ -16,6 +16,7 @@ class Device;
 class Device;
 class Swapchain;
 class FrameSync;
+class Allocator;
 
 class VulkanDevice : public graphics::GPUDevice
 {
@@ -51,6 +52,7 @@ public:
     [[nodiscard]] auto getSurface() const -> Surface *;
     [[nodiscard]] auto getPhysicalDevice() const -> PhysicalDevice *;
     [[nodiscard]] auto getDevice() const -> Device *;
+    [[nodiscard]] auto getAllocator() const -> Allocator *;
     [[nodiscard]] auto getSwapchain() const -> Swapchain *;
     [[nodiscard]] auto getFrameSync() const -> FrameSync *;
 

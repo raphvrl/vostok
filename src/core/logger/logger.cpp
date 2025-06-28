@@ -1,7 +1,6 @@
 #include "core/logger/logger.hpp"
 
 #include <algorithm>
-#include <cstddef>
 #include <filesystem>
 #include <memory>
 #include <mutex>
