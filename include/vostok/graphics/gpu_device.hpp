@@ -65,8 +65,6 @@ public:
     virtual auto createPipelineBuilder()
         -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string> = 0;
 
-private:
-    RenderBackend m_backend = RenderBackend::VULKAN;
 };
 
 } // namespace vostok::graphics
