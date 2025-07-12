@@ -12,11 +12,9 @@ using namespace vostok;
 class PerspectiveCameraTest : public ::testing::Test
 {
 protected:
-    void SetUp() override
-    {
-        [[maybe_unused]] auto loggerResult = vostok::Logger::init();
-    }
-    static PerspectiveCamera createDefaultCamera()
+    void SetUp() override { [[maybe_unused]] auto loggerResult = vostok::Logger::init(); }
+
+    static auto createDefaultCamera() -> PerspectiveCamera
     {
         PerspectiveCamera::PerspectiveConfig config{ .fieldOfView = 60.0F,
                                                      .aspectRatio = 16.0F / 9.0F,
@@ -410,7 +408,7 @@ TEST_F(PerspectiveCameraTest, CameraBaseFunctionality_LookAt)
     EXPECT_NO_THROW(camera.lookAt(params));
 }
 
-TEST(BasicTest, GoogleTestSanity)
+TEST(OrthographicBasicTest, GoogleTestSanity)
 {
     EXPECT_EQ(1 + 1, 2);
     SUCCEED();

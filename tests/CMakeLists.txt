@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.25)
 
 add_executable(vostok_camera_tests
     unit/camera/test_perspective_camera.cpp
+    unit/camera/test_orthographic_camera.cpp
+    unit/camera/test_frustum_camera.cpp
 )
 
 target_include_directories(vostok_camera_tests

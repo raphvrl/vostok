@@ -186,8 +186,8 @@ auto OrthographicCamera::createUI(f32 screenWidth, f32 screenHeight) -> Orthogra
     createInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
     createInfo.config = { .left = 0.0F,
                           .right = screenWidth,
-                          .bottom = screenHeight,
-                          .top = 0.0F,
+                          .bottom = 0.0F,
+                          .top = screenHeight,
                           .nearPlane = -1.0F,
                           .farPlane = 1.0F };
 
