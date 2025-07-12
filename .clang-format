@@ -34,16 +34,15 @@ IncludeCategories:
     Priority:        2
 SortIncludes: CaseSensitive
 
-# Configuration pour les listes d'initialisation
 BinPackArguments: false
 BinPackParameters: false
 ExperimentalAutoDetectBinPacking: false
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AlignAfterOpenBracket: BlockIndent
-Cpp11BracedListStyle: false  # Changé à false pour préserver l'espacement
-SpacesInContainerLiterals: true  # Ajouté pour l'espacement dans les accolades
-PackConstructorInitializers: Never  # Ajouté pour éviter la compaction
+Cpp11BracedListStyle: false
+SpacesInContainerLiterals: true
+PackConstructorInitializers: Never
 ConstructorInitializerIndentWidth: 4
 AlignOperands: AlignAfterOperator
 
