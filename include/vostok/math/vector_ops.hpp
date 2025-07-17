@@ -14,13 +14,15 @@ template <VectorType T>
 }
 
 template <VectorType T>
-[[nodiscard]] constexpr auto length(const T &v) noexcept -> typename T::value_type
+[[nodiscard]] constexpr auto length(const T &v) noexcept ->
+    typename T::value_type
 {
     return glm::length(v);
 }
 
 template <VectorType T>
-[[nodiscard]] constexpr auto dot(const T &a, const T &b) noexcept -> typename T::value_type
+[[nodiscard]] constexpr auto dot(const T &a, const T &b) noexcept ->
+    typename T::value_type
 {
     return glm::dot(a, b);
 }
@@ -33,20 +35,23 @@ template <VectorType T>
 }
 
 template <VectorType T>
-[[nodiscard]] constexpr auto distance(const T &a, const T &b) noexcept -> typename T::value_type
+[[nodiscard]] constexpr auto distance(const T &a, const T &b) noexcept ->
+    typename T::value_type
 {
     return glm::distance(a, b);
 }
 
 template <VectorType T>
-[[nodiscard]] constexpr auto reflect(const T &incident, const T &normal) noexcept -> T
+[[nodiscard]] constexpr auto
+reflect(const T &incident, const T &normal) noexcept -> T
 {
     return glm::reflect(incident, normal);
 }
 
 template <VectorType T>
 [[nodiscard]] constexpr auto
-refract(const T &incident, const T &normal, typename T::value_type eta) noexcept -> T
+refract(const T &incident, const T &normal, typename T::value_type eta) noexcept
+    -> T
 {
     return glm::refract(incident, normal, eta);
 }

@@ -33,6 +33,17 @@ public:
     Allocator(Allocator &&other) noexcept;
     auto operator=(Allocator &&other) noexcept -> Allocator &;
 
+    auto mapMemory(VmaAllocation allocation, void **data)
+        -> std::expected<void *, std::string>;
+    void unmapMemory(VmaAllocation allocation);
+
+    auto createBuffer(
+        const VkBufferCreateInfo &createInfo,
+        VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY
+    ) -> std::expected<std::pair<VkBuffer, VmaAllocation>, std::string>;
+
+    void destroyBuffer(VkBuffer buffer, VmaAllocation allocation);
+
     [[nodiscard]] auto getHandle() const -> VmaAllocator { return m_allocator; }
 
 private:

@@ -107,7 +107,9 @@ struct FormatWithLocation
     {}
 
     template <typename T>
-    static auto at(T &&fmt, const std::source_location &loc = std::source_location::current())
+    static auto
+    at(T &&fmt,
+       const std::source_location &loc = std::source_location::current())
         -> FormatWithLocation
     {
         return FormatWithLocation(std::forward<T>(fmt), loc);
@@ -122,7 +124,10 @@ struct FormatWithLocation
 
             return std::apply(
                 [this](auto &&...a) {
-                    return std::vformat(std::string(fmt), std::make_format_args(a...));
+                    return std::vformat(
+                        std::string(fmt),
+                        std::make_format_args(a...)
+                    );
                 },
                 argsTuple
             );
@@ -176,14 +181,18 @@ private:
     friend class LogSystem;
     friend auto getDefaultLogger() -> LoggerHandle &;
 
-    void
-    logImpl(LogLevel level, std::string_view message, const std::source_location &location) const;
+    void logImpl(
+        LogLevel level,
+        std::string_view message,
+        const std::source_location &location
+    ) const;
 };
 
 class Logger
 {
 public:
-    static auto init(const LogConfig &config = {}) -> std::expected<void, std::string>;
+    static auto init(const LogConfig &config = {})
+        -> std::expected<void, std::string>;
     static void shutdown();
 
     static auto getLogger(std::string_view name) -> LoggerHandle;
@@ -248,7 +257,10 @@ private:
 class ScopedTimer
 {
 public:
-    explicit ScopedTimer(std::string_view name, LogLevel level = LogLevel::DEBUG);
+    explicit ScopedTimer(
+        std::string_view name,
+        LogLevel level = LogLevel::DEBUG
+    );
     ~ScopedTimer() noexcept;
 
     ScopedTimer(const ScopedTimer &) = delete;
@@ -271,6 +283,9 @@ struct std::formatter<vostok::LogLevel> : std::formatter<std::string_view>
 {
     auto format(vostok::LogLevel level, format_context &ctx) const
     {
-        return formatter<std::string_view>::format(vostok::toString(level), ctx);
+        return formatter<std::string_view>::format(
+            vostok::toString(level),
+            ctx
+        );
     }
 };

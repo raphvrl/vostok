@@ -12,15 +12,20 @@ using namespace vostok;
 class PerspectiveCameraTest : public ::testing::Test
 {
 protected:
-    void SetUp() override { [[maybe_unused]] auto loggerResult = vostok::Logger::init(); }
+    void SetUp() override
+    {
+        [[maybe_unused]] auto loggerResult = vostok::Logger::init();
+    }
 
     static auto createDefaultCamera() -> PerspectiveCamera
     {
         PerspectiveCamera::PerspectiveConfig config{ .fieldOfView = 60.0F,
-                                                     .aspectRatio = 16.0F / 9.0F,
+                                                     .aspectRatio =
+                                                         16.0F / 9.0F,
                                                      .nearPlane = 0.1F,
                                                      .farPlane = 100.0F,
-                                                     .infiniteFarPlane = false };
+                                                     .infiniteFarPlane =
+                                                         false };
 
         PerspectiveCamera::CreateInfo createInfo;
         createInfo.name = "TestCamera";
@@ -243,7 +248,8 @@ TEST_F(PerspectiveCameraTest, UpdateConfig_InvalidConfig)
                                                         .aspectRatio = 1.0F,
                                                         .nearPlane = 0.1F,
                                                         .farPlane = 100.0F,
-                                                        .infiniteFarPlane = false };
+                                                        .infiniteFarPlane =
+                                                            false };
 
     auto result = camera.updateConfig(invalidConfig);
     EXPECT_FALSE(result.has_value());
@@ -313,7 +319,8 @@ TEST_F(PerspectiveCameraTest, FrustumCorners)
 
     for (size_t i = 0; i < corners.size(); ++i) {
         for (size_t j = i + 1; j < corners.size(); ++j) {
-            bool isDifferent = (corners[i].x != corners[j].x) || (corners[i].y != corners[j].y) ||
+            bool isDifferent = (corners[i].x != corners[j].x) ||
+                               (corners[i].y != corners[j].y) ||
                                (corners[i].z != corners[j].z);
             EXPECT_TRUE(isDifferent);
         }
@@ -327,7 +334,8 @@ TEST_F(PerspectiveCameraTest, WorldToScreenRay)
     math::Vec2 screenPos{ 0.5F, 0.5F };
     math::Vec2 screenSize{ 1920.0F, 1080.0F };
 
-    auto [rayOrigin, rayDirection] = camera.getWorldToScreenRay(screenPos, screenSize);
+    auto [rayOrigin, rayDirection] =
+        camera.getWorldToScreenRay(screenPos, screenSize);
     f32 dirLength = std::sqrt(
         (rayDirection.x * rayDirection.x) + (rayDirection.y * rayDirection.y) +
         (rayDirection.z * rayDirection.z)
@@ -387,9 +395,13 @@ TEST_F(PerspectiveCameraTest, CameraBaseFunctionality_DirectionVectors)
     auto forward = camera.getForward();
     auto right = camera.getRight();
     auto up = camera.getUp();
-    f32 forwardLength =
-        std::sqrt((forward.x * forward.x) + (forward.y * forward.y) + (forward.z * forward.z));
-    f32 rightLength = std::sqrt((right.x * right.x) + (right.y * right.y) + (right.z * right.z));
+    f32 forwardLength = std::sqrt(
+        (forward.x * forward.x) + (forward.y * forward.y) +
+        (forward.z * forward.z)
+    );
+    f32 rightLength = std::sqrt(
+        (right.x * right.x) + (right.y * right.y) + (right.z * right.z)
+    );
     f32 upLength = std::sqrt((up.x * up.x) + (up.y * up.y) + (up.z * up.z));
 
     EXPECT_NEAR(forwardLength, 1.0F, 0.1F);

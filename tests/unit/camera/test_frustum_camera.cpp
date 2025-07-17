@@ -12,7 +12,10 @@ using namespace vostok;
 class FrustumCameraTest : public ::testing::Test
 {
 protected:
-    void SetUp() override { [[maybe_unused]] auto loggerResult = vostok::Logger::init(); }
+    void SetUp() override
+    {
+        [[maybe_unused]] auto loggerResult = vostok::Logger::init();
+    }
 
     static auto createDefaultCamera() -> FrustumCamera
     {
@@ -35,10 +38,12 @@ protected:
     static auto createTestPerspectiveCamera() -> PerspectiveCamera
     {
         PerspectiveCamera::PerspectiveConfig config{ .fieldOfView = 60.0F,
-                                                     .aspectRatio = 16.0F / 9.0F,
+                                                     .aspectRatio =
+                                                         16.0F / 9.0F,
                                                      .nearPlane = 0.1F,
                                                      .farPlane = 100.0F,
-                                                     .infiniteFarPlane = false };
+                                                     .infiniteFarPlane =
+                                                         false };
 
         PerspectiveCamera::CreateInfo createInfo;
         createInfo.name = "TestPerspectiveCamera";
@@ -67,7 +72,8 @@ TEST_F(FrustumCameraTest, DefaultConstruction)
 TEST_F(FrustumCameraTest, StaticCreateFromPerspective)
 {
     auto perspectiveCamera = createTestPerspectiveCamera();
-    auto frustumCamera = FrustumCamera::createFromPerspective(perspectiveCamera);
+    auto frustumCamera =
+        FrustumCamera::createFromPerspective(perspectiveCamera);
 
     EXPECT_EQ(frustumCamera.getCameraType(), CameraType::FRUSTUM);
     EXPECT_GT(frustumCamera.getNearPlane(), 0.0F);
@@ -75,8 +81,14 @@ TEST_F(FrustumCameraTest, StaticCreateFromPerspective)
     EXPECT_LT(frustumCamera.getLeft(), frustumCamera.getRight());
     EXPECT_LT(frustumCamera.getBottom(), frustumCamera.getTop());
 
-    EXPECT_FLOAT_EQ(frustumCamera.getNearPlane(), perspectiveCamera.getNearPlane());
-    EXPECT_FLOAT_EQ(frustumCamera.getFarPlane(), perspectiveCamera.getFarPlane());
+    EXPECT_FLOAT_EQ(
+        frustumCamera.getNearPlane(),
+        perspectiveCamera.getNearPlane()
+    );
+    EXPECT_FLOAT_EQ(
+        frustumCamera.getFarPlane(),
+        perspectiveCamera.getFarPlane()
+    );
 }
 
 TEST_F(FrustumCameraTest, SetBounds_Valid)
@@ -280,9 +292,13 @@ TEST_F(FrustumCameraTest, CameraBaseFunctionality_DirectionVectors)
     math::Vec3 right = camera.Camera::getRight();
     math::Vec3 up = camera.Camera::getUp();
 
-    f32 forwardLength =
-        std::sqrt((forward.x * forward.x) + (forward.y * forward.y) + (forward.z * forward.z));
-    f32 rightLength = std::sqrt((right.x * right.x) + (right.y * right.y) + (right.z * right.z));
+    f32 forwardLength = std::sqrt(
+        (forward.x * forward.x) + (forward.y * forward.y) +
+        (forward.z * forward.z)
+    );
+    f32 rightLength = std::sqrt(
+        (right.x * right.x) + (right.y * right.y) + (right.z * right.z)
+    );
     f32 upLength = std::sqrt((up.x * up.x) + (up.y * up.y) + (up.z * up.z));
 
     EXPECT_NEAR(forwardLength, 1.0F, 0.1F);
@@ -304,7 +320,8 @@ TEST_F(FrustumCameraTest, CameraBaseFunctionality_LookAt)
 TEST_F(FrustumCameraTest, ConversionFromPerspective_Accuracy)
 {
     auto perspectiveCamera = createTestPerspectiveCamera();
-    auto frustumCamera = FrustumCamera::createFromPerspective(perspectiveCamera);
+    auto frustumCamera =
+        FrustumCamera::createFromPerspective(perspectiveCamera);
 
     const auto &perspectiveMatrix = perspectiveCamera.getProjectionMatrix();
     const auto &frustumMatrix = frustumCamera.getProjectionMatrix();
@@ -312,7 +329,8 @@ TEST_F(FrustumCameraTest, ConversionFromPerspective_Accuracy)
     bool matricesAreSimilar = true;
     for (int i = 0; i < 4 && matricesAreSimilar; ++i) {
         for (int j = 0; j < 4 && matricesAreSimilar; ++j) {
-            if (std::abs(perspectiveMatrix[i][j] - frustumMatrix[i][j]) > 0.1F) {
+            if (std::abs(perspectiveMatrix[i][j] - frustumMatrix[i][j]) >
+                0.1F) {
                 if (std::abs(perspectiveMatrix[i][j]) > 0.01F &&
                     std::abs(frustumMatrix[i][j]) > 0.01F) {
                     matricesAreSimilar = false;

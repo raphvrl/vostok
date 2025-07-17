@@ -30,12 +30,30 @@ public:
     auto operator=(Device &&other) noexcept -> Device &;
 
     [[nodiscard]] auto getHandle() const -> VkDevice { return m_device; }
-    [[nodiscard]] auto getPhysicalDevice() const -> PhysicalDevice * { return m_physicalDevice; }
-    [[nodiscard]] auto getGraphicsQueue() const -> VkQueue { return m_graphicsQueue; }
-    [[nodiscard]] auto getPresentQueue() const -> VkQueue { return m_presentQueue; }
-    [[nodiscard]] auto getComputeQueue() const -> VkQueue { return m_computeQueue; }
-    [[nodiscard]] auto getTransferQueue() const -> VkQueue { return m_transferQueue; }
-    [[nodiscard]] auto getCommandPool() const -> VkCommandPool { return m_commandPool; }
+    [[nodiscard]] auto getPhysicalDevice() const -> PhysicalDevice *
+    {
+        return m_physicalDevice;
+    }
+    [[nodiscard]] auto getGraphicsQueue() const -> VkQueue
+    {
+        return m_graphicsQueue;
+    }
+    [[nodiscard]] auto getPresentQueue() const -> VkQueue
+    {
+        return m_presentQueue;
+    }
+    [[nodiscard]] auto getComputeQueue() const -> VkQueue
+    {
+        return m_computeQueue;
+    }
+    [[nodiscard]] auto getTransferQueue() const -> VkQueue
+    {
+        return m_transferQueue;
+    }
+    [[nodiscard]] auto getCommandPool() const -> VkCommandPool
+    {
+        return m_commandPool;
+    }
 
     void waitIdle() const;
 

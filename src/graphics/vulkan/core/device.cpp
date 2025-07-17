@@ -121,20 +121,23 @@ auto Device::create(const CreateInfo &createInfo)
     VkDeviceCreateInfo deviceCreateInfo = {};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
-    deviceCreateInfo.queueCreateInfoCount = static_cast<u32>(queueCreateInfos.size());
+    deviceCreateInfo.queueCreateInfoCount =
+        static_cast<u32>(queueCreateInfos.size());
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 
     deviceCreateInfo.pNext = createInfo.pNext;
 
     if (createInfo.enableValidationLayers) {
-        deviceCreateInfo.enabledLayerCount = static_cast<u32>(enableLayers.size());
+        deviceCreateInfo.enabledLayerCount =
+            static_cast<u32>(enableLayers.size());
         deviceCreateInfo.ppEnabledLayerNames = enableLayers.data();
     } else {
         deviceCreateInfo.enabledLayerCount = 0;
     }
 
     if (!createInfo.extensions.empty()) {
-        deviceCreateInfo.enabledExtensionCount = static_cast<u32>(createInfo.extensions.size());
+        deviceCreateInfo.enabledExtensionCount =
+            static_cast<u32>(createInfo.extensions.size());
         deviceCreateInfo.ppEnabledExtensionNames = createInfo.extensions.data();
     } else {
         deviceCreateInfo.enabledExtensionCount = 0;
@@ -149,8 +152,12 @@ auto Device::create(const CreateInfo &createInfo)
     }
 
     VkDevice device = VK_NULL_HANDLE;
-    VkResult result =
-        vkCreateDevice(createInfo.physicalDevice->getHandle(), &deviceCreateInfo, nullptr, &device);
+    VkResult result = vkCreateDevice(
+        createInfo.physicalDevice->getHandle(),
+        &deviceCreateInfo,
+        nullptr,
+        &device
+    );
 
     if (result != VK_SUCCESS) {
         return std::unexpected(
@@ -160,7 +167,8 @@ auto Device::create(const CreateInfo &createInfo)
 
     volkLoadDevice(device);
 
-    auto devicePtr = std::unique_ptr<Device>(new Device(device, createInfo.physicalDevice));
+    auto devicePtr =
+        std::unique_ptr<Device>(new Device(device, createInfo.physicalDevice));
 
     if (!devicePtr->initQueues()) {
         return std::unexpected("Failed to initialize Vulkan device queues");
@@ -175,7 +183,8 @@ auto Device::create(const CreateInfo &createInfo)
 
 auto Device::initQueues() -> bool
 {
-    const QueueFamilyIndices &indices = m_physicalDevice->getQueueFamilyIndices();
+    const QueueFamilyIndices &indices =
+        m_physicalDevice->getQueueFamilyIndices();
 
     if (!indices.isComplete()) {
         Logger::error("Queue family indices are not complete");
@@ -204,7 +213,8 @@ auto Device::initQueues() -> bool
 
 auto Device::createCommandPool() -> bool
 {
-    const QueueFamilyIndices &indices = m_physicalDevice->getQueueFamilyIndices();
+    const QueueFamilyIndices &indices =
+        m_physicalDevice->getQueueFamilyIndices();
 
     if (!indices.isComplete()) {
         Logger::error("Queue family indices are not complete");
@@ -213,12 +223,17 @@ auto Device::createCommandPool() -> bool
 
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.queueFamilyIndex = vu::getValueSafe(indices.graphicsFamily, "graphics");
+    poolInfo.queueFamilyIndex =
+        vu::getValueSafe(indices.graphicsFamily, "graphics");
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-    VkResult result = vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool);
+    VkResult result =
+        vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool);
     if (result != VK_SUCCESS) {
-        Logger::error("Failed to create command pool: {}", utils::vkResultToString(result));
+        Logger::error(
+            "Failed to create command pool: {}",
+            utils::vkResultToString(result)
+        );
         return false;
     }
 

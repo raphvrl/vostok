@@ -1,7 +1,9 @@
 #include "graphics/vulkan/vulkan_device.hpp"
 
+#include "core/logger/logger.hpp"
 #include "graphics/gpu_device.hpp"
 #include "graphics/vulkan/core/allocator.hpp"
+#include "graphics/vulkan/core/command_pool.hpp"
 #include "graphics/vulkan/core/device.hpp"
 #include "graphics/vulkan/core/frame_sync.hpp"
 #include "graphics/vulkan/core/instance.hpp"
@@ -9,11 +11,14 @@
 #include "graphics/vulkan/core/surface.hpp"
 #include "graphics/vulkan/core/swapchain.hpp"
 #include "graphics/vulkan/platform/glfw_platform.hpp"
+#include "graphics/vulkan/resources/buffer.hpp"
 #include "graphics/vulkan/utils/vk_utils.hpp"
 #include "graphics/vulkan/vulkan_pipeline.hpp"
 #include "volk.h"
 
+#include <expected>
 #include <memory>
+#include <string>
 
 namespace vostok::graphics::vulkan
 {
@@ -22,7 +27,7 @@ class VulkanDevice::Impl
 {
 public:
     Impl(VulkanDevice *parent, const GPUDevice::CreateInfo &createInfo);
-    ~Impl() = default;
+    ~Impl();
 
     Impl(const Impl &) = delete;
     auto operator=(const Impl &) -> Impl & = delete;
@@ -34,26 +39,57 @@ public:
     auto beginFrame() -> std::expected<u32, std::string>;
     auto endFrame() -> std::expected<void, std::string>;
 
-    auto resize(const FramebufferSize &size) -> std::expected<void, std::string>;
+    auto resize(const FramebufferSize &size)
+        -> std::expected<void, std::string>;
 
-    void draw(u32 vertexCount, u32 instanceCount = 1, u32 firstVertex = 0, u32 firstInstance = 0);
+    void draw(
+        u32 vertexCount,
+        u32 instanceCount = 1,
+        u32 firstVertex = 0,
+        u32 firstInstance = 0
+    );
 
-    [[nodiscard]] auto isInitialized() const -> bool { return m_instance != nullptr; }
+    [[nodiscard]] auto isInitialized() const -> bool
+    {
+        return m_instance && m_surface && m_physicalDevice && m_device &&
+               m_allocator && m_swapchain && m_frameSync;
+    }
 
-    [[nodiscard]] auto getLastError() const -> const std::string & { return m_lastError; }
+    [[nodiscard]] auto getLastError() const -> const std::string &
+    {
+        return m_lastError;
+    }
 
-    [[nodiscard]] auto getInstance() const -> Instance * { return m_instance.get(); }
-    [[nodiscard]] auto getSurface() const -> Surface * { return m_surface.get(); }
+    [[nodiscard]] auto getInstance() const -> Instance *
+    {
+        return m_instance.get();
+    }
+    [[nodiscard]] auto getSurface() const -> Surface *
+    {
+        return m_surface.get();
+    }
     [[nodiscard]] auto getPhysicalDevice() const -> PhysicalDevice *
     {
         return m_physicalDevice.get();
     }
     [[nodiscard]] auto getDevice() const -> Device * { return m_device.get(); }
-    [[nodiscard]] auto getAllocator() const -> Allocator * { return m_allocator.get(); }
-    [[nodiscard]] auto getSwapchain() const -> Swapchain * { return m_swapchain.get(); }
-    [[nodiscard]] auto getFrameSync() const -> FrameSync * { return m_frameSync.get(); }
+    [[nodiscard]] auto getAllocator() const -> Allocator *
+    {
+        return m_allocator.get();
+    }
+    [[nodiscard]] auto getSwapchain() const -> Swapchain *
+    {
+        return m_swapchain.get();
+    }
+    [[nodiscard]] auto getFrameSync() const -> FrameSync *
+    {
+        return m_frameSync.get();
+    }
 
-    auto createPipelineBuilder() -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string>;
+    auto createPipelineBuilder()
+        -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string>;
+    auto createBuffer(const graphics::BufferCreateInfo &createInfo)
+        -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>;
 
 private:
     auto initInstance(const GPUDevice::CreateInfo &createInfo) -> bool;
@@ -71,6 +107,8 @@ private:
     std::unique_ptr<Allocator> m_allocator;
     std::unique_ptr<Swapchain> m_swapchain;
     std::unique_ptr<FrameSync> m_frameSync;
+    std::unique_ptr<CommandPool> m_graphicsCommandPool;
+    std::unique_ptr<CommandPool> m_transferCommandPool;
     std::string m_lastError;
 
     u32 m_currentImageIndex = 0;
@@ -92,7 +130,10 @@ auto VulkanDevice::create(const CreateInfo &createInfo)
     return device;
 }
 
-VulkanDevice::Impl::Impl(VulkanDevice *parent, const GPUDevice::CreateInfo &createInfo)
+VulkanDevice::Impl::Impl(
+    VulkanDevice *parent,
+    const GPUDevice::CreateInfo &createInfo
+)
     : m_parent(parent)
 {
     if (!initInstance(createInfo)) {
@@ -115,7 +156,9 @@ VulkanDevice::Impl::Impl(VulkanDevice *parent, const GPUDevice::CreateInfo &crea
         return;
     }
 
-    if (!initSwapchain({ .width = createInfo.width, .height = createInfo.height })) {
+    if (!initSwapchain(
+            { .width = createInfo.width, .height = createInfo.height }
+        )) {
         return;
     }
 
@@ -124,7 +167,60 @@ VulkanDevice::Impl::Impl(VulkanDevice *parent, const GPUDevice::CreateInfo &crea
     }
 }
 
-auto VulkanDevice::Impl::initInstance(const GPUDevice::CreateInfo &createInfo) -> bool
+VulkanDevice::Impl::~Impl()
+{
+    Logger::debug("VulkanDevice::Impl destructor called");
+
+    if (m_frameSync) {
+        Logger::debug("Destroying FrameSync");
+        m_frameSync.reset();
+    }
+
+    if (m_transferCommandPool) {
+        Logger::debug("Destroying transfer command pool");
+        m_transferCommandPool.reset();
+    }
+
+    if (m_graphicsCommandPool) {
+        Logger::debug("Destroying graphics command pool");
+        m_graphicsCommandPool.reset();
+    }
+
+    if (m_swapchain) {
+        Logger::debug("Destroying swapchain");
+        m_swapchain.reset();
+    }
+
+    if (m_allocator) {
+        Logger::debug("Destroying allocator");
+        m_allocator.reset();
+    }
+
+    if (m_device) {
+        Logger::debug("Destroying device");
+        m_device.reset();
+    }
+
+    if (m_physicalDevice) {
+        Logger::debug("Destroying physical device");
+        m_physicalDevice.reset();
+    }
+
+    if (m_surface) {
+        Logger::debug("Destroying surface");
+        m_surface.reset();
+    }
+
+    if (m_instance) {
+        Logger::debug("Destroying instance");
+        m_instance.reset();
+    }
+
+    Logger::debug("VulkanDevice::Impl destructor completed");
+}
+
+auto VulkanDevice::Impl::initInstance(const GPUDevice::CreateInfo &createInfo)
+    -> bool
 {
     auto platform = std::make_unique<platform::GlfwPlatform>();
 
@@ -133,7 +229,8 @@ auto VulkanDevice::Impl::initInstance(const GPUDevice::CreateInfo &createInfo) -
     instanceCreateInfo.appVersion = createInfo.appVersion.toPackedInt();
     instanceCreateInfo.engineName = createInfo.engineName;
     instanceCreateInfo.engineVersion = createInfo.engineVersion.toPackedInt();
-    instanceCreateInfo.enableValidationLayers = createInfo.enableValidationLayers;
+    instanceCreateInfo.enableValidationLayers =
+        createInfo.enableValidationLayers;
     instanceCreateInfo.platform = std::move(platform);
 
     auto result = Instance::create(instanceCreateInfo);
@@ -167,7 +264,8 @@ auto VulkanDevice::Impl::initSurface(void *windowHandle) -> bool
 
 auto VulkanDevice::Impl::initPhysicalDevice() -> bool
 {
-    auto result = PhysicalDevice::create(m_instance->getHandle(), m_surface->getHandle());
+    auto result =
+        PhysicalDevice::create(m_instance->getHandle(), m_surface->getHandle());
     if (!result) {
         m_lastError = result.error();
         return false;
@@ -178,7 +276,8 @@ auto VulkanDevice::Impl::initPhysicalDevice() -> bool
     return true;
 }
 
-auto VulkanDevice::Impl::initDevice(const GPUDevice::CreateInfo &createInfo) -> bool
+auto VulkanDevice::Impl::initDevice(const GPUDevice::CreateInfo &createInfo)
+    -> bool
 {
     Device::CreateInfo deviceInfo;
     deviceInfo.physicalDevice = m_physicalDevice.get();
@@ -279,18 +378,51 @@ auto VulkanDevice::Impl::initFrameSync() -> bool
         return false;
     }
 
-    FrameSync::CreateInfo createInfo;
-    createInfo.device = m_device.get();
-    createInfo.maxFramesInFlight = 2;
-    createInfo.commandPool = m_device->getCommandPool();
+    auto *physicalDevice = m_device->getPhysicalDevice();
+    auto queueFamilyIndices = physicalDevice->getQueueFamilyIndices();
 
-    auto result = FrameSync::create(createInfo);
-    if (!result) {
-        m_lastError = result.error();
+    auto graphicsPoolResult = CommandPool::create(
+        { .device = m_device.get(),
+          .queueFamilyIndex = queueFamilyIndices.graphicsFamily.value(),
+          .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+          .maxFramesInFlight = 2 }
+    );
+
+    if (!graphicsPoolResult) {
+        m_lastError = graphicsPoolResult.error();
         return false;
     }
 
-    m_frameSync = std::move(result.value());
+    m_graphicsCommandPool = std::move(graphicsPoolResult.value());
+
+    auto transferPoolResult = CommandPool::create(
+        { .device = m_device.get(),
+          .queueFamilyIndex = queueFamilyIndices.transferFamily.value(),
+          .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+          .maxFramesInFlight = 2 }
+    );
+
+    if (!transferPoolResult) {
+        m_lastError = transferPoolResult.error();
+        return false;
+    }
+
+    m_transferCommandPool = std::move(transferPoolResult.value());
+
+    FrameSync::CreateInfo createInfo;
+    createInfo.device = m_device.get();
+    createInfo.maxFramesInFlight = 2;
+    createInfo.commandPools.graphics = m_graphicsCommandPool.get();
+    createInfo.commandPools.transfer = m_transferCommandPool.get();
+    createInfo.transferQueue = m_device->getTransferQueue();
+
+    auto frameSyncResult = FrameSync::create(createInfo);
+    if (!frameSyncResult) {
+        m_lastError = frameSyncResult.error();
+        return false;
+    }
+
+    m_frameSync = std::move(frameSyncResult.value());
 
     return true;
 }
@@ -313,8 +445,10 @@ auto VulkanDevice::Impl::beginFrame() -> std::expected<u32, std::string>
     m_frameSync->waitForFence();
     m_frameSync->resetFences();
 
-    auto imageResult =
-        m_swapchain->acquireNextImage(m_frameSync->getImageAvailableSemaphore(), VK_NULL_HANDLE);
+    auto imageResult = m_swapchain->acquireNextImage(
+        m_frameSync->getImageAvailableSemaphore(),
+        VK_NULL_HANDLE
+    );
 
     if (!imageResult) {
         return std::unexpected(imageResult.error());
@@ -391,7 +525,7 @@ auto VulkanDevice::Impl::endFrame() -> std::expected<void, std::string>
         return std::unexpected("Instance is not initialized");
     }
 
-    vkCmdEndRenderingKHR(m_frameSync->getCommandBuffer());
+    vkCmdEndRendering(m_frameSync->getCommandBuffer());
 
     VkImageMemoryBarrier2 imageBarrier = {};
     imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -424,17 +558,21 @@ auto VulkanDevice::Impl::endFrame() -> std::expected<void, std::string>
     cmdBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
     cmdBufferInfo.commandBuffer = m_frameSync->getCommandBuffer();
 
-    VkSemaphore imageAvailableSemaphore = m_frameSync->getImageAvailableSemaphore();
+    VkSemaphore imageAvailableSemaphore =
+        m_frameSync->getImageAvailableSemaphore();
     VkSemaphoreSubmitInfo waitSemaphoreInfo = {};
     waitSemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
     waitSemaphoreInfo.semaphore = imageAvailableSemaphore;
-    waitSemaphoreInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+    waitSemaphoreInfo.stageMask =
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-    VkSemaphore renderFinishedSemaphore = m_frameSync->getRenderFinishedSemaphore();
+    VkSemaphore renderFinishedSemaphore =
+        m_frameSync->getRenderFinishedSemaphore();
     VkSemaphoreSubmitInfo signalSemaphoreInfo = {};
     signalSemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
     signalSemaphoreInfo.semaphore = renderFinishedSemaphore;
-    signalSemaphoreInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+    signalSemaphoreInfo.stageMask =
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
 
     VkSubmitInfo2 submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
@@ -454,7 +592,8 @@ auto VulkanDevice::Impl::endFrame() -> std::expected<void, std::string>
 
     if (result != VK_SUCCESS) {
         return std::unexpected(
-            "Failed to submit command buffer: " + utils::vkResultToString(result)
+            "Failed to submit command buffer: " +
+            utils::vkResultToString(result)
         );
     }
 
@@ -469,8 +608,23 @@ auto VulkanDevice::Impl::endFrame() -> std::expected<void, std::string>
     presentInfo.pImageIndices = &m_currentImageIndex;
 
     result = vkQueuePresentKHR(m_device->getPresentQueue(), &presentInfo);
-    if (result != VK_SUCCESS) {
-        return std::unexpected("Failed to present image: " + utils::vkResultToString(result));
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        return std::unexpected("Swapchain is out of date");
+    }
+
+    if (result == VK_SUBOPTIMAL_KHR) {
+        Logger::warning("Swapchain is suboptimal during present");
+        // Continue with suboptimal swapchain
+    }
+
+    if (result == VK_ERROR_SURFACE_LOST_KHR) {
+        return std::unexpected("Surface lost during present");
+    }
+
+    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        return std::unexpected(
+            "Failed to present image: " + utils::vkResultToString(result)
+        );
     }
 
     m_frameSync->nextFrame();
@@ -478,7 +632,8 @@ auto VulkanDevice::Impl::endFrame() -> std::expected<void, std::string>
     return {};
 }
 
-auto VulkanDevice::Impl::resize(const FramebufferSize &size) -> std::expected<void, std::string>
+auto VulkanDevice::Impl::resize(const FramebufferSize &size)
+    -> std::expected<void, std::string>
 {
     if (size.width == 0 || size.height == 0) {
         return std::unexpected("Invalid framebuffer size");
@@ -503,7 +658,8 @@ void VulkanDevice::Impl::draw(
         return;
     }
 
-    m_frameSync->cmdDraw(vertexCount, instanceCount, firstVertex, firstInstance);
+    m_frameSync
+        ->cmdDraw(vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
 auto VulkanDevice::Impl::createPipelineBuilder()
@@ -514,6 +670,26 @@ auto VulkanDevice::Impl::createPipelineBuilder()
     }
 
     return VulkanPipeline::Builder::create(m_parent);
+}
+
+auto VulkanDevice::Impl::createBuffer(
+    const graphics::BufferCreateInfo &createInfo
+) -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>
+{
+    if (!m_allocator) {
+        return std::unexpected("Allocator is not initialized");
+    }
+
+    if (createInfo.size == 0) {
+        return std::unexpected("Buffer size must be greater than 0");
+    }
+
+    auto vulkanBuffer = VulkanBuffer::create(m_parent, createInfo);
+    if (!vulkanBuffer) {
+        return std::unexpected("Failed to create Vulkan buffer");
+    }
+
+    return std::unique_ptr<graphics::Buffer>(vulkanBuffer.release());
 }
 
 VulkanDevice::VulkanDevice()
@@ -550,7 +726,8 @@ auto VulkanDevice::endFrame() -> std::expected<void, std::string>
     return std::unexpected("VulkanDevice is not initialized");
 }
 
-auto VulkanDevice::resize(const FramebufferSize &size) -> std::expected<void, std::string>
+auto VulkanDevice::resize(const FramebufferSize &size)
+    -> std::expected<void, std::string>
 {
     if (m_impl) {
         return m_impl->resize(size);
@@ -558,7 +735,12 @@ auto VulkanDevice::resize(const FramebufferSize &size) -> std::expected<void, st
     return std::unexpected("VulkanDevice is not initialized");
 }
 
-void VulkanDevice::draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance)
+void VulkanDevice::draw(
+    u32 vertexCount,
+    u32 instanceCount,
+    u32 firstVertex,
+    u32 firstInstance
+)
 {
     if (m_impl) {
         m_impl->draw(vertexCount, instanceCount, firstVertex, firstInstance);
@@ -571,6 +753,16 @@ auto VulkanDevice::createPipelineBuilder()
     if (m_impl) {
         return m_impl->createPipelineBuilder();
     }
+    return std::unexpected("VulkanDevice is not initialized");
+}
+
+auto VulkanDevice::createBuffer(const graphics::BufferCreateInfo &createInfo)
+    -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>
+{
+    if (m_impl) {
+        return m_impl->createBuffer(createInfo);
+    }
+
     return std::unexpected("VulkanDevice is not initialized");
 }
 

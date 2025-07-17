@@ -20,11 +20,15 @@ FrustumCamera::FrustumCamera(const CreateInfo &createInfo)
             getName(),
             result.error()
         );
-        Logger::warning("FrustumCamera '{}' falling back to default configuration", getName());
+        Logger::warning(
+            "FrustumCamera '{}' falling back to default configuration",
+            getName()
+        );
         m_config = FrustumConfig{};
     } else {
         Logger::info(
-            "FrustumCamera '{}' created - Bounds: L:{:.2f} R:{:.2f} B:{:.2f} T:{:.2f}, Near:{:.3f} "
+            "FrustumCamera '{}' created - Bounds: L:{:.2f} R:{:.2f} B:{:.2f} "
+            "T:{:.2f}, Near:{:.3f} "
             "Far:{:.1f}",
             getName(),
             m_config.left,
@@ -65,10 +69,11 @@ auto FrustumCamera::updateConfig(const FrustumConfig &config) noexcept
         return std::unexpected(result.error());
     }
 
-    const bool CHANGED = (m_config.left != config.left) || (m_config.right != config.right) ||
-                         (m_config.bottom != config.bottom) || (m_config.top != config.top) ||
-                         (m_config.nearPlane != config.nearPlane) ||
-                         (m_config.farPlane != config.farPlane);
+    const bool CHANGED =
+        (m_config.left != config.left) || (m_config.right != config.right) ||
+        (m_config.bottom != config.bottom) || (m_config.top != config.top) ||
+        (m_config.nearPlane != config.nearPlane) ||
+        (m_config.farPlane != config.farPlane);
 
     if (CHANGED) {
         Logger::debug("FrustumCamera '{}' config updated", getName());
@@ -83,11 +88,15 @@ auto FrustumCamera::setBounds(f32 left, f32 right, f32 bottom, f32 top) noexcept
     -> std::expected<void, std::string>
 {
     if (left >= right) {
-        return std::unexpected(std::format("Left ({}) must be less than right ({}).", left, right));
+        return std::unexpected(
+            std::format("Left ({}) must be less than right ({}).", left, right)
+        );
     }
 
     if (bottom >= top) {
-        return std::unexpected(std::format("Bottom ({}) must be less than top ({}).", bottom, top));
+        return std::unexpected(
+            std::format("Bottom ({}) must be less than top ({}).", bottom, top)
+        );
     }
 
     const bool CHANGED = (m_config.left != left) || (m_config.right != right) ||
@@ -95,7 +104,8 @@ auto FrustumCamera::setBounds(f32 left, f32 right, f32 bottom, f32 top) noexcept
 
     if (CHANGED) {
         Logger::debug(
-            "FrustumCamera '{}' bounds changed: [{:.2f}, {:.2f}, {:.2f}, {:.2f}] -> [{:.2f}, "
+            "FrustumCamera '{}' bounds changed: [{:.2f}, {:.2f}, {:.2f}, "
+            "{:.2f}] -> [{:.2f}, "
             "{:.2f}, {:.2f}, {:.2f}]",
             getName(),
             m_config.left,
@@ -129,15 +139,21 @@ auto FrustumCamera::setPlanes(f32 nearPlane, f32 farPlane) noexcept
 
     if (nearPlane >= farPlane) {
         return std::unexpected(
-            std::format("Near plane ({}) must be less than far plane ({}).", nearPlane, farPlane)
+            std::format(
+                "Near plane ({}) must be less than far plane ({}).",
+                nearPlane,
+                farPlane
+            )
         );
     }
 
-    const bool CHANGED = (m_config.nearPlane != nearPlane) || (m_config.farPlane != farPlane);
+    const bool CHANGED =
+        (m_config.nearPlane != nearPlane) || (m_config.farPlane != farPlane);
 
     if (CHANGED) {
         Logger::debug(
-            "FrustumCamera '{}' planes changed: Near {:.3f} -> {:.3f}, Far {:.1f} -> {:.1f}",
+            "FrustumCamera '{}' planes changed: Near {:.3f} -> {:.3f}, Far "
+            "{:.1f} -> {:.1f}",
             getName(),
             m_config.nearPlane,
             nearPlane,
@@ -153,8 +169,9 @@ auto FrustumCamera::setPlanes(f32 nearPlane, f32 farPlane) noexcept
     return {};
 }
 
-auto FrustumCamera::createFromPerspective(const PerspectiveCamera &perspectiveCamera) noexcept
-    -> FrustumCamera
+auto FrustumCamera::createFromPerspective(
+    const PerspectiveCamera &perspectiveCamera
+) noexcept -> FrustumCamera
 {
     // Conversion de perspective vers frustum
     const auto FOV = perspectiveCamera.getFieldOfView();
@@ -182,7 +199,8 @@ auto FrustumCamera::createFromPerspective(const PerspectiveCamera &perspectiveCa
     createInfo.config = frustumConfig;
 
     Logger::info(
-        "FrustumCamera created from PerspectiveCamera '{}' - FOV:{:.1f}° -> Bounds:[{:.2f}, "
+        "FrustumCamera created from PerspectiveCamera '{}' - FOV:{:.1f}° -> "
+        "Bounds:[{:.2f}, "
         "{:.2f}, {:.2f}, {:.2f}]",
         perspectiveCamera.getName(),
         FOV,
@@ -224,19 +242,30 @@ auto FrustumCamera::validateConfig(const FrustumConfig &config) noexcept
 {
     if (config.left >= config.right) {
         return std::unexpected(
-            std::format("Left ({}) must be less than right ({}).", config.left, config.right)
+            std::format(
+                "Left ({}) must be less than right ({}).",
+                config.left,
+                config.right
+            )
         );
     }
 
     if (config.bottom >= config.top) {
         return std::unexpected(
-            std::format("Bottom ({}) must be less than top ({}).", config.bottom, config.top)
+            std::format(
+                "Bottom ({}) must be less than top ({}).",
+                config.bottom,
+                config.top
+            )
         );
     }
 
     if (config.nearPlane <= 0.0F) {
         return std::unexpected(
-            std::format("Near plane ({}) must be greater than zero.", config.nearPlane)
+            std::format(
+                "Near plane ({}) must be greater than zero.",
+                config.nearPlane
+            )
         );
     }
 

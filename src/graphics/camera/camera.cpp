@@ -31,7 +31,8 @@ auto Camera::setPosition(const math::Vec3 &position) noexcept -> void
     const auto DISTANCE = math::distance(m_position, position);
     if (DISTANCE > 0.1F) {
         Logger::trace(
-            "Camera '{}' moved from position {{:.2f}, {:.2f}, {:.2f}} to {{:.2f}, {:.2f}, {:.2f}}",
+            "Camera '{}' moved from position {{:.2f}, {:.2f}, {:.2f}} to "
+            "{{:.2f}, {:.2f}, {:.2f}}",
             m_name,
             m_position.x,
             m_position.y,
@@ -57,7 +58,11 @@ auto Camera::setRotation(const math::Quat &rotation) noexcept -> void
     const auto ANGLE_DIFF = math::angle(ROTATION_DIFF);
 
     if (ANGLE_DIFF > 0.1F) {
-        Logger::trace("Camera '{}' rotation changed by {:.1f}", m_name, math::degrees(ANGLE_DIFF));
+        Logger::trace(
+            "Camera '{}' rotation changed by {:.1f}",
+            m_name,
+            math::degrees(ANGLE_DIFF)
+        );
     }
 
     m_rotation = rotation;
@@ -142,11 +147,17 @@ auto Camera::updateViewMatrix() const noexcept -> void
 {
     static thread_local size_t s_updateCount = 0;
     if (s_updateCount % 60 == 0) {
-        Logger::trace("Camera '{}' view matrix updated {} times", m_name, s_updateCount);
+        Logger::trace(
+            "Camera '{}' view matrix updated {} times",
+            m_name,
+            s_updateCount
+        );
     }
 
-    const auto ROTATION_MATRIX = math::convertQuaternionToMat4(math::conjugate(m_rotation));
-    const auto TRANSLATION_MATRIX = glm::translate(math::Mat4{ 1.0F }, -m_position);
+    const auto ROTATION_MATRIX =
+        math::convertQuaternionToMat4(math::conjugate(m_rotation));
+    const auto TRANSLATION_MATRIX =
+        glm::translate(math::Mat4{ 1.0F }, -m_position);
 
     m_viewMatrix = ROTATION_MATRIX * TRANSLATION_MATRIX;
     m_viewMatrixDirty = false;

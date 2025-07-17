@@ -20,7 +20,8 @@ PerspectiveCamera::PerspectiveCamera(const CreateInfo &createInfo)
     markProjectionDirty();
 }
 
-auto PerspectiveCamera::getProjectionMatrix() const noexcept -> const math::Mat4 &
+auto PerspectiveCamera::getProjectionMatrix() const noexcept
+    -> const math::Mat4 &
 {
     if (m_projectionMatrixDirty) {
         updateProjectionMatrix();
@@ -39,11 +40,15 @@ auto PerspectiveCamera::getViewProjectionMatrix() const -> math::Mat4
     return getProjectionMatrix() * getViewMatrix();
 }
 
-auto PerspectiveCamera::setFieldOfView(f32 fieldOfView) noexcept -> std::expected<void, std::string>
+auto PerspectiveCamera::setFieldOfView(f32 fieldOfView) noexcept
+    -> std::expected<void, std::string>
 {
     if (fieldOfView <= 0.0F || fieldOfView >= 180.0F) {
         return std::unexpected(
-            std::format("Invalid field of view: {}. Must be in (0, 180) degrees.", fieldOfView)
+            std::format(
+                "Invalid field of view: {}. Must be in (0, 180) degrees.",
+                fieldOfView
+            )
         );
     }
 
@@ -55,11 +60,15 @@ auto PerspectiveCamera::setFieldOfView(f32 fieldOfView) noexcept -> std::expecte
     return {};
 }
 
-auto PerspectiveCamera::setAspectRatio(f32 aspectRatio) noexcept -> std::expected<void, std::string>
+auto PerspectiveCamera::setAspectRatio(f32 aspectRatio) noexcept
+    -> std::expected<void, std::string>
 {
     if (aspectRatio <= 0.0F) {
         return std::unexpected(
-            std::format("Invalid aspect ratio: {}. Must be greater than zero.", aspectRatio)
+            std::format(
+                "Invalid aspect ratio: {}. Must be greater than zero.",
+                aspectRatio
+            )
         );
     }
 
@@ -71,11 +80,15 @@ auto PerspectiveCamera::setAspectRatio(f32 aspectRatio) noexcept -> std::expecte
     return {};
 }
 
-auto PerspectiveCamera::setNearPlane(f32 nearPlane) noexcept -> std::expected<void, std::string>
+auto PerspectiveCamera::setNearPlane(f32 nearPlane) noexcept
+    -> std::expected<void, std::string>
 {
     if (nearPlane <= 0.0F) {
         return std::unexpected(
-            std::format("Invalid near plane: {}. Must be greater than zero.", nearPlane)
+            std::format(
+                "Invalid near plane: {}. Must be greater than zero.",
+                nearPlane
+            )
         );
     }
 
@@ -97,10 +110,13 @@ auto PerspectiveCamera::setNearPlane(f32 nearPlane) noexcept -> std::expected<vo
     return {};
 }
 
-auto PerspectiveCamera::setFarPlane(f32 farPlane) noexcept -> std::expected<void, std::string>
+auto PerspectiveCamera::setFarPlane(f32 farPlane) noexcept
+    -> std::expected<void, std::string>
 {
     if (m_config.infiniteFarPlane) {
-        return std::unexpected("Cannot set far plane when infinite far plane is enabled.");
+        return std::unexpected(
+            "Cannot set far plane when infinite far plane is enabled."
+        );
     }
 
     if (farPlane <= m_config.nearPlane) {
@@ -152,18 +168,24 @@ auto PerspectiveCamera::updateConfig(const PerspectiveConfig &config) noexcept
 
 auto PerspectiveCamera::getFrustumCorners() const -> std::array<math::Vec3, 8>
 {
-    const auto INV_VIEW_PROJ = math::inverse(getProjectionMatrix() * getViewMatrix());
+    const auto INV_VIEW_PROJ =
+        math::inverse(getProjectionMatrix() * getViewMatrix());
 
     static const std::array<math::Vec4, 8> NDC_CORNERS = {
-        math::Vec4{ -1.0F, -1.0F, -1.0F, 1.0F }, math::Vec4{ 1.0F, -1.0F, -1.0F, 1.0F },
-        math::Vec4{ 1.0F, 1.0F, -1.0F, 1.0F },   math::Vec4{ -1.0F, 1.0F, -1.0F, 1.0F },
-        math::Vec4{ -1.0F, -1.0F, 1.0F, 1.0F },  math::Vec4{ 1.0F, -1.0F, 1.0F, 1.0F },
-        math::Vec4{ 1.0F, 1.0F, 1.0F, 1.0F },    math::Vec4{ -1.0F, 1.0F, 1.0F, 1.0F }
+        math::Vec4{ -1.0F, -1.0F, -1.0F, 1.0F },
+        math::Vec4{ 1.0F, -1.0F, -1.0F, 1.0F },
+        math::Vec4{ 1.0F, 1.0F, -1.0F, 1.0F },
+        math::Vec4{ -1.0F, 1.0F, -1.0F, 1.0F },
+        math::Vec4{ -1.0F, -1.0F, 1.0F, 1.0F },
+        math::Vec4{ 1.0F, -1.0F, 1.0F, 1.0F },
+        math::Vec4{ 1.0F, 1.0F, 1.0F, 1.0F },
+        math::Vec4{ -1.0F, 1.0F, 1.0F, 1.0F }
     };
 
     std::array<math::Vec3, 8> worldCorners{};
 
-    auto transformToWorld = [&INV_VIEW_PROJ](const math::Vec4 &corner) -> math::Vec3 {
+    auto transformToWorld =
+        [&INV_VIEW_PROJ](const math::Vec4 &corner) -> math::Vec3 {
         auto worldPos = INV_VIEW_PROJ * corner;
         if (worldPos.w != 0.0F) [[likely]] {
             worldPos /= worldPos.w;
@@ -188,7 +210,8 @@ auto PerspectiveCamera::getWorldToScreenRay(
 
     const math::Vec4 FAR_POINT = { NDC.x, NDC.y, 1.0F, 1.0F };
 
-    const auto INV_VIEW_PROJ = math::inverse(getProjectionMatrix() * getViewMatrix());
+    const auto INV_VIEW_PROJ =
+        math::inverse(getProjectionMatrix() * getViewMatrix());
 
     auto worldNear = INV_VIEW_PROJ * NEAR_POINT;
     auto worldFar = INV_VIEW_PROJ * FAR_POINT;
@@ -220,7 +243,8 @@ auto PerspectiveCamera::createDefault() -> PerspectiveCamera
     return PerspectiveCamera{ createInfo };
 }
 
-auto PerspectiveCamera::createWithFOV(f32 fov, f32 aspectRatio) -> PerspectiveCamera
+auto PerspectiveCamera::createWithFOV(f32 fov, f32 aspectRatio)
+    -> PerspectiveCamera
 {
     CreateInfo createInfo{};
     createInfo.name = "PerspectiveCamera";
@@ -243,8 +267,11 @@ void PerspectiveCamera::updateProjectionMatrix() const noexcept
     const f32 FOV_RADIANS = math::radians(m_config.fieldOfView);
 
     if (m_config.infiniteFarPlane) {
-        m_projectionMatrix =
-            math::perspectiveInfinite(FOV_RADIANS, m_config.aspectRatio, m_config.nearPlane);
+        m_projectionMatrix = math::perspectiveInfinite(
+            FOV_RADIANS,
+            m_config.aspectRatio,
+            m_config.nearPlane
+        );
     } else {
         m_projectionMatrix = math::perspective(
             FOV_RADIANS,
@@ -271,13 +298,19 @@ auto PerspectiveCamera::validateConfig(const PerspectiveConfig &config) noexcept
 
     if (config.aspectRatio <= 0.0F) {
         return std::unexpected(
-            std::format("Invalid aspect ratio: {}. Must be greater than zero.", config.aspectRatio)
+            std::format(
+                "Invalid aspect ratio: {}. Must be greater than zero.",
+                config.aspectRatio
+            )
         );
     }
 
     if (config.nearPlane <= 0.0F) {
         return std::unexpected(
-            std::format("Invalid near plane: {}. Must be greater than zero.", config.nearPlane)
+            std::format(
+                "Invalid near plane: {}. Must be greater than zero.",
+                config.nearPlane
+            )
         );
     }
 

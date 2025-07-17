@@ -25,7 +25,8 @@ OrthographicCamera::OrthographicCamera(const CreateInfo &createInfo)
         m_config = OrthographicConfig{};
     } else {
         Logger::info(
-            "OrthographicCamera '{}' created - Bounds: [{:.2f}, {:.2f}, {:.2f}, {:.2f}], Near: "
+            "OrthographicCamera '{}' created - Bounds: [{:.2f}, {:.2f}, "
+            "{:.2f}, {:.2f}], Near: "
             "{:.3f}, Far: {:.1f}",
             getName(),
             m_config.left,
@@ -40,7 +41,8 @@ OrthographicCamera::OrthographicCamera(const CreateInfo &createInfo)
     markProjectionDirty();
 }
 
-auto OrthographicCamera::getProjectionMatrix() const noexcept -> const math::Mat4 &
+auto OrthographicCamera::getProjectionMatrix() const noexcept
+    -> const math::Mat4 &
 {
     if (m_projectionMatrixDirty) {
         updateProjectionMatrix();
@@ -59,15 +61,23 @@ auto OrthographicCamera::getViewProjectionMatrix() const -> math::Mat4
     return getProjectionMatrix() * getViewMatrix();
 }
 
-auto OrthographicCamera::setBounds(f32 left, f32 right, f32 bottom, f32 top) noexcept
-    -> std::expected<void, std::string>
+auto OrthographicCamera::setBounds(
+    f32 left,
+    f32 right,
+    f32 bottom,
+    f32 top
+) noexcept -> std::expected<void, std::string>
 {
     if (left >= right) {
-        return std::unexpected(std::format("Left ({}) must be less than right ({}).", left, right));
+        return std::unexpected(
+            std::format("Left ({}) must be less than right ({}).", left, right)
+        );
     }
 
     if (bottom >= top) {
-        return std::unexpected(std::format("Bottom ({}) must be less than top ({}).", bottom, top));
+        return std::unexpected(
+            std::format("Bottom ({}) must be less than top ({}).", bottom, top)
+        );
     }
 
     const bool CHANGED = (m_config.left != left) || (m_config.right != right) ||
@@ -75,7 +85,8 @@ auto OrthographicCamera::setBounds(f32 left, f32 right, f32 bottom, f32 top) noe
 
     if (CHANGED) {
         Logger::debug(
-            "OrthographicCamera '{}' bounds changed: [{:.2f}, {:.2f}, {:.2f}, {:.2f}] -> [{:.2f}, "
+            "OrthographicCamera '{}' bounds changed: [{:.2f}, {:.2f}, {:.2f}, "
+            "{:.2f}] -> [{:.2f}, "
             "{:.2f}, {:.2f}, {:.2f}]",
             getName(),
             m_config.left,
@@ -103,15 +114,21 @@ auto OrthographicCamera::setPlanes(f32 nearPlane, f32 farPlane) noexcept
 {
     if (nearPlane >= farPlane) {
         return std::unexpected(
-            std::format("Near plane ({}) must be less than far plane ({}).", nearPlane, farPlane)
+            std::format(
+                "Near plane ({}) must be less than far plane ({}).",
+                nearPlane,
+                farPlane
+            )
         );
     }
 
-    const bool CHANGED = (m_config.nearPlane != nearPlane) || (m_config.farPlane != farPlane);
+    const bool CHANGED =
+        (m_config.nearPlane != nearPlane) || (m_config.farPlane != farPlane);
 
     if (CHANGED) {
         Logger::debug(
-            "OrthographicCamera '{}' planes changed: Near {:.3f} -> {:.3f}, Far {:.1f} -> {:.1f}",
+            "OrthographicCamera '{}' planes changed: Near {:.3f} -> {:.3f}, "
+            "Far {:.1f} -> {:.1f}",
             getName(),
             m_config.nearPlane,
             nearPlane,
@@ -134,10 +151,11 @@ auto OrthographicCamera::updateConfig(const OrthographicConfig &config) noexcept
         return std::unexpected(result.error());
     }
 
-    const bool CHANGED = (m_config.left != config.left) || (m_config.right != config.right) ||
-                         (m_config.bottom != config.bottom) || (m_config.top != config.top) ||
-                         (m_config.nearPlane != config.nearPlane) ||
-                         (m_config.farPlane != config.farPlane);
+    const bool CHANGED =
+        (m_config.left != config.left) || (m_config.right != config.right) ||
+        (m_config.bottom != config.bottom) || (m_config.top != config.top) ||
+        (m_config.nearPlane != config.nearPlane) ||
+        (m_config.farPlane != config.farPlane);
 
     if (CHANGED) {
         m_config = config;
@@ -159,7 +177,8 @@ auto OrthographicCamera::getAspectRatio() const noexcept -> f32
     return WIDTH / HEIGHT;
 }
 
-auto OrthographicCamera::createCentered(const CenteredParams &params) -> OrthographicCamera
+auto OrthographicCamera::createCentered(const CenteredParams &params)
+    -> OrthographicCamera
 {
     const f32 HALF_WIDTH = params.width * 0.5F;
     const f32 HALF_HEIGHT = params.height * 0.5F;
@@ -178,7 +197,8 @@ auto OrthographicCamera::createCentered(const CenteredParams &params) -> Orthogr
     return OrthographicCamera{ createInfo };
 }
 
-auto OrthographicCamera::createUI(f32 screenWidth, f32 screenHeight) -> OrthographicCamera
+auto OrthographicCamera::createUI(f32 screenWidth, f32 screenHeight)
+    -> OrthographicCamera
 {
     CreateInfo createInfo{};
     createInfo.name = "OrthographicCamera_UI";
@@ -194,7 +214,8 @@ auto OrthographicCamera::createUI(f32 screenWidth, f32 screenHeight) -> Orthogra
     return OrthographicCamera{ createInfo };
 }
 
-auto OrthographicCamera::createFromBounds(const BoundsParams &params) -> OrthographicCamera
+auto OrthographicCamera::createFromBounds(const BoundsParams &params)
+    -> OrthographicCamera
 {
     CreateInfo createInfo{};
     createInfo.name = "OrthographicCamera";
@@ -219,7 +240,10 @@ void OrthographicCamera::onProjectionChanged() noexcept
 
 void OrthographicCamera::updateProjectionMatrix() const noexcept
 {
-    Logger::trace("OrthographicCamera '{}' updating projection matrix", getName());
+    Logger::trace(
+        "OrthographicCamera '{}' updating projection matrix",
+        getName()
+    );
 
     m_projectionMatrix = math::ortho(
         m_config.left,
@@ -233,18 +257,27 @@ void OrthographicCamera::updateProjectionMatrix() const noexcept
     m_projectionMatrixDirty = false;
 }
 
-auto OrthographicCamera::validateConfig(const OrthographicConfig &config) noexcept
-    -> std::expected<bool, std::string>
+auto OrthographicCamera::validateConfig(
+    const OrthographicConfig &config
+) noexcept -> std::expected<bool, std::string>
 {
     if (config.left >= config.right) {
         return std::unexpected(
-            std::format("Left ({}) must be less than right ({}).", config.left, config.right)
+            std::format(
+                "Left ({}) must be less than right ({}).",
+                config.left,
+                config.right
+            )
         );
     }
 
     if (config.bottom >= config.top) {
         return std::unexpected(
-            std::format("Bottom ({}) must be less than top ({}).", config.bottom, config.top)
+            std::format(
+                "Bottom ({}) must be less than top ({}).",
+                config.bottom,
+                config.top
+            )
         );
     }
 

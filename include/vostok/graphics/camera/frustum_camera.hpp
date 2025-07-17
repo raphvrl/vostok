@@ -27,8 +27,10 @@ public:
 
     explicit FrustumCamera(const CreateInfo &createInfo);
 
-    [[nodiscard]] auto getProjectionMatrix() const noexcept -> const math::Mat4 & override;
-    [[nodiscard]] auto getViewMatrix() const noexcept -> const math::Mat4 & override;
+    [[nodiscard]] auto getProjectionMatrix() const noexcept
+        -> const math::Mat4 & override;
+    [[nodiscard]] auto getViewMatrix() const noexcept
+        -> const math::Mat4 & override;
     [[nodiscard]] auto getViewProjectionMatrix() const -> math::Mat4 override;
     [[nodiscard]] auto getCameraType() const noexcept -> CameraType override
     {
@@ -37,20 +39,34 @@ public:
 
     [[nodiscard]] auto updateConfig(const FrustumConfig &config) noexcept
         -> std::expected<void, std::string>;
-    [[nodiscard]] auto setBounds(f32 left, f32 right, f32 bottom, f32 top) noexcept
+    [[nodiscard]] auto
+    setBounds(f32 left, f32 right, f32 bottom, f32 top) noexcept
         -> std::expected<void, std::string>;
     [[nodiscard]] auto setPlanes(f32 nearPlane, f32 farPlane) noexcept
         -> std::expected<void, std::string>;
 
     [[nodiscard]] auto getLeft() const noexcept -> f32 { return m_config.left; }
-    [[nodiscard]] auto getRight() const noexcept -> f32 { return m_config.right; }
-    [[nodiscard]] auto getBottom() const noexcept -> f32 { return m_config.bottom; }
+    [[nodiscard]] auto getRight() const noexcept -> f32
+    {
+        return m_config.right;
+    }
+    [[nodiscard]] auto getBottom() const noexcept -> f32
+    {
+        return m_config.bottom;
+    }
     [[nodiscard]] auto getTop() const noexcept -> f32 { return m_config.top; }
-    [[nodiscard]] auto getNearPlane() const noexcept -> f32 { return m_config.nearPlane; }
-    [[nodiscard]] auto getFarPlane() const noexcept -> f32 { return m_config.farPlane; }
+    [[nodiscard]] auto getNearPlane() const noexcept -> f32
+    {
+        return m_config.nearPlane;
+    }
+    [[nodiscard]] auto getFarPlane() const noexcept -> f32
+    {
+        return m_config.farPlane;
+    }
 
     [[nodiscard]] static auto
-    createFromPerspective(const PerspectiveCamera &perspectiveCamera) noexcept -> FrustumCamera;
+    createFromPerspective(const PerspectiveCamera &perspectiveCamera) noexcept
+        -> FrustumCamera;
 
 protected:
     void onTransformChanged() noexcept override;
@@ -62,7 +78,8 @@ private:
     mutable bool m_projectionMatrixDirty = true;
 
     void updateProjectionMatrix() const noexcept;
-    [[nodiscard]] static auto validateConfig(const FrustumConfig &config) noexcept
+    [[nodiscard]] static auto
+    validateConfig(const FrustumConfig &config) noexcept
         -> std::expected<void, std::string>;
     void markProjectionDirty() noexcept;
 };

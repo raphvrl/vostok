@@ -16,7 +16,7 @@ Checks: >
   -readability-identifier-length
 
 WarningsAsErrors: ''
-HeaderFilterRegex: '^((?!.*third_party|.*build|.*_deps).*/(include/vostok|src)/.*)\\.(h|hpp)$'
+HeaderFilterRegex: '^((?!.*third_party|.*external|.*build|.*_deps).*/(include/vostok|src)/.*)\\.(h|hpp)$'
 FormatStyle: file
 SystemHeaders: false
 

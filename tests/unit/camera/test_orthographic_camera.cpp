@@ -11,7 +11,10 @@ using namespace vostok;
 class OrthographicCameraTest : public ::testing::Test
 {
 protected:
-    void SetUp() override { [[maybe_unused]] auto loggerResult = vostok::Logger::init(); }
+    void SetUp() override
+    {
+        [[maybe_unused]] auto loggerResult = vostok::Logger::init();
+    }
 
     static auto createDefaultCamera() -> OrthographicCamera
     {
@@ -45,7 +48,10 @@ TEST_F(OrthographicCameraTest, DefaultConstruction)
 
 TEST_F(OrthographicCameraTest, StaticCreateCentered)
 {
-    CenteredParams params{ .width = 4.0F, .height = 2.0F, .nearPlane = 0.1F, .farPlane = 10.0F };
+    CenteredParams params{ .width = 4.0F,
+                           .height = 2.0F,
+                           .nearPlane = 0.1F,
+                           .farPlane = 10.0F };
     auto camera = OrthographicCamera::createCentered(params);
     EXPECT_FLOAT_EQ(camera.getLeft(), -2.0F);
     EXPECT_FLOAT_EQ(camera.getRight(), 2.0F);
