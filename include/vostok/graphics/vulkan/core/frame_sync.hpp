@@ -19,15 +19,23 @@ struct FrameData
 };
 
 class Device;
+class CommandPool;
 
 class FrameSync
 {
 public:
+    struct CommandPools
+    {
+        CommandPool *graphics = nullptr;
+        CommandPool *transfer = nullptr;
+    };
+
     struct CreateInfo
     {
         Device *device = nullptr;
         u32 maxFramesInFlight = 2;
-        VkCommandPool commandPool = VK_NULL_HANDLE;
+        CommandPools commandPools;
+        VkQueue transferQueue = VK_NULL_HANDLE;
     };
 
     ~FrameSync();
@@ -52,11 +60,31 @@ public:
     auto beginCommandBuffer() -> std::expected<void, std::string>;
     auto endCommandBuffer() -> std::expected<void, std::string>;
 
-    void
-    cmdDraw(u32 vertexCount, u32 instanceCount = 1, u32 firstVertex = 0, u32 firstInstance = 0);
+    void cmdDraw(
+        u32 vertexCount,
+        u32 instanceCount = 1,
+        u32 firstVertex = 0,
+        u32 firstInstance = 0
+    );
+
+    [[nodiscard]] auto getTransferCommandBuffer() const -> VkCommandBuffer;
+    auto beginTransferCommandBuffer() -> std::expected<void, std::string>;
+    auto endTransferCommandBuffer() -> std::expected<void, std::string>;
+    auto submitTransferCommandBuffer() -> std::expected<void, std::string>;
+    auto waitForTransferComplete() -> std::expected<void, std::string>;
+
+    [[nodiscard]] auto getTransferCommandPool() const -> CommandPool *
+    {
+        return m_transferCommandPool;
+    }
 
 private:
-    FrameSync(Device *device, VkCommandPool commandPool, u32 maxFramesInFlight);
+    FrameSync(
+        Device *device,
+        const CommandPools &commandPools,
+        VkQueue transferQueue,
+        u32 maxFramesInFlight
+    );
     auto init() -> bool;
 
     Device *m_device = nullptr;
@@ -65,7 +93,12 @@ private:
 
     std::vector<FrameData> m_frames;
 
-    VkCommandPool m_commandPool = VK_NULL_HANDLE;
+    CommandPool *m_graphicsCommandPool = nullptr;
+
+    CommandPool *m_transferCommandPool = nullptr;
+    VkQueue m_transferQueue = VK_NULL_HANDLE;
+    VkCommandBuffer m_transferCommandBuffer = VK_NULL_HANDLE;
+    VkFence m_transferFence = VK_NULL_HANDLE;
 };
 
 } // namespace vostok::graphics::vulkan

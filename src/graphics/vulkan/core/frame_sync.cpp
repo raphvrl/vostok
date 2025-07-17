@@ -1,7 +1,9 @@
 #include "graphics/vulkan/core/frame_sync.hpp"
 
 #include "core/logger/logger.hpp"
+#include "graphics/vulkan/core/command_pool.hpp"
 #include "graphics/vulkan/core/device.hpp"
+#include "graphics/vulkan/utils/vk_utils.hpp"
 #include "volk.h"
 
 #include <expected>
@@ -9,67 +11,103 @@
 namespace vostok::graphics::vulkan
 {
 
-FrameSync::FrameSync(Device *device, VkCommandPool commandPool, u32 maxFramesInFlight)
+FrameSync::FrameSync(
+    Device *device,
+    const CommandPools &commandPools,
+    VkQueue transferQueue,
+    u32 maxFramesInFlight
+)
     : m_device(device),
       m_maxFramesInFlight(maxFramesInFlight),
-      m_commandPool(commandPool)
+      m_graphicsCommandPool(commandPools.graphics),
+      m_transferCommandPool(commandPools.transfer),
+      m_transferQueue(transferQueue)
 {}
 
 FrameSync::~FrameSync()
 {
-    for (auto &frame : m_frames) {
-        if (frame.commandBuffer != VK_NULL_HANDLE) {
-            vkFreeCommandBuffers(m_device->getHandle(), m_commandPool, 1, &frame.commandBuffer);
+    Logger::debug("FrameSync destructor called");
+
+    if (m_device != nullptr) {
+        VkDevice device = m_device->getHandle();
+
+        if (m_transferCommandBuffer != VK_NULL_HANDLE &&
+            m_transferCommandPool != nullptr) {
+            Logger::debug("Freeing transfer command buffer");
+            m_transferCommandPool->free(m_transferCommandBuffer);
+            m_transferCommandBuffer = VK_NULL_HANDLE;
         }
 
-        if (frame.imageAvailable != VK_NULL_HANDLE) {
-            vkDestroySemaphore(m_device->getHandle(), frame.imageAvailable, nullptr);
+        if (m_transferFence != VK_NULL_HANDLE) {
+            Logger::debug("Destroying transfer fence");
+            vkDestroyFence(device, m_transferFence, nullptr);
+            m_transferFence = VK_NULL_HANDLE;
         }
 
-        if (frame.renderFinished != VK_NULL_HANDLE) {
-            vkDestroySemaphore(m_device->getHandle(), frame.renderFinished, nullptr);
-        }
+        for (size_t i = 0; i < m_frames.size(); ++i) {
+            auto &frame = m_frames[i];
+            if (frame.commandBuffer != VK_NULL_HANDLE &&
+                m_graphicsCommandPool != nullptr) {
+                Logger::debug("Freeing graphics command buffer {}", i);
+                m_graphicsCommandPool->free(frame.commandBuffer);
+                frame.commandBuffer = VK_NULL_HANDLE;
+            }
 
-        if (frame.inFlight != VK_NULL_HANDLE) {
-            vkDestroyFence(m_device->getHandle(), frame.inFlight, nullptr);
+            if (frame.imageAvailable != VK_NULL_HANDLE) {
+                Logger::debug("Destroying image available semaphore {}", i);
+                vkDestroySemaphore(device, frame.imageAvailable, nullptr);
+                frame.imageAvailable = VK_NULL_HANDLE;
+            }
+
+            if (frame.renderFinished != VK_NULL_HANDLE) {
+                Logger::debug("Destroying render finished semaphore {}", i);
+                vkDestroySemaphore(device, frame.renderFinished, nullptr);
+                frame.renderFinished = VK_NULL_HANDLE;
+            }
+
+            if (frame.inFlight != VK_NULL_HANDLE) {
+                Logger::debug("Destroying in-flight fence {}", i);
+                vkDestroyFence(device, frame.inFlight, nullptr);
+                frame.inFlight = VK_NULL_HANDLE;
+            }
         }
+    } else {
+        Logger::warning("FrameSync destructor called with null device");
     }
 
     m_frames.clear();
+    Logger::debug("FrameSync destructor completed");
 }
 
 auto FrameSync::init() -> bool
 {
-    Logger::debug("Command pool created");
-
+    Logger::debug("Initializing frame synchronization objects");
     m_frames.resize(m_maxFramesInFlight);
 
-    VkCommandBufferAllocateInfo commandBufferInfo = {};
-    commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    commandBufferInfo.commandPool = m_commandPool;
-    commandBufferInfo.commandBufferCount = 1;
+    if (m_graphicsCommandPool == nullptr) {
+        Logger::error("Graphics command pool is null");
+        return false;
+    }
 
     VkSemaphoreCreateInfo semaphoreInfo = {};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
     VkFenceCreateInfo fenceInfo = {};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
     for (size_t i = 0; i < m_maxFramesInFlight; ++i) {
-        VkResult result = vkAllocateCommandBuffers(
-            m_device->getHandle(),
-            &commandBufferInfo,
-            &m_frames[i].commandBuffer
-        );
-
-        if (result != VK_SUCCESS) {
-            Logger::error("Failed to allocate command buffer");
+        auto commandBufferResult =
+            m_graphicsCommandPool->allocate(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        if (!commandBufferResult) {
+            Logger::error(
+                "Failed to allocate command buffer: {}",
+                commandBufferResult.error()
+            );
             return false;
         }
+        m_frames[i].commandBuffer = commandBufferResult.value();
 
-        result = vkCreateSemaphore(
+        VkResult result = vkCreateSemaphore(
             m_device->getHandle(),
             &semaphoreInfo,
             nullptr,
@@ -93,7 +131,12 @@ auto FrameSync::init() -> bool
             return false;
         }
 
-        result = vkCreateFence(m_device->getHandle(), &fenceInfo, nullptr, &m_frames[i].inFlight);
+        result = vkCreateFence(
+            m_device->getHandle(),
+            &fenceInfo,
+            nullptr,
+            &m_frames[i].inFlight
+        );
 
         if (result != VK_SUCCESS) {
             Logger::error("Failed to create in-flight fence");
@@ -101,18 +144,50 @@ auto FrameSync::init() -> bool
         }
     }
 
+    if (m_transferCommandPool != nullptr) {
+        auto transferCommandBufferResult =
+            m_transferCommandPool->allocate(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        if (!transferCommandBufferResult) {
+            Logger::error(
+                "Failed to allocate transfer command buffer: {}",
+                transferCommandBufferResult.error()
+            );
+            return false;
+        }
+        m_transferCommandBuffer = transferCommandBufferResult.value();
+    }
+
+    VkFenceCreateInfo transferFenceInfo = {};
+    transferFenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    transferFenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    VkResult result = vkCreateFence(
+        m_device->getHandle(),
+        &transferFenceInfo,
+        nullptr,
+        &m_transferFence
+    );
+    if (result != VK_SUCCESS) {
+        Logger::error("Failed to create transfer fence");
+        return false;
+    }
+    Logger::debug("Frame synchronization objects initialized successfully");
     return true;
 }
 
 auto FrameSync::create(const CreateInfo &createInfo)
     -> std::expected<std::unique_ptr<FrameSync>, std::string>
 {
-    auto frameSync = std::unique_ptr<FrameSync>(
-        new FrameSync(createInfo.device, createInfo.commandPool, createInfo.maxFramesInFlight)
-    );
+    auto frameSync = std::unique_ptr<FrameSync>(new FrameSync(
+        createInfo.device,
+        createInfo.commandPools,
+        createInfo.transferQueue,
+        createInfo.maxFramesInFlight
+    ));
 
     if (!frameSync->init()) {
-        return std::unexpected("Failed to create frame synchronization objects");
+        return std::unexpected(
+            "Failed to create frame synchronization objects"
+        );
     }
 
     Logger::info("Frame synchronization objects created");
@@ -122,13 +197,36 @@ auto FrameSync::create(const CreateInfo &createInfo)
 
 void FrameSync::waitForFence()
 {
-    vkWaitForFences(
+    constexpr u64 TIMEOUT_NS = 1000000000ULL;
+
+    VkResult result = vkWaitForFences(
         m_device->getHandle(),
         1,
         &m_frames[m_currentFrame].inFlight,
         VK_TRUE,
-        UINT64_MAX
+        TIMEOUT_NS
     );
+
+    if (result == VK_TIMEOUT) {
+        Logger::warning("Frame fence wait timed out after 1 second");
+
+        vkResetFences(
+            m_device->getHandle(),
+            1,
+            &m_frames[m_currentFrame].inFlight
+        );
+    } else if (result != VK_SUCCESS) {
+        Logger::error(
+            "Failed to wait for frame fence: {}",
+            utils::vkResultToString(result)
+        );
+
+        vkResetFences(
+            m_device->getHandle(),
+            1,
+            &m_frames[m_currentFrame].inFlight
+        );
+    }
 }
 
 void FrameSync::resetFences()
@@ -167,7 +265,10 @@ auto FrameSync::beginCommandBuffer() -> std::expected<void, std::string>
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    VkResult result = vkBeginCommandBuffer(m_frames[m_currentFrame].commandBuffer, &beginInfo);
+    VkResult result = vkBeginCommandBuffer(
+        m_frames[m_currentFrame].commandBuffer,
+        &beginInfo
+    );
 
     if (result != VK_SUCCESS) {
         return std::unexpected("Failed to begin command buffer");
@@ -178,7 +279,8 @@ auto FrameSync::beginCommandBuffer() -> std::expected<void, std::string>
 
 auto FrameSync::endCommandBuffer() -> std::expected<void, std::string>
 {
-    VkResult result = vkEndCommandBuffer(m_frames[m_currentFrame].commandBuffer);
+    VkResult result =
+        vkEndCommandBuffer(m_frames[m_currentFrame].commandBuffer);
 
     if (result != VK_SUCCESS) {
         return std::unexpected("Failed to end command buffer");
@@ -187,7 +289,12 @@ auto FrameSync::endCommandBuffer() -> std::expected<void, std::string>
     return {};
 }
 
-void FrameSync::cmdDraw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance)
+void FrameSync::cmdDraw(
+    u32 vertexCount,
+    u32 instanceCount,
+    u32 firstVertex,
+    u32 firstInstance
+)
 {
     vkCmdDraw(
         m_frames[m_currentFrame].commandBuffer,
@@ -196,6 +303,104 @@ void FrameSync::cmdDraw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32
         firstVertex,
         firstInstance
     );
+}
+
+auto FrameSync::getTransferCommandBuffer() const -> VkCommandBuffer
+{
+    return m_transferCommandBuffer;
+}
+
+auto FrameSync::beginTransferCommandBuffer() -> std::expected<void, std::string>
+{
+    VkResult result = vkWaitForFences(
+        m_device->getHandle(),
+        1,
+        &m_transferFence,
+        VK_TRUE,
+        UINT64_MAX
+    );
+    if (result != VK_SUCCESS) {
+        return std::unexpected("Failed to wait for transfer fence");
+    }
+
+    result = vkResetFences(m_device->getHandle(), 1, &m_transferFence);
+    if (result != VK_SUCCESS) {
+        return std::unexpected("Failed to reset transfer fence");
+    }
+
+    if (m_transferCommandPool != nullptr) {
+        m_transferCommandPool->reset();
+    }
+
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    result = vkBeginCommandBuffer(m_transferCommandBuffer, &beginInfo);
+    if (result != VK_SUCCESS) {
+        return std::unexpected("Failed to begin transfer command buffer");
+    }
+
+    Logger::debug("Transfer command buffer recording started");
+
+    return {};
+}
+
+auto FrameSync::endTransferCommandBuffer() -> std::expected<void, std::string>
+{
+    VkResult result = vkEndCommandBuffer(m_transferCommandBuffer);
+    if (result != VK_SUCCESS) {
+        return std::unexpected("Failed to end transfer command buffer");
+    }
+    Logger::debug("Transfer command buffer recording ended");
+    return {};
+}
+
+auto FrameSync::submitTransferCommandBuffer()
+    -> std::expected<void, std::string>
+{
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &m_transferCommandBuffer;
+    VkResult result =
+        vkQueueSubmit(m_transferQueue, 1, &submitInfo, m_transferFence);
+
+    if (result != VK_SUCCESS) {
+        return std::unexpected("Failed to submit transfer command buffer");
+    }
+
+    Logger::debug("Transfer command buffer submitted to queue");
+    return {};
+}
+
+auto FrameSync::waitForTransferComplete() -> std::expected<void, std::string>
+{
+    constexpr u64 TIMEOUT_NS = 1000000000ULL;
+
+    VkResult result = vkWaitForFences(
+        m_device->getHandle(),
+        1,
+        &m_transferFence,
+        VK_TRUE,
+        TIMEOUT_NS
+    );
+
+    if (result == VK_TIMEOUT) {
+        Logger::warning("Transfer operation timed out after 1 second");
+        return std::unexpected("Transfer operation timed out");
+    }
+
+    if (result != VK_SUCCESS) {
+        Logger::error(
+            "Failed to wait for transfer completion: {}",
+            utils::vkResultToString(result)
+        );
+        return std::unexpected("Failed to wait for transfer completion");
+    }
+
+    Logger::debug("Transfer operation completed");
+    return {};
 }
 
 } // namespace vostok::graphics::vulkan

@@ -18,6 +18,8 @@ class Swapchain;
 class FrameSync;
 class Allocator;
 
+class Buffer;
+
 class VulkanDevice : public graphics::GPUDevice
 {
 public:
@@ -36,7 +38,8 @@ public:
     auto beginFrame() -> std::expected<u32, std::string> override;
     auto endFrame() -> std::expected<void, std::string> override;
 
-    auto resize(const FramebufferSize &size) -> std::expected<void, std::string> override;
+    auto resize(const FramebufferSize &size)
+        -> std::expected<void, std::string> override;
 
     void draw(
         u32 vertexCount,
@@ -45,8 +48,8 @@ public:
         u32 firstInstance = 0
     ) override;
 
-    auto createPipelineBuilder()
-        -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string> override;
+    auto createPipelineBuilder() -> std::
+        expected<std::unique_ptr<Pipeline::Builder>, std::string> override;
 
     [[nodiscard]] auto getInstance() const -> Instance *;
     [[nodiscard]] auto getSurface() const -> Surface *;
@@ -55,6 +58,10 @@ public:
     [[nodiscard]] auto getAllocator() const -> Allocator *;
     [[nodiscard]] auto getSwapchain() const -> Swapchain *;
     [[nodiscard]] auto getFrameSync() const -> FrameSync *;
+
+    auto createBuffer(
+        const graphics::BufferCreateInfo &createInfo
+    ) -> std::expected<std::unique_ptr<graphics::Buffer>, std::string> override;
 
 private:
     VulkanDevice();

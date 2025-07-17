@@ -1,7 +1,9 @@
 #include "graphics/vulkan/utils/vk_utils.hpp"
 
+#include <bit>
 #include <cstring>
 #include <unordered_map>
+#include <volk.h>
 
 namespace vostok::graphics::vulkan::utils
 {
@@ -31,7 +33,8 @@ auto vkResultToString(VkResult result) -> std::string
         { VK_ERROR_OUT_OF_POOL_MEMORY, "Out of pool memory" },
         { VK_ERROR_INVALID_EXTERNAL_HANDLE, "Invalid external handle" },
         { VK_ERROR_FRAGMENTATION, "Fragmentation" },
-        { VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS, "Invalid opaque capture address" },
+        { VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS,
+          "Invalid opaque capture address" },
         { VK_ERROR_SURFACE_LOST_KHR, "Surface lost" },
         { VK_ERROR_NATIVE_WINDOW_IN_USE_KHR, "Native window in use" },
         { VK_SUBOPTIMAL_KHR, "Suboptimal" },
@@ -42,33 +45,37 @@ auto vkResultToString(VkResult result) -> std::string
         { VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT,
           "Invalid DRM format modifier plane layout" },
         { VK_ERROR_NOT_PERMITTED_EXT, "Not permitted" },
-        { VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT, "Full screen exclusive mode lost" }
+        { VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT,
+          "Full screen exclusive mode lost" }
     };
 
     auto it = RESULT_MAP.find(result);
     if (it != RESULT_MAP.end()) {
-        return it->second + " (" + std::to_string(static_cast<int>(result)) + ")";
+        return it->second + " (" + std::to_string(static_cast<int>(result)) +
+               ")";
     }
 
-    return "Unknown Vulkan error code: " + std::to_string(static_cast<int>(result));
+    return "Unknown Vulkan error code: " +
+           std::to_string(static_cast<int>(result));
 }
 
 auto physicalDeviceTypeToString(VkPhysicalDeviceType type) -> std::string
 {
-    static const std::unordered_map<VkPhysicalDeviceType, std::string> RESULT_MAP = {
-        { VK_PHYSICAL_DEVICE_TYPE_OTHER, "Other" },
-        { VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU, "Integrated GPU" },
-        { VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, "Discrete GPU" },
-        { VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU, "Virtual GPU" },
-        { VK_PHYSICAL_DEVICE_TYPE_CPU, "CPU" }
-    };
+    static const std::unordered_map<VkPhysicalDeviceType, std::string>
+        RESULT_MAP = { { VK_PHYSICAL_DEVICE_TYPE_OTHER, "Other" },
+                       { VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU,
+                         "Integrated GPU" },
+                       { VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, "Discrete GPU" },
+                       { VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU, "Virtual GPU" },
+                       { VK_PHYSICAL_DEVICE_TYPE_CPU, "CPU" } };
 
     auto it = RESULT_MAP.find(type);
     if (it != RESULT_MAP.end()) {
         return it->second;
     }
 
-    return "Unknown device type (" + std::to_string(static_cast<int>(type)) + ")";
+    return "Unknown device type (" + std::to_string(static_cast<int>(type)) +
+           ")";
 }
 
 auto vkFormatToString(VkFormat format) -> std::string
@@ -201,21 +208,24 @@ auto vkFormatToString(VkFormat format) -> std::string
 
 auto vkPresentModeToString(VkPresentModeKHR mode) -> std::string
 {
-    static const std::unordered_map<VkPresentModeKHR, std::string> PRESENT_MODE_MAP = {
-        { VK_PRESENT_MODE_IMMEDIATE_KHR, "Immediate" },
-        { VK_PRESENT_MODE_MAILBOX_KHR, "Mailbox" },
-        { VK_PRESENT_MODE_FIFO_KHR, "FIFO" },
-        { VK_PRESENT_MODE_FIFO_RELAXED_KHR, "FIFO Relaxed" },
-        { VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR, "Shared Demand Refresh" },
-        { VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR, "Shared Continuous Refresh" }
-    };
+    static const std::unordered_map<VkPresentModeKHR, std::string>
+        PRESENT_MODE_MAP = { { VK_PRESENT_MODE_IMMEDIATE_KHR, "Immediate" },
+                             { VK_PRESENT_MODE_MAILBOX_KHR, "Mailbox" },
+                             { VK_PRESENT_MODE_FIFO_KHR, "FIFO" },
+                             { VK_PRESENT_MODE_FIFO_RELAXED_KHR,
+                               "FIFO Relaxed" },
+                             { VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR,
+                               "Shared Demand Refresh" },
+                             { VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR,
+                               "Shared Continuous Refresh" } };
 
     auto it = PRESENT_MODE_MAP.find(mode);
     if (it != PRESENT_MODE_MAP.end()) {
         return it->second;
     }
 
-    return "Unknown present mode (" + std::to_string(static_cast<int>(mode)) + ")";
+    return "Unknown present mode (" + std::to_string(static_cast<int>(mode)) +
+           ")";
 }
 
 auto vectorCharToU32(const std::vector<char> &vec) -> std::vector<u32>
@@ -227,53 +237,59 @@ auto vectorCharToU32(const std::vector<char> &vec) -> std::vector<u32>
 
 auto vkPrimitiveTopologyToString(VkPrimitiveTopology topology) -> std::string
 {
-    static const std::unordered_map<VkPrimitiveTopology, std::string> TOPOLOGY_MAP = {
-        { VK_PRIMITIVE_TOPOLOGY_POINT_LIST, "Point List" },
-        { VK_PRIMITIVE_TOPOLOGY_LINE_LIST, "Line List" },
-        { VK_PRIMITIVE_TOPOLOGY_LINE_STRIP, "Line Strip" },
-        { VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, "Triangle List" },
-        { VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, "Triangle Strip" },
-        { VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN, "Triangle Fan" },
-        { VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY, "Line List With Adjacency" },
-        { VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY, "Line Strip With Adjacency" },
-        { VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY, "Triangle List With Adjacency" },
-        { VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY, "Triangle Strip With Adjacency" },
-        { VK_PRIMITIVE_TOPOLOGY_PATCH_LIST, "Patch List" }
-    };
+    static const std::unordered_map<VkPrimitiveTopology, std::string>
+        TOPOLOGY_MAP = {
+            { VK_PRIMITIVE_TOPOLOGY_POINT_LIST, "Point List" },
+            { VK_PRIMITIVE_TOPOLOGY_LINE_LIST, "Line List" },
+            { VK_PRIMITIVE_TOPOLOGY_LINE_STRIP, "Line Strip" },
+            { VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, "Triangle List" },
+            { VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, "Triangle Strip" },
+            { VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN, "Triangle Fan" },
+            { VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY,
+              "Line List With Adjacency" },
+            { VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY,
+              "Line Strip With Adjacency" },
+            { VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY,
+              "Triangle List With Adjacency" },
+            { VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY,
+              "Triangle Strip With Adjacency" },
+            { VK_PRIMITIVE_TOPOLOGY_PATCH_LIST, "Patch List" }
+        };
 
     auto it = TOPOLOGY_MAP.find(topology);
     if (it != TOPOLOGY_MAP.end()) {
         return it->second;
     }
 
-    return "Unknown primitive topology (" + std::to_string(static_cast<int>(topology)) + ")";
+    return "Unknown primitive topology (" +
+           std::to_string(static_cast<int>(topology)) + ")";
 }
 
 auto vkPolygonModeToString(VkPolygonMode mode) -> std::string
 {
-    static const std::unordered_map<VkPolygonMode, std::string> POLYGON_MODE_MAP = {
-        { VK_POLYGON_MODE_FILL, "Fill" },
-        { VK_POLYGON_MODE_LINE, "Line" },
-        { VK_POLYGON_MODE_POINT, "Point" },
-        { VK_POLYGON_MODE_FILL_RECTANGLE_NV, "Fill Rectangle" }
-    };
+    static const std::unordered_map<VkPolygonMode, std::string>
+        POLYGON_MODE_MAP = { { VK_POLYGON_MODE_FILL, "Fill" },
+                             { VK_POLYGON_MODE_LINE, "Line" },
+                             { VK_POLYGON_MODE_POINT, "Point" },
+                             { VK_POLYGON_MODE_FILL_RECTANGLE_NV,
+                               "Fill Rectangle" } };
 
     auto it = POLYGON_MODE_MAP.find(mode);
     if (it != POLYGON_MODE_MAP.end()) {
         return it->second;
     }
 
-    return "Unknown polygon mode (" + std::to_string(static_cast<int>(mode)) + ")";
+    return "Unknown polygon mode (" + std::to_string(static_cast<int>(mode)) +
+           ")";
 }
 
 auto vkCullModeToString(VkCullModeFlags mode) -> std::string
 {
-    static const std::unordered_map<VkCullModeFlags, std::string> CULL_MODE_MAP = {
-        { VK_CULL_MODE_NONE, "None" },
-        { VK_CULL_MODE_FRONT_BIT, "Front" },
-        { VK_CULL_MODE_BACK_BIT, "Back" },
-        { VK_CULL_MODE_FRONT_AND_BACK, "Front and Back" }
-    };
+    static const std::unordered_map<VkCullModeFlags, std::string>
+        CULL_MODE_MAP = { { VK_CULL_MODE_NONE, "None" },
+                          { VK_CULL_MODE_FRONT_BIT, "Front" },
+                          { VK_CULL_MODE_BACK_BIT, "Back" },
+                          { VK_CULL_MODE_FRONT_AND_BACK, "Front and Back" } };
 
     auto it = CULL_MODE_MAP.find(mode);
     if (it != CULL_MODE_MAP.end()) {
@@ -295,7 +311,8 @@ auto vkFrontFaceToString(VkFrontFace frontFace) -> std::string
         return it->second;
     }
 
-    return "Unknown front face (" + std::to_string(static_cast<int>(frontFace)) + ")";
+    return "Unknown front face (" +
+           std::to_string(static_cast<int>(frontFace)) + ")";
 }
 
 auto vkCompareOpToString(VkCompareOp compareOp) -> std::string
@@ -316,7 +333,8 @@ auto vkCompareOpToString(VkCompareOp compareOp) -> std::string
         return it->second;
     }
 
-    return "Unknown compare operation (" + std::to_string(static_cast<int>(compareOp)) + ")";
+    return "Unknown compare operation (" +
+           std::to_string(static_cast<int>(compareOp)) + ")";
 }
 
 auto vkStencilOpToString(VkStencilOp stencilOp) -> std::string
@@ -337,34 +355,41 @@ auto vkStencilOpToString(VkStencilOp stencilOp) -> std::string
         return it->second;
     }
 
-    return "Unknown stencil operation (" + std::to_string(static_cast<int>(stencilOp)) + ")";
+    return "Unknown stencil operation (" +
+           std::to_string(static_cast<int>(stencilOp)) + ")";
 }
 
 auto vkBlendFactorToString(VkBlendFactor blendFactor) -> std::string
 {
-    static const std::unordered_map<VkBlendFactor, std::string> BLEND_FACTOR_MAP = {
-        { VK_BLEND_FACTOR_ZERO, "Zero" },
-        { VK_BLEND_FACTOR_ONE, "One" },
-        { VK_BLEND_FACTOR_SRC_COLOR, "Source Color" },
-        { VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR, "One Minus Source Color" },
-        { VK_BLEND_FACTOR_DST_COLOR, "Destination Color" },
-        { VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR, "One Minus Destination Color" },
-        { VK_BLEND_FACTOR_SRC_ALPHA, "Source Alpha" },
-        { VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, "One Minus Source Alpha" },
-        { VK_BLEND_FACTOR_DST_ALPHA, "Destination Alpha" },
-        { VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA, "One Minus Destination Alpha" },
-        { VK_BLEND_FACTOR_CONSTANT_COLOR, "Constant Color" },
-        { VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR, "One Minus Constant Color" },
-        { VK_BLEND_FACTOR_CONSTANT_ALPHA, "Constant Alpha" },
-        { VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA, "One Minus Constant Alpha" }
-    };
+    static const std::unordered_map<VkBlendFactor, std::string>
+        BLEND_FACTOR_MAP = {
+            { VK_BLEND_FACTOR_ZERO, "Zero" },
+            { VK_BLEND_FACTOR_ONE, "One" },
+            { VK_BLEND_FACTOR_SRC_COLOR, "Source Color" },
+            { VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR, "One Minus Source Color" },
+            { VK_BLEND_FACTOR_DST_COLOR, "Destination Color" },
+            { VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR,
+              "One Minus Destination Color" },
+            { VK_BLEND_FACTOR_SRC_ALPHA, "Source Alpha" },
+            { VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, "One Minus Source Alpha" },
+            { VK_BLEND_FACTOR_DST_ALPHA, "Destination Alpha" },
+            { VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA,
+              "One Minus Destination Alpha" },
+            { VK_BLEND_FACTOR_CONSTANT_COLOR, "Constant Color" },
+            { VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR,
+              "One Minus Constant Color" },
+            { VK_BLEND_FACTOR_CONSTANT_ALPHA, "Constant Alpha" },
+            { VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA,
+              "One Minus Constant Alpha" }
+        };
 
     auto it = BLEND_FACTOR_MAP.find(blendFactor);
     if (it != BLEND_FACTOR_MAP.end()) {
         return it->second;
     }
 
-    return "Unknown blend factor (" + std::to_string(static_cast<int>(blendFactor)) + ")";
+    return "Unknown blend factor (" +
+           std::to_string(static_cast<int>(blendFactor)) + ")";
 }
 
 auto vkBlendOpToString(VkBlendOp blendOp) -> std::string
@@ -382,7 +407,8 @@ auto vkBlendOpToString(VkBlendOp blendOp) -> std::string
         return it->second;
     }
 
-    return "Unknown blend operation (" + std::to_string(static_cast<int>(blendOp)) + ")";
+    return "Unknown blend operation (" +
+           std::to_string(static_cast<int>(blendOp)) + ")";
 }
 
 auto vkColorComponentFlagsToString(VkColorComponentFlags flags) -> std::string
@@ -408,6 +434,113 @@ auto vkColorComponentFlagsToString(VkColorComponentFlags flags) -> std::string
     }
 
     return result;
+}
+
+auto toVulkanUsage(graphics::BufferUsage usage) -> VkBufferUsageFlags
+{
+    VkBufferUsageFlags flags = 0;
+
+    if ((static_cast<u32>(usage) &
+         static_cast<u32>(graphics::BufferUsage::VERTEX)) != 0U) {
+        flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    }
+
+    if ((static_cast<u32>(usage) &
+         static_cast<u32>(graphics::BufferUsage::INDEX)) != 0U) {
+        flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    }
+
+    if ((static_cast<u32>(usage) &
+         static_cast<u32>(graphics::BufferUsage::UNIFORM)) != 0U) {
+        flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    }
+
+    if ((static_cast<u32>(usage) &
+         static_cast<u32>(graphics::BufferUsage::STORAGE)) != 0U) {
+        flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    }
+
+    if ((static_cast<u32>(usage) &
+         static_cast<u32>(graphics::BufferUsage::TRANSFER_SRC)) != 0U) {
+        flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    }
+
+    if ((static_cast<u32>(usage) &
+         static_cast<u32>(graphics::BufferUsage::TRANSFER_DST)) != 0U) {
+        flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    }
+
+    return flags;
+}
+
+auto toVmaMemoryUsage(graphics::BufferMemory memory) -> VmaMemoryUsage
+{
+    static const std::unordered_map<graphics::BufferMemory, VmaMemoryUsage>
+        MEMORY_USAGE_MAP = {
+            { graphics::BufferMemory::GPU_ONLY, VMA_MEMORY_USAGE_GPU_ONLY },
+            { graphics::BufferMemory::CPU_TO_GPU, VMA_MEMORY_USAGE_CPU_TO_GPU },
+            { graphics::BufferMemory::GPU_TO_CPU, VMA_MEMORY_USAGE_GPU_TO_CPU }
+        };
+
+    auto it = MEMORY_USAGE_MAP.find(memory);
+    if (it != MEMORY_USAGE_MAP.end()) {
+        return it->second;
+    }
+
+    return VMA_MEMORY_USAGE_GPU_ONLY;
+}
+
+auto setDebugObjectName(
+    VkDevice device,
+    VkObjectType objectType,
+    u64 objectHandle,
+    const std::string &name
+) -> bool
+{
+    if (name.empty()) {
+        return false;
+    }
+
+    auto func = std::bit_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
+        vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT")
+    );
+
+    if (func == nullptr) {
+        return false;
+    }
+
+    VkDebugUtilsObjectNameInfoEXT nameInfo = {};
+    nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    nameInfo.objectType = objectType;
+    nameInfo.objectHandle = objectHandle;
+    nameInfo.pObjectName = name.c_str();
+
+    VkResult result = func(device, &nameInfo);
+    return result == VK_SUCCESS;
+}
+
+auto getRequiredAlignment(graphics::BufferUsage usage) -> size_t
+{
+    size_t requiredAlignment = 1;
+
+    if ((static_cast<u32>(usage) &
+         static_cast<u32>(graphics::BufferUsage::UNIFORM)) != 0U) {
+        requiredAlignment = std::max(requiredAlignment, size_t(256));
+    }
+
+    if ((static_cast<u32>(usage) &
+         static_cast<u32>(graphics::BufferUsage::STORAGE)) != 0U) {
+        requiredAlignment = std::max(requiredAlignment, size_t(16));
+    }
+
+    if (((static_cast<u32>(usage) &
+          static_cast<u32>(graphics::BufferUsage::VERTEX)) != 0U) ||
+        ((static_cast<u32>(usage) &
+          static_cast<u32>(graphics::BufferUsage::INDEX)) != 0U)) {
+        requiredAlignment = std::max(requiredAlignment, size_t(4));
+    }
+
+    return requiredAlignment;
 }
 
 } // namespace vostok::graphics::vulkan::utils
