@@ -1,7 +1,7 @@
-#include "graphics/vulkan/core/command_pool.hpp"
+#include "graphics/vulkan/core/vulkan_command_pool.hpp"
 
 #include "core/logger/logger.hpp"
-#include "graphics/vulkan/core/device.hpp"
+#include "graphics/vulkan/core/vulkan_device.hpp"
 #include "graphics/vulkan/utils/vk_utils.hpp"
 
 #include <volk.h>
@@ -9,8 +9,8 @@
 namespace vostok::graphics::vulkan
 {
 
-auto CommandPool::create(const CreateInfo &createInfo)
-    -> std::expected<std::unique_ptr<CommandPool>, std::string>
+auto VulkanCommandPool::create(const CreateInfo &createInfo)
+    -> std::expected<std::unique_ptr<VulkanCommandPool>, std::string>
 {
     auto *device = createInfo.device;
     if (createInfo.device == nullptr) {
@@ -36,8 +36,9 @@ auto CommandPool::create(const CreateInfo &createInfo)
         );
     }
 
-    auto commandPoolPtr =
-        std::unique_ptr<CommandPool>(new CommandPool(device, commandPool));
+    auto commandPoolPtr = std::unique_ptr<VulkanCommandPool>(
+        new VulkanCommandPool(device, commandPool)
+    );
 
     Logger::debug(
         "Command pool created successfully for queue family {}",
@@ -47,12 +48,12 @@ auto CommandPool::create(const CreateInfo &createInfo)
     return commandPoolPtr;
 }
 
-CommandPool::CommandPool(Device *device, VkCommandPool pool)
+VulkanCommandPool::VulkanCommandPool(VulkanDevice *device, VkCommandPool pool)
     : m_device(device),
       m_pool(pool)
 {}
 
-CommandPool::~CommandPool()
+VulkanCommandPool::~VulkanCommandPool()
 {
     if (m_pool != VK_NULL_HANDLE && m_device != nullptr) {
         Logger::debug("Destroying command pool for queue family");
@@ -68,7 +69,7 @@ CommandPool::~CommandPool()
     }
 }
 
-CommandPool::CommandPool(CommandPool &&other) noexcept
+VulkanCommandPool::VulkanCommandPool(VulkanCommandPool &&other) noexcept
     : m_device(other.m_device),
       m_pool(other.m_pool)
 {
@@ -76,7 +77,8 @@ CommandPool::CommandPool(CommandPool &&other) noexcept
     other.m_pool = VK_NULL_HANDLE;
 }
 
-auto CommandPool::operator=(CommandPool &&other) noexcept -> CommandPool &
+auto VulkanCommandPool::operator=(VulkanCommandPool &&other) noexcept
+    -> VulkanCommandPool &
 {
     if (this != &other) {
         if (m_pool != VK_NULL_HANDLE && m_device != nullptr) {
@@ -93,7 +95,7 @@ auto CommandPool::operator=(CommandPool &&other) noexcept -> CommandPool &
     return *this;
 }
 
-auto CommandPool::allocate(VkCommandBufferLevel level)
+auto VulkanCommandPool::allocate(VkCommandBufferLevel level)
     -> std::expected<VkCommandBuffer, std::string>
 {
     if (m_pool == VK_NULL_HANDLE) {
@@ -124,7 +126,7 @@ auto CommandPool::allocate(VkCommandBufferLevel level)
     return commandBuffer;
 }
 
-void CommandPool::free(VkCommandBuffer buffer)
+void VulkanCommandPool::free(VkCommandBuffer buffer)
 {
     if (m_pool != VK_NULL_HANDLE && buffer != VK_NULL_HANDLE) {
         vkFreeCommandBuffers(m_device->getHandle(), m_pool, 1, &buffer);
@@ -132,7 +134,7 @@ void CommandPool::free(VkCommandBuffer buffer)
     }
 }
 
-void CommandPool::free(std::span<VkCommandBuffer> buffers)
+void VulkanCommandPool::free(std::span<VkCommandBuffer> buffers)
 {
     if (m_pool != VK_NULL_HANDLE && !buffers.empty()) {
         vkFreeCommandBuffers(
@@ -146,7 +148,7 @@ void CommandPool::free(std::span<VkCommandBuffer> buffers)
     }
 }
 
-void CommandPool::reset() const
+void VulkanCommandPool::reset() const
 {
     if (m_pool != VK_NULL_HANDLE) {
         VkResult result = vkResetCommandPool(m_device->getHandle(), m_pool, 0);

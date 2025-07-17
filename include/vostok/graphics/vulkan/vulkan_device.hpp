@@ -9,14 +9,14 @@
 namespace vostok::graphics::vulkan
 {
 
-class Instance;
-class Surface;
-class PhysicalDevice;
-class Device;
-class Device;
-class Swapchain;
-class FrameSync;
-class Allocator;
+class VulkanInstance;
+class VulkanSurface;
+class VulkanPhysicalDevice;
+class VulkanDevice;
+class VulkanDevice;
+class VulkanSwapchain;
+class VulkanFrameSync;
+class VulkanAllocator;
 
 class Buffer;
 
@@ -51,13 +51,13 @@ public:
     auto createPipelineBuilder() -> std::
         expected<std::unique_ptr<Pipeline::Builder>, std::string> override;
 
-    [[nodiscard]] auto getInstance() const -> Instance *;
-    [[nodiscard]] auto getSurface() const -> Surface *;
-    [[nodiscard]] auto getPhysicalDevice() const -> PhysicalDevice *;
-    [[nodiscard]] auto getDevice() const -> Device *;
-    [[nodiscard]] auto getAllocator() const -> Allocator *;
-    [[nodiscard]] auto getSwapchain() const -> Swapchain *;
-    [[nodiscard]] auto getFrameSync() const -> FrameSync *;
+    [[nodiscard]] auto getInstance() const -> VulkanInstance *;
+    [[nodiscard]] auto getSurface() const -> VulkanSurface *;
+    [[nodiscard]] auto getPhysicalDevice() const -> VulkanPhysicalDevice *;
+    [[nodiscard]] auto getDevice() const -> VulkanDevice *;
+    [[nodiscard]] auto getAllocator() const -> VulkanAllocator *;
+    [[nodiscard]] auto getSwapchain() const -> VulkanSwapchain *;
+    [[nodiscard]] auto getFrameSync() const -> VulkanFrameSync *;
 
     auto createBuffer(
         const graphics::BufferCreateInfo &createInfo

@@ -1,4 +1,4 @@
-#include "graphics/vulkan/core/allocator.hpp"
+#include "graphics/vulkan/core/vulkan_allocator.hpp"
 
 #include "core/logger/logger.hpp"
 #include "graphics/vulkan/utils/vk_utils.hpp"
@@ -14,24 +14,25 @@
 namespace vostok::graphics::vulkan
 {
 
-Allocator::Allocator(VmaAllocator allocator)
+VulkanAllocator::VulkanAllocator(VmaAllocator allocator)
     : m_allocator(allocator)
 {
     Logger::info("VMA allocator created");
 }
 
-Allocator::~Allocator()
+VulkanAllocator::~VulkanAllocator()
 {
     vmaDestroyAllocator(m_allocator);
 }
 
-Allocator::Allocator(Allocator &&other) noexcept
+VulkanAllocator::VulkanAllocator(VulkanAllocator &&other) noexcept
     : m_allocator(other.m_allocator)
 {
     other.m_allocator = VK_NULL_HANDLE;
 }
 
-auto Allocator::operator=(Allocator &&other) noexcept -> Allocator &
+auto VulkanAllocator::operator=(VulkanAllocator &&other) noexcept
+    -> VulkanAllocator &
 {
     if (this != &other) {
         m_allocator = other.m_allocator;
@@ -41,8 +42,8 @@ auto Allocator::operator=(Allocator &&other) noexcept -> Allocator &
     return *this;
 }
 
-auto Allocator::create(const CreateInfo &createInfo)
-    -> std::expected<std::unique_ptr<Allocator>, std::string>
+auto VulkanAllocator::create(const CreateInfo &createInfo)
+    -> std::expected<std::unique_ptr<VulkanAllocator>, std::string>
 {
     VmaVulkanFunctions vulkanFunctions = {};
     vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
@@ -65,12 +66,13 @@ auto Allocator::create(const CreateInfo &createInfo)
         );
     }
 
-    auto allocatorPtr = std::unique_ptr<Allocator>(new Allocator(allocator));
+    auto allocatorPtr =
+        std::unique_ptr<VulkanAllocator>(new VulkanAllocator(allocator));
 
     return allocatorPtr;
 }
 
-auto Allocator::mapMemory(VmaAllocation allocation, void **data)
+auto VulkanAllocator::mapMemory(VmaAllocation allocation, void **data)
     -> std::expected<void *, std::string>
 {
     VkResult result = vmaMapMemory(m_allocator, allocation, data);
@@ -81,12 +83,12 @@ auto Allocator::mapMemory(VmaAllocation allocation, void **data)
     return *data;
 }
 
-void Allocator::unmapMemory(VmaAllocation allocation)
+void VulkanAllocator::unmapMemory(VmaAllocation allocation)
 {
     vmaUnmapMemory(m_allocator, allocation);
 }
 
-auto Allocator::createBuffer(
+auto VulkanAllocator::createBuffer(
     const VkBufferCreateInfo &createInfo,
     VmaMemoryUsage memoryUsage
 ) -> std::expected<std::pair<VkBuffer, VmaAllocation>, std::string>
@@ -114,7 +116,7 @@ auto Allocator::createBuffer(
     return std::make_pair(buffer, allocation);
 }
 
-void Allocator::destroyBuffer(VkBuffer buffer, VmaAllocation allocation)
+void VulkanAllocator::destroyBuffer(VkBuffer buffer, VmaAllocation allocation)
 {
     vmaDestroyBuffer(m_allocator, buffer, allocation);
 }

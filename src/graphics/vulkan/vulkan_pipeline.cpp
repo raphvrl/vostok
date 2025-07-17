@@ -1,9 +1,9 @@
 #include "graphics/vulkan/vulkan_pipeline.hpp"
 
 #include "core/logger/logger.hpp"
-#include "graphics/vulkan/core/device.hpp"
-#include "graphics/vulkan/core/frame_sync.hpp"
-#include "graphics/vulkan/core/swapchain.hpp"
+#include "graphics/vulkan/core/vulkan_device.hpp"
+#include "graphics/vulkan/core/vulkan_frame_sync.hpp"
+#include "graphics/vulkan/core/vulkan_swapchain.hpp"
 #include "graphics/vulkan/utils/vk_utils.hpp"
 #include "graphics/vulkan/vulkan_device.hpp"
 

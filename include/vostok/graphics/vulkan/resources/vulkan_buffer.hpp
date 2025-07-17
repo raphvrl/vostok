@@ -12,7 +12,7 @@
 namespace vostok::graphics::vulkan
 {
 
-class Allocator;
+class VulkanAllocator;
 class VulkanGPUDevice;
 
 class VulkanBuffer : public graphics::Buffer

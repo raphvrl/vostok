@@ -1,8 +1,8 @@
-#include "vostok/graphics/vulkan/resources/buffer.hpp"
+#include "vostok/graphics/vulkan/resources/vulkan_buffer.hpp"
 
 #include "vostok/core/logger/logger.hpp"
-#include "vostok/graphics/vulkan/core/allocator.hpp"
-#include "vostok/graphics/vulkan/core/frame_sync.hpp"
+#include "vostok/graphics/vulkan/core/vulkan_allocator.hpp"
+#include "vostok/graphics/vulkan/core/vulkan_frame_sync.hpp"
 #include "vostok/graphics/vulkan/utils/vk_utils.hpp"
 #include "vostok/graphics/vulkan/vulkan_device.hpp"
 
@@ -17,8 +17,8 @@ class VulkanBuffer::Impl
 {
 public:
     Impl(
-        Allocator *allocator,
-        FrameSync *frameSync,
+        VulkanAllocator *allocator,
+        VulkanFrameSync *frameSync,
         VkQueue transferQueue,
         VkBuffer buffer,
         VmaAllocation allocation,
@@ -70,8 +70,8 @@ private:
     auto updateCpuAccessible(std::span<const std::byte> data, size_t offset = 0)
         -> std::expected<void, std::string>;
 
-    Allocator *m_allocator = nullptr;
-    FrameSync *m_frameSync = nullptr;
+    VulkanAllocator *m_allocator = nullptr;
+    VulkanFrameSync *m_frameSync = nullptr;
     VkQueue m_transferQueue = VK_NULL_HANDLE;
     VkBuffer m_buffer = VK_NULL_HANDLE;
     VmaAllocation m_allocation = VK_NULL_HANDLE;
@@ -82,8 +82,8 @@ private:
 };
 
 VulkanBuffer::Impl::Impl(
-    Allocator *allocator,
-    FrameSync *frameSync,
+    VulkanAllocator *allocator,
+    VulkanFrameSync *frameSync,
     VkQueue transferQueue,
     VkBuffer buffer,
     VmaAllocation allocation,
