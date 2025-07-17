@@ -56,7 +56,8 @@ template <typename T, VectorType Vec>
 }
 
 template <QuaternionType T>
-[[nodiscard]] constexpr auto angle(const T &q) noexcept -> typename T::value_type
+[[nodiscard]] constexpr auto angle(const T &q) noexcept ->
+    typename T::value_type
 {
     return glm::angle(q);
 }

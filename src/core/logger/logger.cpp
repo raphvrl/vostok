@@ -43,9 +43,12 @@ public:
     void enableBacktrace(size_t size);
 
 private:
-    std::unordered_map<std::string, std::shared_ptr<LoggerHandle::Impl>> m_loggers;
-    auto createSpdLogger(std::string_view name) -> std::shared_ptr<spdlog::logger>;
-    static auto formatLogFilename(const std::string &pattern, std::string_view loggerName)
+    std::unordered_map<std::string, std::shared_ptr<LoggerHandle::Impl>>
+        m_loggers;
+    auto createSpdLogger(std::string_view name)
+        -> std::shared_ptr<spdlog::logger>;
+    static auto
+    formatLogFilename(const std::string &pattern, std::string_view loggerName)
         -> std::string;
 
     LogConfig m_config;
@@ -64,7 +67,10 @@ public:
           m_logger(std::move(logger))
     {}
 
-    void log(LogLevel level, std::string_view message, const std::source_location &location)
+    void
+    log(LogLevel level,
+        std::string_view message,
+        const std::source_location &location)
     {
         const auto FILE = fs::path(location.file_name()).filename().string();
         const auto LOC_INFO = std::format("{}:{}", FILE, location.line());
@@ -100,7 +106,10 @@ public:
 
     void setLevel(LogLevel level) { m_logger->set_level(convertLevel(level)); }
 
-    [[nodiscard]] auto getLevel() const -> LogLevel { return convertLevel(m_logger->level()); }
+    [[nodiscard]] auto getLevel() const -> LogLevel
+    {
+        return convertLevel(m_logger->level());
+    }
 
     [[nodiscard]] auto getName() const -> std::string_view { return m_name; }
 
@@ -167,7 +176,8 @@ auto getLogSystem() -> std::unique_ptr<LogSystem> &
 
 auto getContextMap() -> std::unordered_map<std::string, std::string> &
 {
-    static thread_local std::unordered_map<std::string, std::string> s_contextMap;
+    static thread_local std::unordered_map<std::string, std::string>
+        s_contextMap;
     return s_contextMap;
 }
 
@@ -187,22 +197,25 @@ LogSystem::LogSystem(const LogConfig &config)
     }
 
     if (config.console.has_value()) {
-        auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+        auto consoleSink =
+            std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
         consoleSink->set_level(convertLevel(config.level));
         consoleSink->set_pattern(config.pattern);
         m_sinks.push_back(consoleSink);
     }
 
-    if (config.file.has_value() && (!config.file->separateFilesByComponent ||
-                                    config.file->filePath != config.file->componentFilePattern)) {
+    if (config.file.has_value() &&
+        (!config.file->separateFilesByComponent ||
+         config.file->filePath != config.file->componentFilePattern)) {
         if (config.file->rotateOnSize) {
             constexpr size_t BYTES_PER_MB = static_cast<size_t>(1024) * 1024;
-            auto fileSink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-                config.file->filePath,
-                config.file->maxSizeMB * BYTES_PER_MB,
-                config.file->maxFiles,
-                config.file->truncateOnStart
-            );
+            auto fileSink =
+                std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+                    config.file->filePath,
+                    config.file->maxSizeMB * BYTES_PER_MB,
+                    config.file->maxFiles,
+                    config.file->truncateOnStart
+                );
             fileSink->set_level(convertLevel(config.level));
             fileSink->set_pattern(config.pattern);
             m_sinks.push_back(fileSink);
@@ -234,16 +247,20 @@ LogSystem::~LogSystem()
     spdlog::shutdown();
 }
 
-auto LogSystem::createSpdLogger(std::string_view name) -> std::shared_ptr<spdlog::logger>
+auto LogSystem::createSpdLogger(std::string_view name)
+    -> std::shared_ptr<spdlog::logger>
 {
-    const std::string LOGGER_NAME = !name.empty() ? std::string(name) : "default";
+    const std::string LOGGER_NAME =
+        !name.empty() ? std::string(name) : "default";
     std::shared_ptr<spdlog::logger> logger;
 
     std::vector<spdlog::sink_ptr> sinks;
 
     if (m_config.console.has_value()) {
         for (auto &sink : m_sinks) {
-            if (dynamic_cast<spdlog::sinks::stdout_color_sink_mt *>(sink.get()) != nullptr) {
+            if (dynamic_cast<spdlog::sinks::stdout_color_sink_mt *>(
+                    sink.get()
+                ) != nullptr) {
                 sinks.push_back(sink);
             }
         }
@@ -255,7 +272,8 @@ auto LogSystem::createSpdLogger(std::string_view name) -> std::shared_ptr<spdlog
         if (name.empty()) {
             filename = m_config.file->filePath;
         } else {
-            filename = formatLogFilename(m_config.file->componentFilePattern, name);
+            filename =
+                formatLogFilename(m_config.file->componentFilePattern, name);
             size_t pos = filename.find("{name}");
             if (pos != std::string::npos) {
                 filename.replace(pos, 6, std::string(name));
@@ -282,8 +300,11 @@ auto LogSystem::createSpdLogger(std::string_view name) -> std::shared_ptr<spdlog
         sinks.push_back(fileSink);
     } else {
         for (const auto &sink : m_sinks) {
-            if (dynamic_cast<spdlog::sinks::basic_file_sink_mt *>(sink.get()) != nullptr ||
-                dynamic_cast<spdlog::sinks::rotating_file_sink_mt *>(sink.get()) != nullptr) {
+            if (dynamic_cast<spdlog::sinks::basic_file_sink_mt *>(sink.get()) !=
+                    nullptr ||
+                dynamic_cast<spdlog::sinks::rotating_file_sink_mt *>(
+                    sink.get()
+                ) != nullptr) {
                 sinks.push_back(sink);
             }
         }
@@ -298,25 +319,35 @@ auto LogSystem::createSpdLogger(std::string_view name) -> std::shared_ptr<spdlog
             spdlog::async_overflow_policy::block
         );
     } else {
-        logger = std::make_shared<spdlog::logger>(LOGGER_NAME, sinks.begin(), sinks.end());
+        logger = std::make_shared<spdlog::logger>(
+            LOGGER_NAME,
+            sinks.begin(),
+            sinks.end()
+        );
     }
 
     spdlog::register_logger(logger);
     return logger;
 }
 
-auto LogSystem::formatLogFilename(const std::string &pattern, std::string_view loggerName)
-    -> std::string
+auto LogSystem::formatLogFilename(
+    const std::string &pattern,
+    std::string_view loggerName
+) -> std::string
 {
     std::string result = pattern;
 
     size_t pos = result.find("{name}");
     if (pos != std::string::npos) {
-        std::string name = loggerName.empty() ? "default" : std::string(loggerName);
+        std::string name =
+            loggerName.empty() ? "default" : std::string(loggerName);
 
-        std::ranges::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
-            return std::tolower(c);
-        });
+        std::ranges::transform(
+            name.begin(),
+            name.end(),
+            name.begin(),
+            [](unsigned char c) { return std::tolower(c); }
+        );
 
         result.replace(pos, 6, name);
     }
@@ -529,7 +560,8 @@ void Logger::binary(std::string_view name, std::span<const byte> data)
     getDefaultLogger().debug("Binary data: {} ({} bytes)", name, data.size());
 
     for (size_t i = 0; i < data.size(); i += BYTES_PER_ROW) {
-        auto lineSpan = data.subspan(i, std::min(BYTES_PER_ROW, data.size() - i));
+        auto lineSpan =
+            data.subspan(i, std::min(BYTES_PER_ROW, data.size() - i));
 
         std::string line = std::format("{:08X}: ", i);
         std::string ascii;
@@ -563,7 +595,9 @@ auto Logger::getDefaultLogger() -> LoggerHandle &
     return s_defaultLogger;
 }
 
-ScopedContext::ScopedContext(std::pair<std::string_view, std::string_view> keyValue)
+ScopedContext::ScopedContext(
+    std::pair<std::string_view, std::string_view> keyValue
+)
     : m_key(keyValue.first)
 {
     getContextMap()[m_key] = std::string(keyValue.second);
@@ -585,7 +619,8 @@ ScopedTimer::~ScopedTimer() noexcept
     try {
         auto end = std::chrono::high_resolution_clock::now();
         auto duration =
-            std::chrono::duration_cast<std::chrono::milliseconds>(end - m_start).count();
+            std::chrono::duration_cast<std::chrono::milliseconds>(end - m_start)
+                .count();
 
         switch (m_level) {
             case LogLevel::TRACE:

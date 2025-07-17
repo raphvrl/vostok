@@ -93,12 +93,17 @@ bool GlfwWindow::Impl::g_glfwInitialized = false;
 int GlfwWindow::Impl::g_windowCount = 0;
 
 GlfwWindow::Impl::Impl(const WindowConfig &config)
-    : m_width(config.width), m_height(config.height), m_title(config.title), m_vsync(config.vsync),
+    : m_width(config.width),
+      m_height(config.height),
+      m_title(config.title),
+      m_vsync(config.vsync),
       m_fullscreen(config.fullscreen)
 {
     if (!g_glfwInitialized) {
         if (glfwInit() == GLFW_FALSE) {
-            Logger::critical("Failed to initialize GLFW - terminating application");
+            Logger::critical(
+                "Failed to initialize GLFW - terminating application"
+            );
             throw std::runtime_error("Failed to initialize GLFW");
         }
         g_glfwInitialized = true;
@@ -111,7 +116,8 @@ GlfwWindow::Impl::Impl(const WindowConfig &config)
     glfwWindowHint(GLFW_RESIZABLE, config.resizable ? GLFW_TRUE : GLFW_FALSE);
     glfwWindowHint(GLFW_DECORATED, config.decorated ? GLFW_TRUE : GLFW_FALSE);
 
-    GLFWmonitor *monitor = config.fullscreen ? glfwGetPrimaryMonitor() : nullptr;
+    GLFWmonitor *monitor =
+        config.fullscreen ? glfwGetPrimaryMonitor() : nullptr;
     m_window = glfwCreateWindow(
         static_cast<int>(m_width),
         static_cast<int>(m_height),
@@ -134,7 +140,12 @@ GlfwWindow::Impl::Impl(const WindowConfig &config)
     setupCallbacks();
     g_windowCount++;
 
-    Logger::info("Window created: {}x{}, title: \"{}\"", m_width, m_height, m_title);
+    Logger::info(
+        "Window created: {}x{}, title: \"{}\"",
+        m_width,
+        m_height,
+        m_title
+    );
 }
 
 GlfwWindow::Impl::~Impl()
@@ -238,10 +249,15 @@ void GlfwWindow::Impl::setSize(const WindowSize &size)
     }
     m_width = size.width;
     m_height = size.height;
-    glfwSetWindowSize(m_window, static_cast<int>(m_width), static_cast<int>(m_height));
+    glfwSetWindowSize(
+        m_window,
+        static_cast<int>(m_width),
+        static_cast<int>(m_height)
+    );
 
     const int SIZE_DIFF_THRESHOLD = 50;
-    if (std::abs(static_cast<int>(m_width) - static_cast<int>(size.width)) > SIZE_DIFF_THRESHOLD ||
+    if (std::abs(static_cast<int>(m_width) - static_cast<int>(size.width)) >
+            SIZE_DIFF_THRESHOLD ||
         std::abs(static_cast<int>(m_height) - static_cast<int>(size.height)) >
             SIZE_DIFF_THRESHOLD) {
         Logger::debug(
@@ -262,7 +278,11 @@ void GlfwWindow::Impl::setVSync(bool enabled)
     }
 
     m_vsync = enabled;
-    Logger::trace("VSync {} for window \"{}\"", enabled ? "enabled" : "disabled", m_title);
+    Logger::trace(
+        "VSync {} for window \"{}\"",
+        enabled ? "enabled" : "disabled",
+        m_title
+    );
 }
 
 void GlfwWindow::Impl::setFullscreen(bool enabled)
@@ -395,13 +415,13 @@ auto GlfwWindow::Impl::isKeyPressed(KeyCode key) const -> bool
 auto GlfwWindow::Impl::getMousePosition() const -> std::pair<f64, f64>
 {
     if (m_window == nullptr) {
-        return {0.0, 0.0};
+        return { 0.0, 0.0 };
     }
 
     f64 x = 0.0;
     f64 y = 0.0;
     glfwGetCursorPos(m_window, &x, &y);
-    return {x, y};
+    return { x, y };
 }
 
 void GlfwWindow::Impl::setMousePosition(f64 x, f64 y)
@@ -419,7 +439,11 @@ void GlfwWindow::Impl::showCursor(bool show)
         return;
     }
 
-    glfwSetInputMode(m_window, GLFW_CURSOR, show ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_HIDDEN);
+    glfwSetInputMode(
+        m_window,
+        GLFW_CURSOR,
+        show ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_HIDDEN
+    );
     Logger::debug(
         "Cursor visibility set to {} for window \"{}\"",
         show ? "visible" : "hidden",
@@ -434,32 +458,38 @@ void GlfwWindow::Impl::setupCallbacks()
     }
 
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-    glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow *window, int width, int height) {
-        auto *impl = static_cast<GlfwWindow::Impl *>(glfwGetWindowUserPointer(window));
-        if (impl == nullptr || !impl->m_eventCallback) {
-            return;
-        }
-
-        const u32 K_PREV_WIDTH = impl->m_width;
-        const u32 K_PREV_HEIGHT = impl->m_height;
-
-        impl->m_width = static_cast<u32>(width);
-        impl->m_height = static_cast<u32>(height);
-
-        if (std::abs(static_cast<int>(K_PREV_WIDTH) - width) > 50 ||
-            std::abs(static_cast<int>(K_PREV_HEIGHT) - height) > 50) {
-            Logger::trace(
-                "Framebuffer resized: {}x{} -> {}x{}",
-                K_PREV_WIDTH,
-                K_PREV_HEIGHT,
-                width,
-                height
+    glfwSetFramebufferSizeCallback(
+        m_window,
+        [](GLFWwindow *window, int width, int height) {
+            auto *impl = static_cast<GlfwWindow::Impl *>(
+                glfwGetWindowUserPointer(window)
             );
-        }
+            if (impl == nullptr || !impl->m_eventCallback) {
+                return;
+            }
 
-        ResizeEventData data{.width = impl->m_width, .height = impl->m_height};
-        impl->m_eventCallback(WindowEvent::RESIZE, &data);
-    });
+            const u32 K_PREV_WIDTH = impl->m_width;
+            const u32 K_PREV_HEIGHT = impl->m_height;
+
+            impl->m_width = static_cast<u32>(width);
+            impl->m_height = static_cast<u32>(height);
+
+            if (std::abs(static_cast<int>(K_PREV_WIDTH) - width) > 50 ||
+                std::abs(static_cast<int>(K_PREV_HEIGHT) - height) > 50) {
+                Logger::trace(
+                    "Framebuffer resized: {}x{} -> {}x{}",
+                    K_PREV_WIDTH,
+                    K_PREV_HEIGHT,
+                    width,
+                    height
+                );
+            }
+
+            ResizeEventData data{ .width = impl->m_width,
+                                  .height = impl->m_height };
+            impl->m_eventCallback(WindowEvent::RESIZE, &data);
+        }
+    );
     glfwSetWindowCloseCallback(m_window, [](GLFWwindow *window) {
         auto *impl = static_cast<Impl *>(glfwGetWindowUserPointer(window));
 
@@ -483,17 +513,16 @@ void GlfwWindow::Impl::setupCallbacks()
         [](GLFWwindow *window, int key, int scancode, int action, int mods) {
             auto *impl = static_cast<Impl *>(glfwGetWindowUserPointer(window));
             if (impl->m_eventCallback) {
-                KeyEventData data = {
-                    .key = fromGlfwKey(key),
-                    .scancode = scancode,
-                    .pressed = action == GLFW_PRESS,
-                    .released = action == GLFW_RELEASE,
-                    .repeated = action == GLFW_REPEAT,
-                    .modifiers = static_cast<u8>(mods)
-                };
+                KeyEventData data = { .key = fromGlfwKey(key),
+                                      .scancode = scancode,
+                                      .pressed = action == GLFW_PRESS,
+                                      .released = action == GLFW_RELEASE,
+                                      .repeated = action == GLFW_REPEAT,
+                                      .modifiers = static_cast<u8>(mods) };
 
-                WindowEvent eventType =
-                    (action == GLFW_RELEASE) ? WindowEvent::KEY_RELEASE : WindowEvent::KEY_PRESS;
+                WindowEvent eventType = (action == GLFW_RELEASE)
+                                          ? WindowEvent::KEY_RELEASE
+                                          : WindowEvent::KEY_PRESS;
 
                 if (!data.repeated) {
                     Logger::trace(
@@ -509,62 +538,79 @@ void GlfwWindow::Impl::setupCallbacks()
             }
         }
     );
-    glfwSetCursorPosCallback(m_window, [](GLFWwindow *window, f64 xpos, f64 ypos) {
-        auto *impl = static_cast<GlfwWindow::Impl *>(glfwGetWindowUserPointer(window));
-        if (impl == nullptr || !impl->m_eventCallback) {
-            return;
-        }
+    glfwSetCursorPosCallback(
+        m_window,
+        [](GLFWwindow *window, f64 xpos, f64 ypos) {
+            auto *impl = static_cast<GlfwWindow::Impl *>(
+                glfwGetWindowUserPointer(window)
+            );
+            if (impl == nullptr || !impl->m_eventCallback) {
+                return;
+            }
 
-        static int s_mouseEventCounter = 0;
-        if (++s_mouseEventCounter >= 100) {
-            Logger::trace("Mouse position: ({:.1f}, {:.1f})", xpos, ypos);
-            s_mouseEventCounter = 0;
-        }
+            static int s_mouseEventCounter = 0;
+            if (++s_mouseEventCounter >= 100) {
+                Logger::trace("Mouse position: ({:.1f}, {:.1f})", xpos, ypos);
+                s_mouseEventCounter = 0;
+            }
 
-        MouseMoveEventData data{.x = xpos, .y = ypos};
-        impl->m_eventCallback(WindowEvent::MOUSE_MOVE, &data);
-    });
+            MouseMoveEventData data{ .x = xpos, .y = ypos };
+            impl->m_eventCallback(WindowEvent::MOUSE_MOVE, &data);
+        }
+    );
 
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-    glfwSetMouseButtonCallback(m_window, [](GLFWwindow *window, int button, int action, int mods) {
-        auto *impl = static_cast<GlfwWindow::Impl *>(glfwGetWindowUserPointer(window));
-        if (impl == nullptr || !impl->m_eventCallback) {
-            return;
+    glfwSetMouseButtonCallback(
+        m_window,
+        [](GLFWwindow *window, int button, int action, int mods) {
+            auto *impl = static_cast<GlfwWindow::Impl *>(
+                glfwGetWindowUserPointer(window)
+            );
+            if (impl == nullptr || !impl->m_eventCallback) {
+                return;
+            }
+
+            f64 xpos = 0.0;
+            f64 ypos = 0.0;
+            glfwGetCursorPos(window, &xpos, &ypos);
+
+            MouseButtonEventData data{ .button = button,
+                                       .pressed = action == GLFW_PRESS,
+                                       .modifiers = static_cast<u8>(mods),
+                                       .x = xpos,
+                                       .y = ypos };
+
+            Logger::trace(
+                "Mouse button {} {} at position ({:.1f}, {:.1f})",
+                button,
+                action == GLFW_PRESS ? "pressed" : "released",
+                xpos,
+                ypos
+            );
+
+            impl->m_eventCallback(WindowEvent::MOUSE_BUTTON, &data);
         }
+    );
+    glfwSetScrollCallback(
+        m_window,
+        [](GLFWwindow *window, f64 xoffset, f64 yoffset) {
+            auto *impl = static_cast<GlfwWindow::Impl *>(
+                glfwGetWindowUserPointer(window)
+            );
+            if (impl == nullptr || !impl->m_eventCallback) {
+                return;
+            }
 
-        f64 xpos = 0.0;
-        f64 ypos = 0.0;
-        glfwGetCursorPos(window, &xpos, &ypos);
+            Logger::trace(
+                "Mouse scroll: X: {:.2f}, Y: {:.2f}",
+                xoffset,
+                yoffset
+            );
 
-        MouseButtonEventData data{
-            .button = button,
-            .pressed = action == GLFW_PRESS,
-            .modifiers = static_cast<u8>(mods),
-            .x = xpos,
-            .y = ypos
-        };
-
-        Logger::trace(
-            "Mouse button {} {} at position ({:.1f}, {:.1f})",
-            button,
-            action == GLFW_PRESS ? "pressed" : "released",
-            xpos,
-            ypos
-        );
-
-        impl->m_eventCallback(WindowEvent::MOUSE_BUTTON, &data);
-    });
-    glfwSetScrollCallback(m_window, [](GLFWwindow *window, f64 xoffset, f64 yoffset) {
-        auto *impl = static_cast<GlfwWindow::Impl *>(glfwGetWindowUserPointer(window));
-        if (impl == nullptr || !impl->m_eventCallback) {
-            return;
+            MouseScrollEventData data{ .xOffset = xoffset, .yOffset = yoffset };
+            impl->m_eventCallback(WindowEvent::MOUSE_SCROLL, &data);
         }
-
-        Logger::trace("Mouse scroll: X: {:.2f}, Y: {:.2f}", xoffset, yoffset);
-
-        MouseScrollEventData data{.xOffset = xoffset, .yOffset = yoffset};
-        impl->m_eventCallback(WindowEvent::MOUSE_SCROLL, &data);
-    });
+    );
 }
 
 auto GlfwWindow::Impl::toGlfwKey(KeyCode key) -> int
@@ -697,7 +743,9 @@ auto GlfwWindow::Impl::fromGlfwKey(int key) -> KeyCode
     return KeyCode::UNKNOWN;
 }
 
-GlfwWindow::GlfwWindow(const WindowConfig &config) : m_impl(std::make_unique<Impl>(config)) {}
+GlfwWindow::GlfwWindow(const WindowConfig &config)
+    : m_impl(std::make_unique<Impl>(config))
+{}
 
 GlfwWindow::~GlfwWindow() = default;
 
@@ -709,7 +757,9 @@ auto GlfwWindow::create(const WindowConfig &config)
     } catch (const std::exception &e) {
         return std::unexpected(e.what());
     } catch (...) {
-        return std::unexpected("Unknown error occurred while creating GLFW window");
+        return std::unexpected(
+            "Unknown error occurred while creating GLFW window"
+        );
     }
 }
 

@@ -22,7 +22,8 @@ template <MatrixType T>
 }
 
 template <MatrixType T>
-[[nodiscard]] constexpr auto determinant(const T &m) noexcept -> typename T::value_type
+[[nodiscard]] constexpr auto determinant(const T &m) noexcept ->
+    typename T::value_type
 {
     return glm::determinant(m);
 }
@@ -35,7 +36,8 @@ template <MatrixType T>
 
 template <VectorType Vec>
     requires(Vec::length() == 3)
-[[nodiscard]] auto lookAt(const Vec &eye, const Vec &center, const Vec &up) noexcept
+[[nodiscard]] auto
+lookAt(const Vec &eye, const Vec &center, const Vec &up) noexcept
     -> glm::mat<4, 4, typename Vec::value_type>
 {
     return glm::lookAt(eye, center, up);

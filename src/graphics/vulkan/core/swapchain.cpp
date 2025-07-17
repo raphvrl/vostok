@@ -114,7 +114,8 @@ auto Swapchain::create(const CreateInfo &createInfo)
 
     if (result != VK_SUCCESS) {
         return std::unexpected(
-            "Failed to get surface capabilities: " + utils::vkResultToString(result)
+            "Failed to get surface capabilities: " +
+            utils::vkResultToString(result)
         );
     }
 
@@ -128,7 +129,8 @@ auto Swapchain::create(const CreateInfo &createInfo)
 
     if (result != VK_SUCCESS || formatCount == 0) {
         return std::unexpected(
-            "Failed to get surface formats count: " + utils::vkResultToString(result)
+            "Failed to get surface formats count: " +
+            utils::vkResultToString(result)
         );
     }
 
@@ -141,7 +143,9 @@ auto Swapchain::create(const CreateInfo &createInfo)
     );
 
     if (result != VK_SUCCESS) {
-        return std::unexpected("Failed to get surface formats: " + utils::vkResultToString(result));
+        return std::unexpected(
+            "Failed to get surface formats: " + utils::vkResultToString(result)
+        );
     }
 
     u32 presentModeCount = 0;
@@ -154,7 +158,8 @@ auto Swapchain::create(const CreateInfo &createInfo)
 
     if (result != VK_SUCCESS || presentModeCount == 0) {
         return std::unexpected(
-            "Failed to get surface present modes count: " + utils::vkResultToString(result)
+            "Failed to get surface present modes count: " +
+            utils::vkResultToString(result)
         );
     }
 
@@ -168,7 +173,8 @@ auto Swapchain::create(const CreateInfo &createInfo)
 
     if (result != VK_SUCCESS) {
         return std::unexpected(
-            "Failed to get surface present modes: " + utils::vkResultToString(result)
+            "Failed to get surface present modes: " +
+            utils::vkResultToString(result)
         );
     }
 
@@ -194,7 +200,8 @@ auto Swapchain::create(const CreateInfo &createInfo)
     }
 
     VkExtent2D extent = {};
-    if (surfaceCapabilities.currentExtent.width != std::numeric_limits<u32>::max()) {
+    if (surfaceCapabilities.currentExtent.width !=
+        std::numeric_limits<u32>::max()) {
         extent = surfaceCapabilities.currentExtent;
     } else {
         extent.width = std::clamp(
@@ -210,7 +217,8 @@ auto Swapchain::create(const CreateInfo &createInfo)
     }
 
     u32 imageCount = surfaceCapabilities.minImageCount + 1;
-    if (surfaceCapabilities.maxImageCount > 0 && imageCount > surfaceCapabilities.maxImageCount) {
+    if (surfaceCapabilities.maxImageCount > 0 &&
+        imageCount > surfaceCapabilities.maxImageCount) {
         imageCount = surfaceCapabilities.maxImageCount;
     }
 
@@ -230,12 +238,15 @@ auto Swapchain::create(const CreateInfo &createInfo)
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
     auto indices = physicalDevice->getQueueFamilyIndices();
-    std::array<u32, 2> queueFamilyIndices = { vu::getValueSafe(indices.graphicsFamily, "graphics"),
-                                              vu::getValueSafe(indices.presentFamily, "present") };
+    std::array<u32, 2> queueFamilyIndices = {
+        vu::getValueSafe(indices.graphicsFamily, "graphics"),
+        vu::getValueSafe(indices.presentFamily, "present")
+    };
 
     if (indices.graphicsFamily != indices.presentFamily) {
         swapchainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        swapchainInfo.queueFamilyIndexCount = static_cast<u32>(queueFamilyIndices.size());
+        swapchainInfo.queueFamilyIndexCount =
+            static_cast<u32>(queueFamilyIndices.size());
         swapchainInfo.pQueueFamilyIndices = queueFamilyIndices.data();
     } else {
         swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -250,9 +261,12 @@ auto Swapchain::create(const CreateInfo &createInfo)
     swapchainInfo.oldSwapchain = VK_NULL_HANDLE;
 
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
-    result = vkCreateSwapchainKHR(deviceHandle, &swapchainInfo, nullptr, &swapchain);
+    result =
+        vkCreateSwapchainKHR(deviceHandle, &swapchainInfo, nullptr, &swapchain);
     if (result != VK_SUCCESS) {
-        return std::unexpected("Failed to create swapchain: " + utils::vkResultToString(result));
+        return std::unexpected(
+            "Failed to create swapchain: " + utils::vkResultToString(result)
+        );
     }
 
     auto swapchainPtr = std::unique_ptr<Swapchain>(new Swapchain(
@@ -264,10 +278,16 @@ auto Swapchain::create(const CreateInfo &createInfo)
     ));
 
     u32 actualImageCount = 0;
-    result = vkGetSwapchainImagesKHR(deviceHandle, swapchain, &actualImageCount, nullptr);
+    result = vkGetSwapchainImagesKHR(
+        deviceHandle,
+        swapchain,
+        &actualImageCount,
+        nullptr
+    );
     if (result != VK_SUCCESS || actualImageCount == 0) {
         return std::unexpected(
-            "Failed to get swapchain images count: " + utils::vkResultToString(result)
+            "Failed to get swapchain images count: " +
+            utils::vkResultToString(result)
         );
     }
 
@@ -289,9 +309,18 @@ auto Swapchain::create(const CreateInfo &createInfo)
         return std::unexpected("Failed to create swapchain image views");
     }
 
-    Logger::info("Swapchain created with {} images", swapchainPtr->m_images.size());
-    Logger::debug("Swapchain format: {}", utils::vkFormatToString(surfaceFormat.format));
-    Logger::debug("Swapchain present mode: {}", utils::vkPresentModeToString(presentMode));
+    Logger::info(
+        "Swapchain created with {} images",
+        swapchainPtr->m_images.size()
+    );
+    Logger::debug(
+        "Swapchain format: {}",
+        utils::vkFormatToString(surfaceFormat.format)
+    );
+    Logger::debug(
+        "Swapchain present mode: {}",
+        utils::vkPresentModeToString(presentMode)
+    );
     Logger::debug("Swapchain extent: {}x{}", extent.width, extent.height);
 
     return swapchainPtr;
@@ -317,10 +346,17 @@ auto Swapchain::createImageViews() -> bool
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount = 1;
 
-        VkResult result =
-            vkCreateImageView(m_device->getHandle(), &viewInfo, nullptr, &m_imageViews[i]);
+        VkResult result = vkCreateImageView(
+            m_device->getHandle(),
+            &viewInfo,
+            nullptr,
+            &m_imageViews[i]
+        );
         if (result != VK_SUCCESS) {
-            Logger::error("Failed to create image views: {}", utils::vkResultToString(result));
+            Logger::error(
+                "Failed to create image views: {}",
+                utils::vkResultToString(result)
+            );
             return false;
         }
     }
@@ -354,8 +390,14 @@ auto Swapchain::acquireNextImage(VkSemaphore semaphore, VkFence fence)
         Logger::warning("Swapchain is suboptimal");
     }
 
-    if (result != VK_SUCCESS) {
-        return std::unexpected("Failed to acquire next image: " + utils::vkResultToString(result));
+    if (result == VK_ERROR_SURFACE_LOST_KHR) {
+        return std::unexpected("Surface lost");
+    }
+
+    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        return std::unexpected(
+            "Failed to acquire next image: " + utils::vkResultToString(result)
+        );
     }
 
     return imageIndex;
@@ -381,7 +423,8 @@ auto Swapchain::present(u32 imageIndex, VkSemaphore renderSemaphore)
     presentInfo.pImageIndices = &imageIndex;
     presentInfo.pResults = nullptr;
 
-    VkResult result = vkQueuePresentKHR(m_device->getPresentQueue(), &presentInfo);
+    VkResult result =
+        vkQueuePresentKHR(m_device->getPresentQueue(), &presentInfo);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         return std::unexpected("Swapchain is out of date");
@@ -392,7 +435,9 @@ auto Swapchain::present(u32 imageIndex, VkSemaphore renderSemaphore)
     }
 
     if (result != VK_SUCCESS) {
-        return std::unexpected("Failed to present image: " + utils::vkResultToString(result));
+        return std::unexpected(
+            "Failed to present image: " + utils::vkResultToString(result)
+        );
     }
 
     return {};

@@ -45,12 +45,17 @@ public:
     PhysicalDevice(PhysicalDevice &&other) noexcept;
     auto operator=(PhysicalDevice &&other) noexcept -> PhysicalDevice &;
 
-    [[nodiscard]] auto getHandle() const -> VkPhysicalDevice { return m_physicalDevice; }
-    [[nodiscard]] auto getProperties() const -> const VkPhysicalDeviceProperties &
+    [[nodiscard]] auto getHandle() const -> VkPhysicalDevice
+    {
+        return m_physicalDevice;
+    }
+    [[nodiscard]] auto getProperties() const
+        -> const VkPhysicalDeviceProperties &
     {
         return m_properties;
     }
-    [[nodiscard]] auto getMemoryProperties() const -> const VkPhysicalDeviceMemoryProperties &
+    [[nodiscard]] auto getMemoryProperties() const
+        -> const VkPhysicalDeviceMemoryProperties &
     {
         return m_memoryProperties;
     }
@@ -59,17 +64,21 @@ public:
     {
         return m_supportedFeatures;
     }
-    [[nodiscard]] auto getQueueFamilyIndices() const -> const QueueFamilyIndices &
+    [[nodiscard]] auto getQueueFamilyIndices() const
+        -> const QueueFamilyIndices &
     {
         return m_queueFamilyIndices;
     }
 
-    [[nodiscard]] auto
-    isFormatSupported(VkFormat format, VkImageTiling tiling, VkFormatFeatureFlags features) const
-        -> bool;
+    [[nodiscard]] auto isFormatSupported(
+        VkFormat format,
+        VkImageTiling tiling,
+        VkFormatFeatureFlags features
+    ) const -> bool;
 
-    [[nodiscard]] auto
-    checkDeviceExtensionSupport(const std::vector<const char *> &requiredExtensions) const -> bool;
+    [[nodiscard]] auto checkDeviceExtensionSupport(
+        const std::vector<const char *> &requiredExtensions
+    ) const -> bool;
 
 private:
     PhysicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);

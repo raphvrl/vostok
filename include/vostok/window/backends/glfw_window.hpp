@@ -37,7 +37,8 @@ public:
     void setVSync(bool enabled) override;
     void setFullscreen(bool enabled) override;
 
-    using EventCallback = std::function<bool(WindowEvent event, const void *data)>;
+    using EventCallback =
+        std::function<bool(WindowEvent event, const void *data)>;
     void setEventCallback(EventCallback callback) override;
 
     void centerOnScreen() override;

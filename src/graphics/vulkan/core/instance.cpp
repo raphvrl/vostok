@@ -24,11 +24,14 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 {
     auto &logger = utils::getVulkanLogger();
 
-    if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0) {
+    if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) !=
+        0) {
         logger.error("{}", pCallbackData->pMessage);
-    } else if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) != 0) {
+    } else if ((messageSeverity &
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) != 0) {
         logger.warning("{}", pCallbackData->pMessage);
-    } else if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) != 0) {
+    } else if ((messageSeverity &
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) != 0) {
         logger.info("{}", pCallbackData->pMessage);
     } else {
         logger.debug("{}", pCallbackData->pMessage);
@@ -98,7 +101,9 @@ auto Instance::create(const CreateInfo &createInfo)
 {
     VkResult volkResult = volkInitialize();
     if (volkResult != VK_SUCCESS) {
-        return std::unexpected("Failed to initialize volk: " + utils::vkResultToString(volkResult));
+        return std::unexpected(
+            "Failed to initialize volk: " + utils::vkResultToString(volkResult)
+        );
     }
 
     Logger::info(
@@ -133,21 +138,26 @@ auto Instance::create(const CreateInfo &createInfo)
     VkInstanceCreateInfo instanceCreateInfo = {};
     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceCreateInfo.pApplicationInfo = &appInfo;
-    instanceCreateInfo.enabledExtensionCount = static_cast<u32>(extensions.size());
+    instanceCreateInfo.enabledExtensionCount =
+        static_cast<u32>(extensions.size());
     instanceCreateInfo.ppEnabledExtensionNames = extensions.data();
-    instanceCreateInfo.enabledLayerCount = static_cast<u32>(validationLayers.size());
+    instanceCreateInfo.enabledLayerCount =
+        static_cast<u32>(validationLayers.size());
     instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
     if (validationEnabled) {
-        debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-                                          VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-                                          VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                                          VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                                      VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                                      VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        debugCreateInfo.sType =
+            VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        debugCreateInfo.messageSeverity =
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        debugCreateInfo.messageType =
+            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         debugCreateInfo.pfnUserCallback = debugCallback;
         instanceCreateInfo.pNext = &debugCreateInfo;
     }
@@ -156,7 +166,8 @@ auto Instance::create(const CreateInfo &createInfo)
     VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
     if (result != VK_SUCCESS) {
         return std::unexpected(
-            "Failed to create Vulkan instance " + utils::vkResultToString(result)
+            "Failed to create Vulkan instance " +
+            utils::vkResultToString(result)
         );
     }
 
@@ -178,13 +189,18 @@ auto Instance::create(const CreateInfo &createInfo)
                 );
             }
         } else {
-            Logger::warning("Could not find vkCreateDebugUtilsMessengerEXT function");
+            Logger::warning(
+                "Could not find vkCreateDebugUtilsMessengerEXT function"
+            );
         }
     }
 
-    auto instancePtr = std::unique_ptr<Instance>(
-        new Instance(instance, debugMessenger, validationEnabled, createInfo.platform)
-    );
+    auto instancePtr = std::unique_ptr<Instance>(new Instance(
+        instance,
+        debugMessenger,
+        validationEnabled,
+        createInfo.platform
+    ));
 
     Logger::info("Vulkan instance created");
     if (validationEnabled) {
@@ -194,7 +210,8 @@ auto Instance::create(const CreateInfo &createInfo)
     return instancePtr;
 }
 
-auto Instance::createSurface(void *windowHandle) -> std::expected<VkSurfaceKHR, std::string>
+auto Instance::createSurface(void *windowHandle)
+    -> std::expected<VkSurfaceKHR, std::string>
 {
     if (m_platform == nullptr) {
         return std::unexpected("No platform interface available");
@@ -211,8 +228,9 @@ void Instance::destroySurface(VkSurfaceKHR surface)
     }
 }
 
-auto Instance::checkValidationLayerSupport(const std::vector<const char *> &validationLayers)
-    -> bool
+auto Instance::checkValidationLayerSupport(
+    const std::vector<const char *> &validationLayers
+) -> bool
 {
     u32 layerCount = 0;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -224,7 +242,10 @@ auto Instance::checkValidationLayerSupport(const std::vector<const char *> &vali
         bool layerFound = false;
 
         for (const auto &layerProperties : availableLayers) {
-            if (strcmp(layerName, static_cast<const char *>(layerProperties.layerName)) == 0) {
+            if (strcmp(
+                    layerName,
+                    static_cast<const char *>(layerProperties.layerName)
+                ) == 0) {
                 layerFound = true;
                 break;
             }
@@ -239,14 +260,16 @@ auto Instance::checkValidationLayerSupport(const std::vector<const char *> &vali
     return true;
 }
 
-auto Instance::getRequiredExtensions(const CreateInfo &createInfo) -> std::vector<const char *>
+auto Instance::getRequiredExtensions(const CreateInfo &createInfo)
+    -> std::vector<const char *>
 {
     if (createInfo.platform == nullptr) {
         Logger::warning("No platform interface available");
         return {};
     }
 
-    std::vector<const char *> extensions = createInfo.platform->getRequiredInstanceExtensions();
+    std::vector<const char *> extensions =
+        createInfo.platform->getRequiredInstanceExtensions();
 
     if (createInfo.enableValidationLayers) {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);

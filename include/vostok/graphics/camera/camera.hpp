@@ -41,10 +41,13 @@ public:
     Camera(Camera &&) = default;
     auto operator=(Camera &&) -> Camera & = default;
 
-    [[nodiscard]] virtual auto getProjectionMatrix() const noexcept -> const math::Mat4 & = 0;
-    [[nodiscard]] virtual auto getViewMatrix() const noexcept -> const math::Mat4 & = 0;
+    [[nodiscard]] virtual auto getProjectionMatrix() const noexcept
+        -> const math::Mat4 & = 0;
+    [[nodiscard]] virtual auto getViewMatrix() const noexcept
+        -> const math::Mat4 & = 0;
 
-    [[nodiscard]] virtual auto getViewProjectionMatrix() const -> math::Mat4 = 0;
+    [[nodiscard]] virtual auto getViewProjectionMatrix() const
+        -> math::Mat4 = 0;
 
     [[nodiscard]] virtual auto getCameraType() const noexcept -> CameraType = 0;
 
@@ -65,9 +68,18 @@ public:
     void moveRight(f32 distance) noexcept;
     void moveUp(f32 distance) noexcept;
 
-    [[nodiscard]] auto getName() const noexcept -> const std::string & { return m_name; }
-    [[nodiscard]] auto getPosition() const noexcept -> const math::Vec3 & { return m_position; }
-    [[nodiscard]] auto getRotation() const noexcept -> const math::Quat & { return m_rotation; }
+    [[nodiscard]] auto getName() const noexcept -> const std::string &
+    {
+        return m_name;
+    }
+    [[nodiscard]] auto getPosition() const noexcept -> const math::Vec3 &
+    {
+        return m_position;
+    }
+    [[nodiscard]] auto getRotation() const noexcept -> const math::Quat &
+    {
+        return m_rotation;
+    }
 
 protected:
     virtual void onTransformChanged() noexcept = 0;

@@ -41,9 +41,13 @@ public:
 
     [[nodiscard]] auto getHandle() const -> VkInstance { return m_instance; }
 
-    [[nodiscard]] auto hasValidation() const -> bool { return m_validationEnabled; }
+    [[nodiscard]] auto hasValidation() const -> bool
+    {
+        return m_validationEnabled;
+    }
 
-    auto createSurface(void *windowHandle) -> std::expected<VkSurfaceKHR, std::string>;
+    auto createSurface(void *windowHandle)
+        -> std::expected<VkSurfaceKHR, std::string>;
     void destroySurface(VkSurfaceKHR surface);
 
 private:
@@ -54,9 +58,11 @@ private:
         std::shared_ptr<platform::PlatformInterface> platform
     );
 
-    static auto checkValidationLayerSupport(const std::vector<const char *> &validationLayers)
-        -> bool;
-    static auto getRequiredExtensions(const CreateInfo &createInfo) -> std::vector<const char *>;
+    static auto checkValidationLayerSupport(
+        const std::vector<const char *> &validationLayers
+    ) -> bool;
+    static auto getRequiredExtensions(const CreateInfo &createInfo)
+        -> std::vector<const char *>;
 
     VkInstance m_instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;

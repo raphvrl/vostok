@@ -51,7 +51,7 @@ SpaceBeforeParensOptions:
 
 AlwaysBreakAfterReturnType: None
 AlwaysBreakTemplateDeclarations: Yes
-ColumnLimit: 100
+ColumnLimit: 80
 AllowShortBlocksOnASingleLine: Never
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Inline

@@ -15,7 +15,10 @@ namespace vu = vostok::utils;
 namespace vostok::graphics::vulkan
 {
 
-PhysicalDevice::PhysicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+PhysicalDevice::PhysicalDevice(
+    VkPhysicalDevice physicalDevice,
+    VkSurfaceKHR surface
+)
     : m_physicalDevice(physicalDevice)
 {
     Logger::debug("Initializing physical device");
@@ -26,7 +29,10 @@ PhysicalDevice::PhysicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR sur
     initializeQueueFamilyIndices(surface);
 
     Logger::info("Selected GPU: {}", m_properties.deviceName);
-    Logger::debug("GPU type: {}", utils::physicalDeviceTypeToString(m_properties.deviceType));
+    Logger::debug(
+        "GPU type: {}",
+        utils::physicalDeviceTypeToString(m_properties.deviceType)
+    );
     Logger::debug(
         "API Version: {}.{}.{}",
         VK_VERSION_MAJOR(m_properties.apiVersion),
@@ -52,7 +58,8 @@ PhysicalDevice::PhysicalDevice(PhysicalDevice &&other) noexcept
     other.m_physicalDevice = VK_NULL_HANDLE;
 }
 
-auto PhysicalDevice::operator=(PhysicalDevice &&other) noexcept -> PhysicalDevice &
+auto PhysicalDevice::operator=(PhysicalDevice &&other) noexcept
+    -> PhysicalDevice &
 {
     if (this != &other) {
         m_physicalDevice = other.m_physicalDevice;
@@ -74,11 +81,13 @@ auto PhysicalDevice::create(VkInstance instance, VkSurfaceKHR surface)
     Logger::info("try to creating Vulkan physical device");
 
     u32 deviceCount = 0;
-    VkResult result = vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+    VkResult result =
+        vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
     if (result != VK_SUCCESS) {
         return std::unexpected(
-            "Failed to enumerate physical devices: " + utils::vkResultToString(result)
+            "Failed to enumerate physical devices: " +
+            utils::vkResultToString(result)
         );
     }
 
@@ -91,7 +100,8 @@ auto PhysicalDevice::create(VkInstance instance, VkSurfaceKHR surface)
 
     if (result != VK_SUCCESS) {
         return std::unexpected(
-            "Failed to enumerate physical devices: " + utils::vkResultToString(result)
+            "Failed to enumerate physical devices: " +
+            utils::vkResultToString(result)
         );
     }
 
@@ -102,9 +112,17 @@ auto PhysicalDevice::create(VkInstance instance, VkSurfaceKHR surface)
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
 
         u32 queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(
+            device,
+            &queueFamilyCount,
+            nullptr
+        );
         std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+        vkGetPhysicalDeviceQueueFamilyProperties(
+            device,
+            &queueFamilyCount,
+            queueFamilies.data()
+        );
 
         bool hasGraphicsQueue = false;
         bool hasPresentQueue = false;
@@ -115,7 +133,12 @@ auto PhysicalDevice::create(VkInstance instance, VkSurfaceKHR surface)
             }
 
             VkBool32 presentSupport = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+            vkGetPhysicalDeviceSurfaceSupportKHR(
+                device,
+                i,
+                surface,
+                &presentSupport
+            );
             if (presentSupport) {
                 hasPresentQueue = true;
             }
@@ -127,9 +150,11 @@ auto PhysicalDevice::create(VkInstance instance, VkSurfaceKHR surface)
 
         int score = 1;
 
-        if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+        if (deviceProperties.deviceType ==
+            VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
             score += 1000;
-        } else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
+        } else if (deviceProperties.deviceType ==
+                   VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
             score += 100;
         }
 
@@ -138,7 +163,8 @@ auto PhysicalDevice::create(VkInstance instance, VkSurfaceKHR surface)
 
         VkDeviceSize totalMemory = 0;
         for (u32 i = 0; i < memoryProperties.memoryHeapCount; i++) {
-            if (memoryProperties.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+            if (memoryProperties.memoryHeaps[i].flags &
+                VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
                 totalMemory += memoryProperties.memoryHeaps[i].size;
             }
         }
@@ -162,16 +188,23 @@ auto PhysicalDevice::create(VkInstance instance, VkSurfaceKHR surface)
         if (score > 0) {
             VkPhysicalDeviceProperties props;
             vkGetPhysicalDeviceProperties(device, &props);
-            Logger::info("Selected GPU: {} (Score: {})", props.deviceName, score);
+            Logger::info(
+                "Selected GPU: {} (Score: {})",
+                props.deviceName,
+                score
+            );
 
-            auto physicalDevice =
-                std::unique_ptr<PhysicalDevice>(new PhysicalDevice(device, surface));
+            auto physicalDevice = std::unique_ptr<PhysicalDevice>(
+                new PhysicalDevice(device, surface)
+            );
 
             return physicalDevice;
         }
     }
 
-    return std::unexpected("Failed to find a suitable GPU. No GPU meets the requirements.");
+    return std::unexpected(
+        "Failed to find a suitable GPU. No GPU meets the requirements."
+    );
 }
 
 void PhysicalDevice::queryPhysicalDeviceProperties()
@@ -189,7 +222,12 @@ void PhysicalDevice::queryPhysicalDeviceFeatures()
 void PhysicalDevice::determineAvailableExtensions()
 {
     u32 extensionCount = 0;
-    vkEnumerateDeviceExtensionProperties(m_physicalDevice, nullptr, &extensionCount, nullptr);
+    vkEnumerateDeviceExtensionProperties(
+        m_physicalDevice,
+        nullptr,
+        &extensionCount,
+        nullptr
+    );
 
     m_supportedExtensions.resize(extensionCount);
     vkEnumerateDeviceExtensionProperties(
@@ -209,7 +247,11 @@ void PhysicalDevice::determineAvailableExtensions()
 void PhysicalDevice::initializeQueueFamilyIndices(VkSurfaceKHR surface)
 {
     u32 queueFammilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &queueFammilyCount, nullptr);
+    vkGetPhysicalDeviceQueueFamilyProperties(
+        m_physicalDevice,
+        &queueFammilyCount,
+        nullptr
+    );
 
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFammilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(
@@ -237,9 +279,15 @@ void PhysicalDevice::initializeQueueFamilyIndices(VkSurfaceKHR surface)
         }
 
         VkBool32 presentSupport = VK_FALSE;
-        vkGetPhysicalDeviceSurfaceSupportKHR(m_physicalDevice, i, surface, &presentSupport);
+        vkGetPhysicalDeviceSurfaceSupportKHR(
+            m_physicalDevice,
+            i,
+            surface,
+            &presentSupport
+        );
 
-        if (presentSupport == VK_TRUE && !m_queueFamilyIndices.presentFamily.has_value()) {
+        if (presentSupport == VK_TRUE &&
+            !m_queueFamilyIndices.presentFamily.has_value()) {
             m_queueFamilyIndices.presentFamily = i;
         }
     }
@@ -252,7 +300,9 @@ void PhysicalDevice::initializeQueueFamilyIndices(VkSurfaceKHR surface)
             vu::getValueSafe(m_queueFamilyIndices.transferFamily, "transfer")
         );
     } else {
-        Logger::warning("Not all required queue families are available for this device");
+        Logger::warning(
+            "Not all required queue families are available for this device"
+        );
     }
 }
 

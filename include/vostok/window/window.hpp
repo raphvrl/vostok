@@ -46,7 +46,8 @@ public:
     virtual void setVSync(bool enabled) = 0;
     virtual void setFullscreen(bool enabled) = 0;
 
-    using EventCallback = std::function<bool(WindowEvent event, const void *data)>;
+    using EventCallback =
+        std::function<bool(WindowEvent event, const void *data)>;
     virtual void setEventCallback(EventCallback callback) = 0;
 
     virtual void centerOnScreen() = 0;
@@ -57,7 +58,8 @@ public:
     virtual void show() = 0;
 
     [[nodiscard]] virtual auto isKeyPressed(KeyCode key) const -> bool = 0;
-    [[nodiscard]] virtual auto getMousePosition() const -> std::pair<f64, f64> = 0;
+    [[nodiscard]] virtual auto getMousePosition() const
+        -> std::pair<f64, f64> = 0;
     virtual void setMousePosition(f64 x, f64 y) = 0;
     virtual void showCursor(bool show) = 0;
 

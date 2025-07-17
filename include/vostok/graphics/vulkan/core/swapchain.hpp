@@ -39,14 +39,25 @@ public:
     Swapchain(Swapchain &&other) noexcept;
     auto operator=(Swapchain &&other) noexcept -> Swapchain &;
 
-    [[nodiscard]] auto getHandle() const -> VkSwapchainKHR { return m_swapchain; }
+    [[nodiscard]] auto getHandle() const -> VkSwapchainKHR
+    {
+        return m_swapchain;
+    }
     [[nodiscard]] auto getFormat() const -> VkFormat { return m_format; }
     [[nodiscard]] auto getExtent() const -> VkExtent2D { return m_extent; }
-    [[nodiscard]] auto getImage(u32 index) const -> VkImage { return m_images[index]; }
-    [[nodiscard]] auto getImageView(u32 index) const -> VkImageView { return m_imageViews[index]; }
+    [[nodiscard]] auto getImage(u32 index) const -> VkImage
+    {
+        return m_images[index];
+    }
+    [[nodiscard]] auto getImageView(u32 index) const -> VkImageView
+    {
+        return m_imageViews[index];
+    }
 
-    auto acquireNextImage(VkSemaphore semaphore, VkFence fence) -> std::expected<u32, std::string>;
-    auto present(u32 imageIndex, VkSemaphore renderSemaphore) -> std::expected<void, std::string>;
+    auto acquireNextImage(VkSemaphore semaphore, VkFence fence)
+        -> std::expected<u32, std::string>;
+    auto present(u32 imageIndex, VkSemaphore renderSemaphore)
+        -> std::expected<void, std::string>;
 
     auto recreate(const SwapchainExtent &size)
         -> std::expected<std::unique_ptr<Swapchain>, std::string>;

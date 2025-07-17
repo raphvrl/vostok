@@ -11,11 +11,12 @@
 namespace vostok::graphics::vulkan::platform
 {
 
-auto GlfwPlatform::getRequiredInstanceExtensions() const -> std::vector<const char *>
+auto GlfwPlatform::getRequiredInstanceExtensions() const
+    -> std::vector<const char *>
 {
     u32 count = 0;
     const char **extensions = glfwGetRequiredInstanceExtensions(&count);
-    return {extensions, extensions + count};
+    return { extensions, extensions + count };
 }
 
 auto GlfwPlatform::createSurface(VkInstance instance, void *window) const
@@ -26,11 +27,16 @@ auto GlfwPlatform::createSurface(VkInstance instance, void *window) const
     }
 
     VkSurfaceKHR surface = VK_NULL_HANDLE;
-    VkResult result =
-        glfwCreateWindowSurface(instance, static_cast<GLFWwindow *>(window), nullptr, &surface);
+    VkResult result = glfwCreateWindowSurface(
+        instance,
+        static_cast<GLFWwindow *>(window),
+        nullptr,
+        &surface
+    );
     if (result != VK_SUCCESS) {
         return std::unexpected(
-            "Failed to create Vulkan surface: " + utils::vkResultToString(result)
+            "Failed to create Vulkan surface: " +
+            utils::vkResultToString(result)
         );
     }
 

@@ -1,18 +1,25 @@
 /**
  * @file main.cpp
- * @brief Hello Triangle Example - A simple rendering example using the Vostok graphics library.
+ * @brief Hello Triangle Example - A simple rendering example using the Vostok
+ * graphics library.
  *
  * This example demonstrates how to:
  * - Initialize a window
  * - Set up a GPU device with Vulkan
+ * - Create and test different types of buffers (vertex, index, uniform,
+ * storage, transfer)
+ * - Test buffer operations (mapping, updating, GPU-only transfers)
  * - Create a graphics pipeline
  * - Load shaders
  * - Render a simple colored triangle
  *
- * The application uses a modular approach with robust resource management and error handling.
+ * The application uses a modular approach with robust resource management and
+ * error handling. It provides comprehensive testing of the buffer system with
+ * various memory types and usage patterns.
  */
 
 #include "vostok/core/logger/logger.hpp"
+#include "vostok/graphics/buffer.hpp"
 #include "vostok/graphics/gpu_device.hpp"
 #include "vostok/graphics/pipeline.hpp"
 #include "vostok/window/window.hpp"
@@ -22,7 +29,9 @@
 #include <filesystem>
 #include <iostream>
 #include <memory>
+#include <numbers>
 #include <thread>
+#include <vector>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -38,13 +47,21 @@ using namespace vostok;
  * @brief Container for all major application resources.
  *
  * This structure centralizes the ownership of the main components
- * required for rendering (window, GPU device, and graphics pipeline).
+ * required for rendering (window, GPU device, graphics pipeline, and test
+ * buffers).
  */
 struct HelloTriangleApp
 {
     std::unique_ptr<Window> window;
     std::unique_ptr<graphics::GPUDevice> gpu;
     std::unique_ptr<graphics::Pipeline> pipeline;
+
+    // Test buffers
+    std::unique_ptr<graphics::Buffer> vertexBuffer;
+    std::unique_ptr<graphics::Buffer> indexBuffer;
+    std::unique_ptr<graphics::Buffer> uniformBuffer;
+    std::unique_ptr<graphics::Buffer> storageBuffer;
+    std::unique_ptr<graphics::Buffer> transferBuffer;
 };
 
 /**
@@ -81,7 +98,8 @@ fs::path getExecutablePath()
  * @param resourceName Name of the resource file
  * @return Path to the resource if found, or a default path if not found
  */
-fs::path findResourcePath(const fs::path &resourceType, const fs::path &resourceName)
+fs::path
+findResourcePath(const fs::path &resourceType, const fs::path &resourceName)
 {
     // Base path is the executable's directory
     fs::path basePath = getExecutablePath();
@@ -109,7 +127,11 @@ fs::path findResourcePath(const fs::path &resourceType, const fs::path &resource
     }
 
     // If no path is found, return a default path and log a warning
-    Logger::warning("Resource not found: {}/{}", resourceType.string(), resourceName.string());
+    Logger::warning(
+        "Resource not found: {}/{}",
+        resourceType.string(),
+        resourceName.string()
+    );
     return basePath / resourceType / resourceName;
 }
 
@@ -141,7 +163,8 @@ bool initializeLogger()
                 fs::create_directories(logDir);
             }
         } catch (const std::exception &e) {
-            std::cerr << "Failed to create log directory in working path: " << e.what() << "\n";
+            std::cerr << "Failed to create log directory in working path: "
+                      << e.what() << "\n";
             // If both fail, use the current directory
             logDir = fs::current_path();
         }
@@ -154,7 +177,8 @@ bool initializeLogger()
     logConfig.file->filePath = (logDir / "vostok_default.log").string();
     logConfig.file->truncateOnStart = true;
     logConfig.file->separateFilesByComponent = true;
-    logConfig.file->componentFilePattern = (logDir / "vostok_{name}.log").string();
+    logConfig.file->componentFilePattern =
+        (logDir / "vostok_{name}.log").string();
 
     // Initialize the logger
     auto result = Logger::init(logConfig);
@@ -193,7 +217,8 @@ std::expected<std::unique_ptr<Window>, std::string> createWindow()
  * @param window Pointer to the window to render to
  * @return A GPU device instance or an error message if creation failed
  */
-std::expected<std::unique_ptr<graphics::GPUDevice>, std::string> createGPUDevice(Window *window)
+std::expected<std::unique_ptr<graphics::GPUDevice>, std::string>
+createGPUDevice(Window *window)
 {
     graphics::GPUDevice::CreateInfo deviceInfo;
     deviceInfo.appName = "Vostok Hello Triangle";
@@ -230,16 +255,20 @@ createPipeline(graphics::GPUDevice *gpu)
     auto pipelineBuilder = std::move(pipelineBuilderResult.value());
 
     // Locate shader files
-    fs::path vertexShaderPath = findResourcePath("shaders", "triangle.vert.spv");
-    fs::path fragmentShaderPath = findResourcePath("shaders", "triangle.frag.spv");
+    fs::path vertexShaderPath =
+        findResourcePath("shaders", "triangle.vert.spv");
+    fs::path fragmentShaderPath =
+        findResourcePath("shaders", "triangle.frag.spv");
 
     // If shaders weren't found, try additional locations
     if (!fs::exists(vertexShaderPath) || !fs::exists(fragmentShaderPath)) {
-        std::vector<fs::path> shaderLocations = { "shaders",
-                                                  "bin/shaders",
-                                                  "../bin/shaders",
-                                                  "build/bin/shaders",
-                                                  "../../../build/bin/shaders" };
+        std::vector<fs::path> shaderLocations = {
+            "shaders",
+            "bin/shaders",
+            "../bin/shaders",
+            "build/bin/shaders",
+            "../../../build/bin/shaders"
+        };
 
         bool found = false;
         for (const auto &dir : shaderLocations) {
@@ -250,7 +279,10 @@ createPipeline(graphics::GPUDevice *gpu)
                 vertexShaderPath = vert;
                 fragmentShaderPath = frag;
                 found = true;
-                Logger::info("Found shaders in fallback location: {}", dir.string());
+                Logger::info(
+                    "Found shaders in fallback location: {}",
+                    dir.string()
+                );
                 break;
             }
         }
@@ -270,11 +302,345 @@ createPipeline(graphics::GPUDevice *gpu)
         .setFragmentShader(fragmentShaderPath)
         .setPrimitiveTopology(graphics::PrimitiveTopology::TRIANGLE_LIST)
         .setPolygonMode(graphics::PolygonMode::FILL)
-        .setCullMode(graphics::CullMode::NONE) // No backface culling for this simple example
+        .setCullMode(
+            graphics::CullMode::NONE
+        ) // No backface culling for this simple example
         .setFrontFace(graphics::FrontFace::COUNTER_CLOCKWISE)
         .setDepthTest(false) // Disable depth testing for 2D triangle
         .setBlend(true)      // Enable blending
         .build();
+}
+
+/**
+ * @brief Creates and tests different types of buffers.
+ *
+ * This function demonstrates the creation and usage of various buffer types:
+ * - Vertex buffer (CPU accessible)
+ * - Index buffer (CPU accessible)
+ * - Uniform buffer (GPU only)
+ * - Storage buffer (GPU only)
+ * - Transfer buffer (CPU to GPU)
+ *
+ * @param gpu Pointer to the GPU device
+ * @return A structure containing all created buffers or an error message
+ */
+auto createTestBuffers(graphics::GPUDevice *gpu) -> std::expected<
+    std::tuple<
+        std::unique_ptr<graphics::Buffer>,
+        std::unique_ptr<graphics::Buffer>,
+        std::unique_ptr<graphics::Buffer>,
+        std::unique_ptr<graphics::Buffer>,
+        std::unique_ptr<graphics::Buffer>>,
+    std::string>
+{
+    Logger::info("Creating test buffers...");
+
+    // 1. Vertex Buffer - CPU accessible for easy updates
+    struct Vertex
+    {
+        float x, y, z;    // Position
+        float r, g, b, a; // Color
+    };
+
+    std::vector<Vertex> vertices = {
+        { .x = -0.5F,
+          .y = -0.5F,
+          .z = 0.0F,
+          .r = 1.0F,
+          .g = 0.0F,
+          .b = 0.0F,
+          .a = 1.0F }, // Red
+        { .x = 0.5F,
+          .y = -0.5F,
+          .z = 0.0F,
+          .r = 0.0F,
+          .g = 1.0F,
+          .b = 0.0F,
+          .a = 1.0F }, // Green
+        { .x = 0.0F,
+          .y = 0.5F,
+          .z = 0.0F,
+          .r = 0.0F,
+          .g = 0.0F,
+          .b = 1.0F,
+          .a = 1.0F } // Blue
+    };
+
+    graphics::BufferCreateInfo vertexBufferInfo{
+        .usage = graphics::BufferUsage::VERTEX,
+        .memory = graphics::BufferMemory::CPU_TO_GPU,
+        .size = vertices.size() * sizeof(Vertex),
+        .data = std::span<const std::byte>(
+            std::bit_cast<const std::byte *>(vertices.data()),
+            vertices.size() * sizeof(Vertex)
+        ),
+        .debugName = "TestVertexBuffer"
+    };
+
+    auto vertexBufferResult = gpu->createBuffer(vertexBufferInfo);
+    if (!vertexBufferResult) {
+        return std::unexpected(
+            "Failed to create vertex buffer: " + vertexBufferResult.error()
+        );
+    }
+    Logger::info(
+        "Vertex buffer created successfully ({} bytes)",
+        vertexBufferInfo.size
+    );
+
+    // 2. Index Buffer - CPU accessible
+    std::vector<uint32_t> indices = { 0, 1, 2 };
+
+    graphics::BufferCreateInfo indexBufferInfo{
+        .usage = graphics::BufferUsage::INDEX,
+        .memory = graphics::BufferMemory::CPU_TO_GPU,
+        .size = indices.size() * sizeof(uint32_t),
+        .data = std::span<const std::byte>(
+            std::bit_cast<const std::byte *>(indices.data()),
+            indices.size() * sizeof(uint32_t)
+        ),
+        .debugName = "TestIndexBuffer"
+    };
+
+    auto indexBufferResult = gpu->createBuffer(indexBufferInfo);
+    if (!indexBufferResult) {
+        return std::unexpected(
+            "Failed to create index buffer: " + indexBufferResult.error()
+        );
+    }
+    Logger::info(
+        "Index buffer created successfully ({} bytes)",
+        indexBufferInfo.size
+    );
+
+    // 3. Uniform Buffer - GPU only for performance
+    struct UniformData
+    {
+        float time;
+        std::array<f32, 2> resolution;
+        std::array<f32, 62> padding; // Padding pour aligner sur 256 bytes (4 +
+                                     // 8 + 248 = 260, aligné sur 256)
+    };
+
+    UniformData uniformData = { .time = 0.0F,
+                                .resolution = { 800.0F, 600.0F },
+                                .padding = { 0.0F, 0.0F } };
+
+    graphics::BufferCreateInfo uniformBufferInfo{
+        .usage = graphics::BufferUsage::UNIFORM |
+                 graphics::BufferUsage::TRANSFER_DST,
+        .memory = graphics::BufferMemory::GPU_ONLY,
+        .size = sizeof(UniformData),
+        .data = std::span<const std::byte>(
+            std::bit_cast<const std::byte *>(&uniformData),
+            sizeof(UniformData)
+        ),
+        .debugName = "TestUniformBuffer"
+    };
+
+    auto uniformBufferResult = gpu->createBuffer(uniformBufferInfo);
+    if (!uniformBufferResult) {
+        return std::unexpected(
+            "Failed to create uniform buffer: " + uniformBufferResult.error()
+        );
+    }
+    Logger::info(
+        "Uniform buffer created successfully ({} bytes)",
+        uniformBufferInfo.size
+    );
+
+    // 4. Storage Buffer - GPU only
+    std::vector<float> storageData = { 1.0F, 2.0F, 3.0F, 4.0F,
+                                       5.0F, 6.0F, 7.0F, 8.0F };
+
+    graphics::BufferCreateInfo storageBufferInfo{
+        .usage = graphics::BufferUsage::STORAGE |
+                 graphics::BufferUsage::TRANSFER_DST,
+        .memory = graphics::BufferMemory::GPU_ONLY,
+        .size = storageData.size() * sizeof(float),
+        .data = std::span<const std::byte>(
+            std::bit_cast<const std::byte *>(storageData.data()),
+            storageData.size() * sizeof(float)
+        ),
+        .debugName = "TestStorageBuffer"
+    };
+
+    auto storageBufferResult = gpu->createBuffer(storageBufferInfo);
+    if (!storageBufferResult) {
+        return std::unexpected(
+            "Failed to create storage buffer: " + storageBufferResult.error()
+        );
+    }
+    Logger::info(
+        "Storage buffer created successfully ({} bytes)",
+        storageBufferInfo.size
+    );
+
+    // 5. Transfer Buffer - CPU to GPU for staging
+    std::vector<uint8_t> transferData(1024, 0x42); // 1KB of test data
+
+    graphics::BufferCreateInfo transferBufferInfo{
+        .usage = graphics::BufferUsage::TRANSFER_SRC,
+        .memory = graphics::BufferMemory::CPU_TO_GPU,
+        .size = transferData.size(),
+        .data = std::as_bytes(std::span(transferData)),
+        .debugName = "TestTransferBuffer"
+    };
+
+    auto transferBufferResult = gpu->createBuffer(transferBufferInfo);
+    if (!transferBufferResult) {
+        return std::unexpected(
+            "Failed to create transfer buffer: " + transferBufferResult.error()
+        );
+    }
+    Logger::info(
+        "Transfer buffer created successfully ({} bytes)",
+        transferBufferInfo.size
+    );
+
+    // Test buffer operations
+    Logger::info("Testing buffer operations...");
+
+    // Test mapping and updating CPU accessible buffer
+    auto mappedResult = vertexBufferResult.value()->map();
+    if (mappedResult) {
+        Logger::info("Successfully mapped vertex buffer");
+
+        // Modify the first vertex color
+        auto *mappedData = std::bit_cast<Vertex *>(mappedResult->data());
+        mappedData[0].r = 0.5F; // Change red to 0.5
+        mappedData[0].g = 0.5F; // Change green to 0.5
+
+        vertexBufferResult.value()->unmap();
+        Logger::info("Successfully updated vertex buffer via mapping");
+    } else {
+        Logger::warning(
+            "Failed to map vertex buffer: {}",
+            mappedResult.error()
+        );
+    }
+
+    // Test updating GPU only buffer
+    UniformData newUniformData = { .time = 1.0F,
+                                   .resolution = { 1024.0F, 768.0F },
+                                   .padding = { 0.0F, 0.0F } };
+
+    auto updateResult = uniformBufferResult.value()->update(
+        std::span<const std::byte>(
+            std::bit_cast<const std::byte *>(&newUniformData),
+            sizeof(UniformData)
+        )
+    );
+
+    if (updateResult) {
+        Logger::info("Successfully updated GPU-only uniform buffer");
+    } else {
+        Logger::warning(
+            "Failed to update uniform buffer: {}",
+            updateResult.error()
+        );
+    }
+
+    // Test buffer properties
+    Logger::info("Buffer properties:");
+    Logger::info(
+        "  Vertex buffer: size={}, usage={}, memory={}",
+        vertexBufferResult.value()->getSize(),
+        static_cast<int>(vertexBufferResult.value()->getUsage()),
+        static_cast<int>(vertexBufferResult.value()->getMemory())
+    );
+    Logger::info(
+        "  Index buffer: size={}, usage={}, memory={}",
+        indexBufferResult.value()->getSize(),
+        static_cast<int>(indexBufferResult.value()->getUsage()),
+        static_cast<int>(indexBufferResult.value()->getMemory())
+    );
+    Logger::info(
+        "  Uniform buffer: size={}, usage={}, memory={}",
+        uniformBufferResult.value()->getSize(),
+        static_cast<int>(uniformBufferResult.value()->getUsage()),
+        static_cast<int>(uniformBufferResult.value()->getMemory())
+    );
+
+    Logger::info("All test buffers created and tested successfully!");
+
+    // Test des nouveaux opérateurs et méthodes utilitaires
+    Logger::info("Testing buffer operators and utility methods...");
+
+    // Test des opérateurs de comparaison
+    if (*vertexBufferResult.value() == *indexBufferResult.value()) {
+        Logger::info("Vertex and index buffers are equal (unexpected)");
+    } else {
+        Logger::info("Vertex and index buffers are different (expected)");
+    }
+
+    if (*vertexBufferResult.value() > *indexBufferResult.value()) {
+        Logger::info("Vertex buffer is larger than index buffer (expected)");
+    }
+
+    // Test des méthodes utilitaires
+    if (!vertexBufferResult.value()->isEmpty()) {
+        Logger::info("Vertex buffer is not empty (expected)");
+    }
+
+    Logger::info(
+        "Vertex buffer available size: {} bytes",
+        vertexBufferResult.value()->getAvailableSize()
+    );
+
+    if (vertexBufferResult.value()->isValidOffset(0)) {
+        Logger::info("Offset 0 is valid for vertex buffer");
+    }
+
+    if (vertexBufferResult.value()->isValidRange(0, 84)) {
+        Logger::info("Range [0, 84] is valid for vertex buffer");
+    }
+
+    // Test de la méthode fill
+    auto fillResult = transferBufferResult.value()->fill(std::byte(0xAA));
+    if (fillResult) {
+        Logger::info("Successfully filled transfer buffer with 0xAA");
+    } else {
+        Logger::warning(
+            "Failed to fill transfer buffer: {}",
+            fillResult.error()
+        );
+    }
+
+    // Test de la méthode updateData avec template
+    float testFloat = std::numbers::pi_v<float>;
+    auto updateFloatResult = uniformBufferResult.value()->updateData(testFloat);
+    if (updateFloatResult) {
+        Logger::info("Successfully updated uniform buffer with float value");
+    } else {
+        Logger::warning(
+            "Failed to update uniform buffer with float: {}",
+            updateFloatResult.error()
+        );
+    }
+
+    // Test de la méthode updateArray avec template
+    std::vector<int> testArray = { 1, 2, 3, 4, 5 };
+    auto updateArrayResult =
+        storageBufferResult.value()->updateArray(testArray);
+    if (updateArrayResult) {
+        Logger::info("Successfully updated storage buffer with int array");
+    } else {
+        Logger::warning(
+            "Failed to update storage buffer with array: {}",
+            updateArrayResult.error()
+        );
+    }
+
+    Logger::info("Buffer operators and utility methods tested successfully!");
+
+    return std::make_tuple(
+        std::move(vertexBufferResult.value()),
+        std::move(indexBufferResult.value()),
+        std::move(uniformBufferResult.value()),
+        std::move(storageBufferResult.value()),
+        std::move(transferBufferResult.value())
+    );
 }
 
 /**
@@ -295,47 +661,148 @@ void mainLoop(HelloTriangleApp &app)
     // Performance monitoring
     uint32_t frameCount = 0;
     auto startTime = std::chrono::high_resolution_clock::now();
+    auto lastBufferUpdateTime = startTime;
 
     // Main loop
     while (!app.window->shouldClose()) {
-        // Process window events (keyboard, mouse, etc.)
-        app.window->pollEvents();
+        try {
+            // Process window events (keyboard, mouse, etc.)
+            app.window->pollEvents();
 
-        // Begin a new frame
-        auto frameResult = app.gpu->beginFrame();
-        if (frameResult) {
-            // Bind the pipeline and draw the triangle
-            app.pipeline->bind();
-            app.gpu->draw(3, 1, 0, 0); // 3 vertices = 1 triangle
+            // Begin a new frame
+            auto frameResult = app.gpu->beginFrame();
+            if (frameResult) {
+                // Bind the pipeline and draw the triangle
+                app.pipeline->bind();
+                app.gpu->draw(3, 1, 0, 0); // 3 vertices = 1 triangle
 
-            // End the frame and present it
-            auto endResult = app.gpu->endFrame();
-            if (!endResult) {
-                Logger::warning("Failed to end frame: {}", endResult.error());
+                // End the frame and present it
+                auto endResult = app.gpu->endFrame();
+                if (!endResult) {
+                    Logger::warning(
+                        "Failed to end frame: {}",
+                        endResult.error()
+                    );
+                }
+
+                frameCount++;
+            } else {
+                Logger::warning(
+                    "Failed to begin frame: {}",
+                    frameResult.error()
+                );
+
+                // Check if the error is related to swapchain being out of date
+                if (frameResult.error().find("out of date") !=
+                        std::string::npos ||
+                    frameResult.error().find("Surface lost") !=
+                        std::string::npos) {
+                    Logger::info(
+                        "Swapchain needs recreation, waiting for window "
+                        "resize..."
+                    );
+                    // Wait longer for window resize events
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                } else {
+                    // Add a small delay when frame acquisition fails to prevent
+                    // tight loop
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                }
             }
 
-            frameCount++;
-        }
+            // Update buffer data every 2 seconds to test dynamic updates
+            auto currentTime = std::chrono::high_resolution_clock::now();
+            auto timeSinceLastUpdate =
+                std::chrono::duration_cast<std::chrono::seconds>(
+                    currentTime - lastBufferUpdateTime
+                )
+                    .count();
 
-        // Limit frame rate to approximately 60 FPS
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+            if (timeSinceLastUpdate >= 2) {
+                // Test updating the uniform buffer with current time
+                struct UniformData
+                {
+                    float time;
+                    std::array<f32, 2> resolution;
+                    std::array<f32, 62>
+                        padding; // Padding pour aligner sur 256 bytes
+                };
 
-        // Calculate and display FPS every 5 seconds
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        auto elapsedTime =
-            std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
+                auto currentTimeValue = static_cast<float>(timeSinceLastUpdate);
+                UniformData newUniformData = {
+                    .time = currentTimeValue,
+                    .resolution = { static_cast<float>(app.window->getWidth()),
+                                    static_cast<float>(
+                                        app.window->getHeight()
+                                    ) },
+                    .padding = { 0.0F, 0.0F }
+                };
 
-        if (elapsedTime >= 5) {
-            float fps = static_cast<float>(frameCount) / static_cast<float>(elapsedTime);
-            Logger::info("Average FPS: {:.2f}", fps);
-            frameCount = 0;
-            startTime = currentTime;
+                auto updateResult = app.uniformBuffer->update(
+                    std::span<const std::byte>(
+                        std::bit_cast<const std::byte *>(&newUniformData),
+                        sizeof(UniformData)
+                    )
+                );
+
+                if (updateResult) {
+                    Logger::debug(
+                        "Updated uniform buffer with time: {:.2f}",
+                        currentTimeValue
+                    );
+                } else {
+                    Logger::warning(
+                        "Failed to update uniform buffer: {}",
+                        updateResult.error()
+                    );
+                }
+
+                lastBufferUpdateTime = currentTime;
+            }
+
+            // Limit frame rate to approximately 60 FPS
+            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+
+            // Calculate and display FPS every 5 seconds
+            auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(
+                                   currentTime - startTime
+            )
+                                   .count();
+
+            if (elapsedTime >= 5) {
+                float fps = static_cast<float>(frameCount) /
+                            static_cast<float>(elapsedTime);
+                Logger::info("Average FPS: {:.2f}", fps);
+                Logger::info(
+                    "Buffer status: vertex={} bytes, index={} bytes, "
+                    "uniform={} "
+                    "bytes, storage={} "
+                    "bytes, transfer={} bytes",
+                    app.vertexBuffer->getSize(),
+                    app.indexBuffer->getSize(),
+                    app.uniformBuffer->getSize(),
+                    app.storageBuffer->getSize(),
+                    app.transferBuffer->getSize()
+                );
+                frameCount = 0;
+                startTime = currentTime;
+            }
+        } catch (const std::exception &e) {
+            Logger::critical("Exception in main loop: {}", e.what());
+            break;
+        } catch (...) {
+            Logger::critical("Unknown exception in main loop");
+            break;
         }
     }
 
     // Wait for the GPU to finish all operations before cleanup
-    app.gpu->waitIdle();
-    Logger::info("Exiting main render loop");
+    try {
+        app.gpu->waitIdle();
+        Logger::info("Exiting main render loop");
+    } catch (const std::exception &e) {
+        Logger::critical("Exception during GPU wait: {}", e.what());
+    }
 }
 
 /**
@@ -351,7 +818,7 @@ void mainLoop(HelloTriangleApp &app)
  * @param argv Argument values (unused)
  * @return 0 on success, -1 on failure
  */
-int main(int argc, char *argv[])
+auto main(int argc, char *argv[]) -> int
 {
     // Initialize the logging system
     if (!initializeLogger()) {
@@ -389,11 +856,30 @@ int main(int argc, char *argv[])
         // Create the rendering pipeline
         auto pipelineResult = createPipeline(app.gpu.get());
         if (!pipelineResult) {
-            Logger::error("Failed to create pipeline: {}", pipelineResult.error());
+            Logger::error(
+                "Failed to create pipeline: {}",
+                pipelineResult.error()
+            );
             return -1;
         }
         app.pipeline = std::move(pipelineResult.value());
         Logger::info("Pipeline created successfully");
+
+        // Create and test buffers
+        auto buffersResult = createTestBuffers(app.gpu.get());
+        if (!buffersResult) {
+            Logger::error(
+                "Failed to create test buffers: {}",
+                buffersResult.error()
+            );
+            return -1;
+        }
+        app.vertexBuffer = std::move(std::get<0>(buffersResult.value()));
+        app.indexBuffer = std::move(std::get<1>(buffersResult.value()));
+        app.uniformBuffer = std::move(std::get<2>(buffersResult.value()));
+        app.storageBuffer = std::move(std::get<3>(buffersResult.value()));
+        app.transferBuffer = std::move(std::get<4>(buffersResult.value()));
+        Logger::info("Test buffers created and assigned to app");
 
         // Run the main application loop
         mainLoop(app);

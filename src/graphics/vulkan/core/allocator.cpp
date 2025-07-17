@@ -6,6 +6,7 @@
 #define VMA_IMPLEMENTATION
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
+#define VMA_VULKAN_VERSION 1004000
 
 #include <vk_mem_alloc.h>
 #include <volk.h>
@@ -59,13 +60,63 @@ auto Allocator::create(const CreateInfo &createInfo)
     VkResult result = vmaCreateAllocator(&vmaCreateInfo, &allocator);
     if (result != VK_SUCCESS) {
         return std::unexpected(
-            "Failed to create VMA allocator : " + utils::vkResultToString(result)
+            "Failed to create VMA allocator : " +
+            utils::vkResultToString(result)
         );
     }
 
     auto allocatorPtr = std::unique_ptr<Allocator>(new Allocator(allocator));
 
     return allocatorPtr;
+}
+
+auto Allocator::mapMemory(VmaAllocation allocation, void **data)
+    -> std::expected<void *, std::string>
+{
+    VkResult result = vmaMapMemory(m_allocator, allocation, data);
+    if (result != VK_SUCCESS) {
+        return std::unexpected(utils::vkResultToString(result));
+    }
+
+    return *data;
+}
+
+void Allocator::unmapMemory(VmaAllocation allocation)
+{
+    vmaUnmapMemory(m_allocator, allocation);
+}
+
+auto Allocator::createBuffer(
+    const VkBufferCreateInfo &createInfo,
+    VmaMemoryUsage memoryUsage
+) -> std::expected<std::pair<VkBuffer, VmaAllocation>, std::string>
+{
+    VkBuffer buffer = VK_NULL_HANDLE;
+    VmaAllocation allocation = VK_NULL_HANDLE;
+    VmaAllocationInfo allocationInfo = {};
+
+    VmaAllocationCreateInfo allocationCreateInfo = {};
+    allocationCreateInfo.usage = memoryUsage;
+
+    VkResult result = vmaCreateBuffer(
+        m_allocator,
+        &createInfo,
+        &allocationCreateInfo,
+        &buffer,
+        &allocation,
+        &allocationInfo
+    );
+
+    if (result != VK_SUCCESS) {
+        return std::unexpected(utils::vkResultToString(result));
+    }
+
+    return std::make_pair(buffer, allocation);
+}
+
+void Allocator::destroyBuffer(VkBuffer buffer, VmaAllocation allocation)
+{
+    vmaDestroyBuffer(m_allocator, buffer, allocation);
 }
 
 } // namespace vostok::graphics::vulkan
