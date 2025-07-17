@@ -409,7 +409,7 @@ auto VulkanBuffer::operator=(VulkanBuffer &&other) noexcept -> VulkanBuffer &
 }
 
 auto VulkanBuffer::create(
-    VulkanDevice *device,
+    VulkanGPUDevice *device,
     const graphics::BufferCreateInfo &info
 ) -> std::unique_ptr<VulkanBuffer>
 {

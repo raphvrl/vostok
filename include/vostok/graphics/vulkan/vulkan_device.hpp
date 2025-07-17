@@ -20,18 +20,18 @@ class Allocator;
 
 class Buffer;
 
-class VulkanDevice : public graphics::GPUDevice
+class VulkanGPUDevice : public graphics::GPUDevice
 {
 public:
     static auto create(const CreateInfo &createInfo)
         -> std::expected<std::unique_ptr<GPUDevice>, std::string>;
 
-    ~VulkanDevice() override;
+    ~VulkanGPUDevice() override;
 
-    VulkanDevice(const VulkanDevice &) = delete;
-    auto operator=(const VulkanDevice &) -> VulkanDevice & = delete;
-    VulkanDevice(VulkanDevice &&) = delete;
-    auto operator=(VulkanDevice &&) -> VulkanDevice & = delete;
+    VulkanGPUDevice(const VulkanGPUDevice &) = delete;
+    auto operator=(const VulkanGPUDevice &) -> VulkanGPUDevice & = delete;
+    VulkanGPUDevice(VulkanGPUDevice &&) = delete;
+    auto operator=(VulkanGPUDevice &&) -> VulkanGPUDevice & = delete;
 
     void waitIdle() override;
 
@@ -64,13 +64,13 @@ public:
     ) -> std::expected<std::unique_ptr<graphics::Buffer>, std::string> override;
 
 private:
-    VulkanDevice();
+    VulkanGPUDevice();
 
     struct Factory
     {
-        static auto create() -> std::unique_ptr<VulkanDevice>
+        static auto create() -> std::unique_ptr<VulkanGPUDevice>
         {
-            return std::unique_ptr<VulkanDevice>(new VulkanDevice());
+            return std::unique_ptr<VulkanGPUDevice>(new VulkanGPUDevice());
         }
     };
 
