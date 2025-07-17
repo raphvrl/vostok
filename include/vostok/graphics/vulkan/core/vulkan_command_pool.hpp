@@ -10,28 +10,28 @@
 namespace vostok::graphics::vulkan
 {
 
-class Device;
+class VulkanDevice;
 
-class CommandPool
+class VulkanCommandPool
 {
 public:
     struct CreateInfo
     {
-        Device *device;
+        VulkanDevice *device;
         u32 queueFamilyIndex;
         VkCommandPoolCreateFlags flags;
         u32 maxFramesInFlight;
     };
 
     static auto create(const CreateInfo &createInfo)
-        -> std::expected<std::unique_ptr<CommandPool>, std::string>;
+        -> std::expected<std::unique_ptr<VulkanCommandPool>, std::string>;
 
-    ~CommandPool();
+    ~VulkanCommandPool();
 
-    CommandPool(const CommandPool &) = delete;
-    auto operator=(const CommandPool &) -> CommandPool & = delete;
-    CommandPool(CommandPool &&) noexcept;
-    auto operator=(CommandPool &&) noexcept -> CommandPool &;
+    VulkanCommandPool(const VulkanCommandPool &) = delete;
+    auto operator=(const VulkanCommandPool &) -> VulkanCommandPool & = delete;
+    VulkanCommandPool(VulkanCommandPool &&) noexcept;
+    auto operator=(VulkanCommandPool &&) noexcept -> VulkanCommandPool &;
 
     [[nodiscard]] auto getHandle() const -> VkCommandPool { return m_pool; }
 
@@ -44,9 +44,9 @@ public:
     void reset() const;
 
 private:
-    CommandPool(Device *device, VkCommandPool pool);
+    VulkanCommandPool(VulkanDevice *device, VkCommandPool pool);
 
-    Device *m_device;
+    VulkanDevice *m_device;
     VkCommandPool m_pool;
 };
 

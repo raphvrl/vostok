@@ -1,9 +1,9 @@
 #include "graphics/vulkan/vulkan_pipeline.hpp"
 
 #include "core/logger/logger.hpp"
-#include "graphics/vulkan/core/device.hpp"
-#include "graphics/vulkan/core/frame_sync.hpp"
-#include "graphics/vulkan/core/swapchain.hpp"
+#include "graphics/vulkan/core/vulkan_device.hpp"
+#include "graphics/vulkan/core/vulkan_frame_sync.hpp"
+#include "graphics/vulkan/core/vulkan_swapchain.hpp"
 #include "graphics/vulkan/utils/vk_utils.hpp"
 #include "graphics/vulkan/vulkan_device.hpp"
 
@@ -20,7 +20,7 @@ class VulkanPipeline::Impl
 {
 public:
     explicit Impl(
-        VulkanDevice *device,
+        VulkanGPUDevice *device,
         VkPipeline pipeline,
         VkPipelineLayout layout
     );
@@ -40,7 +40,7 @@ public:
     void bind();
 
 private:
-    VulkanDevice *m_ctx;
+    VulkanGPUDevice *m_ctx;
 
     VkPipeline m_pipeline = VK_NULL_HANDLE;
     VkPipelineLayout m_layout = VK_NULL_HANDLE;
@@ -51,7 +51,7 @@ private:
 class VulkanPipeline::Builder::Impl
 {
 public:
-    explicit Impl(VulkanDevice *device);
+    explicit Impl(VulkanGPUDevice *device);
     ~Impl() = default;
 
     Impl(Impl &) = delete;
@@ -104,7 +104,7 @@ private:
     auto createShaderModule(const std::vector<char> &code)
         -> std::expected<VkShaderModule, std::string>;
 
-    VulkanDevice *m_ctx;
+    VulkanGPUDevice *m_ctx;
     std::string m_name;
 
     struct ShaderStage
@@ -146,7 +146,7 @@ private:
 };
 
 VulkanPipeline::Impl::Impl(
-    VulkanDevice *device,
+    VulkanGPUDevice *device,
     VkPipeline pipeline,
     VkPipelineLayout layout
 )
@@ -212,7 +212,7 @@ void VulkanPipeline::Impl::bind()
     );
 }
 
-VulkanPipeline::Builder::Impl::Impl(VulkanDevice *device)
+VulkanPipeline::Builder::Impl::Impl(VulkanGPUDevice *device)
     : m_ctx(device)
 {
     Logger::debug("Created VulkanPipeline Builder");
@@ -889,18 +889,18 @@ auto VulkanPipeline::Builder::Impl::createShaderModule(
 }
 
 VulkanPipeline::VulkanPipeline(
-    VulkanDevice *device,
+    VulkanGPUDevice *device,
     VkPipeline pipeline,
     VkPipelineLayout layout
 )
     : m_impl(std::make_unique<Impl>(device, pipeline, layout))
 {}
 
-VulkanPipeline::Builder::Builder(VulkanDevice *device)
+VulkanPipeline::Builder::Builder(VulkanGPUDevice *device)
     : m_impl(std::make_unique<Impl>(device))
 {}
 
-auto VulkanPipeline::Builder::create(VulkanDevice *device)
+auto VulkanPipeline::Builder::create(VulkanGPUDevice *device)
     -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string>
 {
     if (device == nullptr) {
@@ -910,7 +910,7 @@ auto VulkanPipeline::Builder::create(VulkanDevice *device)
     }
 
     if (device->getDevice() == nullptr) {
-        return std::unexpected("VulkanDevice is not properly initialized");
+        return std::unexpected("Vulkan GPU device is not properly initialized");
     }
 
     try {

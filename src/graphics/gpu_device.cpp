@@ -10,7 +10,7 @@ auto GPUDevice::create(const CreateInfo &createInfo, RenderBackend backend)
 {
     switch (backend) {
         case RenderBackend::VULKAN:
-            return vulkan::VulkanDevice::create(createInfo);
+            return vulkan::VulkanGPUDevice::create(createInfo);
         default:
             return std::unexpected("Unsupported rendering backend");
     }

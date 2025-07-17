@@ -1,8 +1,8 @@
-#include "graphics/vulkan/core/frame_sync.hpp"
+#include "graphics/vulkan/core/vulkan_frame_sync.hpp"
 
 #include "core/logger/logger.hpp"
-#include "graphics/vulkan/core/command_pool.hpp"
-#include "graphics/vulkan/core/device.hpp"
+#include "graphics/vulkan/core/vulkan_command_pool.hpp"
+#include "graphics/vulkan/core/vulkan_device.hpp"
 #include "graphics/vulkan/utils/vk_utils.hpp"
 #include "volk.h"
 
@@ -11,8 +11,8 @@
 namespace vostok::graphics::vulkan
 {
 
-FrameSync::FrameSync(
-    Device *device,
+VulkanFrameSync::VulkanFrameSync(
+    VulkanDevice *device,
     const CommandPools &commandPools,
     VkQueue transferQueue,
     u32 maxFramesInFlight
@@ -24,7 +24,7 @@ FrameSync::FrameSync(
       m_transferQueue(transferQueue)
 {}
 
-FrameSync::~FrameSync()
+VulkanFrameSync::~VulkanFrameSync()
 {
     Logger::debug("FrameSync destructor called");
 
@@ -79,7 +79,7 @@ FrameSync::~FrameSync()
     Logger::debug("FrameSync destructor completed");
 }
 
-auto FrameSync::init() -> bool
+auto VulkanFrameSync::init() -> bool
 {
     Logger::debug("Initializing frame synchronization objects");
     m_frames.resize(m_maxFramesInFlight);
@@ -174,10 +174,10 @@ auto FrameSync::init() -> bool
     return true;
 }
 
-auto FrameSync::create(const CreateInfo &createInfo)
-    -> std::expected<std::unique_ptr<FrameSync>, std::string>
+auto VulkanFrameSync::create(const CreateInfo &createInfo)
+    -> std::expected<std::unique_ptr<VulkanFrameSync>, std::string>
 {
-    auto frameSync = std::unique_ptr<FrameSync>(new FrameSync(
+    auto frameSync = std::unique_ptr<VulkanFrameSync>(new VulkanFrameSync(
         createInfo.device,
         createInfo.commandPools,
         createInfo.transferQueue,
@@ -195,7 +195,7 @@ auto FrameSync::create(const CreateInfo &createInfo)
     return frameSync;
 }
 
-void FrameSync::waitForFence()
+void VulkanFrameSync::waitForFence()
 {
     constexpr u64 TIMEOUT_NS = 1000000000ULL;
 
@@ -229,37 +229,37 @@ void FrameSync::waitForFence()
     }
 }
 
-void FrameSync::resetFences()
+void VulkanFrameSync::resetFences()
 {
     vkResetFences(m_device->getHandle(), 1, &m_frames[m_currentFrame].inFlight);
 }
 
-void FrameSync::nextFrame()
+void VulkanFrameSync::nextFrame()
 {
     m_currentFrame = (m_currentFrame + 1) % m_maxFramesInFlight;
 }
 
-auto FrameSync::getImageAvailableSemaphore() const -> VkSemaphore
+auto VulkanFrameSync::getImageAvailableSemaphore() const -> VkSemaphore
 {
     return m_frames[m_currentFrame].imageAvailable;
 }
 
-auto FrameSync::getRenderFinishedSemaphore() const -> VkSemaphore
+auto VulkanFrameSync::getRenderFinishedSemaphore() const -> VkSemaphore
 {
     return m_frames[m_currentFrame].renderFinished;
 }
 
-auto FrameSync::getInFlightFence() const -> VkFence
+auto VulkanFrameSync::getInFlightFence() const -> VkFence
 {
     return m_frames[m_currentFrame].inFlight;
 }
 
-auto FrameSync::getCommandBuffer() const -> VkCommandBuffer
+auto VulkanFrameSync::getCommandBuffer() const -> VkCommandBuffer
 {
     return m_frames[m_currentFrame].commandBuffer;
 }
 
-auto FrameSync::beginCommandBuffer() -> std::expected<void, std::string>
+auto VulkanFrameSync::beginCommandBuffer() -> std::expected<void, std::string>
 {
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -277,7 +277,7 @@ auto FrameSync::beginCommandBuffer() -> std::expected<void, std::string>
     return {};
 }
 
-auto FrameSync::endCommandBuffer() -> std::expected<void, std::string>
+auto VulkanFrameSync::endCommandBuffer() -> std::expected<void, std::string>
 {
     VkResult result =
         vkEndCommandBuffer(m_frames[m_currentFrame].commandBuffer);
@@ -289,7 +289,7 @@ auto FrameSync::endCommandBuffer() -> std::expected<void, std::string>
     return {};
 }
 
-void FrameSync::cmdDraw(
+void VulkanFrameSync::cmdDraw(
     u32 vertexCount,
     u32 instanceCount,
     u32 firstVertex,
@@ -305,12 +305,13 @@ void FrameSync::cmdDraw(
     );
 }
 
-auto FrameSync::getTransferCommandBuffer() const -> VkCommandBuffer
+auto VulkanFrameSync::getTransferCommandBuffer() const -> VkCommandBuffer
 {
     return m_transferCommandBuffer;
 }
 
-auto FrameSync::beginTransferCommandBuffer() -> std::expected<void, std::string>
+auto VulkanFrameSync::beginTransferCommandBuffer()
+    -> std::expected<void, std::string>
 {
     VkResult result = vkWaitForFences(
         m_device->getHandle(),
@@ -346,7 +347,8 @@ auto FrameSync::beginTransferCommandBuffer() -> std::expected<void, std::string>
     return {};
 }
 
-auto FrameSync::endTransferCommandBuffer() -> std::expected<void, std::string>
+auto VulkanFrameSync::endTransferCommandBuffer()
+    -> std::expected<void, std::string>
 {
     VkResult result = vkEndCommandBuffer(m_transferCommandBuffer);
     if (result != VK_SUCCESS) {
@@ -356,7 +358,7 @@ auto FrameSync::endTransferCommandBuffer() -> std::expected<void, std::string>
     return {};
 }
 
-auto FrameSync::submitTransferCommandBuffer()
+auto VulkanFrameSync::submitTransferCommandBuffer()
     -> std::expected<void, std::string>
 {
     VkSubmitInfo submitInfo = {};
@@ -374,7 +376,8 @@ auto FrameSync::submitTransferCommandBuffer()
     return {};
 }
 
-auto FrameSync::waitForTransferComplete() -> std::expected<void, std::string>
+auto VulkanFrameSync::waitForTransferComplete()
+    -> std::expected<void, std::string>
 {
     constexpr u64 TIMEOUT_NS = 1000000000ULL;
 

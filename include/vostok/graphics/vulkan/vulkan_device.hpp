@@ -9,29 +9,29 @@
 namespace vostok::graphics::vulkan
 {
 
-class Instance;
-class Surface;
-class PhysicalDevice;
-class Device;
-class Device;
-class Swapchain;
-class FrameSync;
-class Allocator;
+class VulkanInstance;
+class VulkanSurface;
+class VulkanPhysicalDevice;
+class VulkanDevice;
+class VulkanDevice;
+class VulkanSwapchain;
+class VulkanFrameSync;
+class VulkanAllocator;
 
 class Buffer;
 
-class VulkanDevice : public graphics::GPUDevice
+class VulkanGPUDevice : public graphics::GPUDevice
 {
 public:
     static auto create(const CreateInfo &createInfo)
         -> std::expected<std::unique_ptr<GPUDevice>, std::string>;
 
-    ~VulkanDevice() override;
+    ~VulkanGPUDevice() override;
 
-    VulkanDevice(const VulkanDevice &) = delete;
-    auto operator=(const VulkanDevice &) -> VulkanDevice & = delete;
-    VulkanDevice(VulkanDevice &&) = delete;
-    auto operator=(VulkanDevice &&) -> VulkanDevice & = delete;
+    VulkanGPUDevice(const VulkanGPUDevice &) = delete;
+    auto operator=(const VulkanGPUDevice &) -> VulkanGPUDevice & = delete;
+    VulkanGPUDevice(VulkanGPUDevice &&) = delete;
+    auto operator=(VulkanGPUDevice &&) -> VulkanGPUDevice & = delete;
 
     void waitIdle() override;
 
@@ -51,26 +51,26 @@ public:
     auto createPipelineBuilder() -> std::
         expected<std::unique_ptr<Pipeline::Builder>, std::string> override;
 
-    [[nodiscard]] auto getInstance() const -> Instance *;
-    [[nodiscard]] auto getSurface() const -> Surface *;
-    [[nodiscard]] auto getPhysicalDevice() const -> PhysicalDevice *;
-    [[nodiscard]] auto getDevice() const -> Device *;
-    [[nodiscard]] auto getAllocator() const -> Allocator *;
-    [[nodiscard]] auto getSwapchain() const -> Swapchain *;
-    [[nodiscard]] auto getFrameSync() const -> FrameSync *;
+    [[nodiscard]] auto getInstance() const -> VulkanInstance *;
+    [[nodiscard]] auto getSurface() const -> VulkanSurface *;
+    [[nodiscard]] auto getPhysicalDevice() const -> VulkanPhysicalDevice *;
+    [[nodiscard]] auto getDevice() const -> VulkanDevice *;
+    [[nodiscard]] auto getAllocator() const -> VulkanAllocator *;
+    [[nodiscard]] auto getSwapchain() const -> VulkanSwapchain *;
+    [[nodiscard]] auto getFrameSync() const -> VulkanFrameSync *;
 
     auto createBuffer(
         const graphics::BufferCreateInfo &createInfo
     ) -> std::expected<std::unique_ptr<graphics::Buffer>, std::string> override;
 
 private:
-    VulkanDevice();
+    VulkanGPUDevice();
 
     struct Factory
     {
-        static auto create() -> std::unique_ptr<VulkanDevice>
+        static auto create() -> std::unique_ptr<VulkanGPUDevice>
         {
-            return std::unique_ptr<VulkanDevice>(new VulkanDevice());
+            return std::unique_ptr<VulkanGPUDevice>(new VulkanGPUDevice());
         }
     };
 

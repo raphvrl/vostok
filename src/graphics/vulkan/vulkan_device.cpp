@@ -2,16 +2,16 @@
 
 #include "core/logger/logger.hpp"
 #include "graphics/gpu_device.hpp"
-#include "graphics/vulkan/core/allocator.hpp"
-#include "graphics/vulkan/core/command_pool.hpp"
-#include "graphics/vulkan/core/device.hpp"
-#include "graphics/vulkan/core/frame_sync.hpp"
-#include "graphics/vulkan/core/instance.hpp"
-#include "graphics/vulkan/core/physical_device.hpp"
-#include "graphics/vulkan/core/surface.hpp"
-#include "graphics/vulkan/core/swapchain.hpp"
+#include "graphics/vulkan/core/vulkan_allocator.hpp"
+#include "graphics/vulkan/core/vulkan_command_pool.hpp"
+#include "graphics/vulkan/core/vulkan_device.hpp"
+#include "graphics/vulkan/core/vulkan_frame_sync.hpp"
+#include "graphics/vulkan/core/vulkan_instance.hpp"
+#include "graphics/vulkan/core/vulkan_physical_device.hpp"
+#include "graphics/vulkan/core/vulkan_surface.hpp"
+#include "graphics/vulkan/core/vulkan_swapchain.hpp"
 #include "graphics/vulkan/platform/glfw_platform.hpp"
-#include "graphics/vulkan/resources/buffer.hpp"
+#include "graphics/vulkan/resources/vulkan_buffer.hpp"
 #include "graphics/vulkan/utils/vk_utils.hpp"
 #include "graphics/vulkan/vulkan_pipeline.hpp"
 #include "volk.h"
@@ -23,10 +23,10 @@
 namespace vostok::graphics::vulkan
 {
 
-class VulkanDevice::Impl
+class VulkanGPUDevice::Impl
 {
 public:
-    Impl(VulkanDevice *parent, const GPUDevice::CreateInfo &createInfo);
+    Impl(VulkanGPUDevice *parent, const GPUDevice::CreateInfo &createInfo);
     ~Impl();
 
     Impl(const Impl &) = delete;
@@ -60,28 +60,31 @@ public:
         return m_lastError;
     }
 
-    [[nodiscard]] auto getInstance() const -> Instance *
+    [[nodiscard]] auto getInstance() const -> VulkanInstance *
     {
         return m_instance.get();
     }
-    [[nodiscard]] auto getSurface() const -> Surface *
+    [[nodiscard]] auto getSurface() const -> VulkanSurface *
     {
         return m_surface.get();
     }
-    [[nodiscard]] auto getPhysicalDevice() const -> PhysicalDevice *
+    [[nodiscard]] auto getPhysicalDevice() const -> VulkanPhysicalDevice *
     {
         return m_physicalDevice.get();
     }
-    [[nodiscard]] auto getDevice() const -> Device * { return m_device.get(); }
-    [[nodiscard]] auto getAllocator() const -> Allocator *
+    [[nodiscard]] auto getDevice() const -> VulkanDevice *
+    {
+        return m_device.get();
+    }
+    [[nodiscard]] auto getAllocator() const -> VulkanAllocator *
     {
         return m_allocator.get();
     }
-    [[nodiscard]] auto getSwapchain() const -> Swapchain *
+    [[nodiscard]] auto getSwapchain() const -> VulkanSwapchain *
     {
         return m_swapchain.get();
     }
-    [[nodiscard]] auto getFrameSync() const -> FrameSync *
+    [[nodiscard]] auto getFrameSync() const -> VulkanFrameSync *
     {
         return m_frameSync.get();
     }
@@ -100,23 +103,23 @@ private:
     auto initSwapchain(const SwapchainExtent &size) -> bool;
     auto initFrameSync() -> bool;
 
-    std::unique_ptr<Instance> m_instance;
-    std::unique_ptr<Surface> m_surface;
-    std::unique_ptr<PhysicalDevice> m_physicalDevice;
-    std::unique_ptr<Device> m_device;
-    std::unique_ptr<Allocator> m_allocator;
-    std::unique_ptr<Swapchain> m_swapchain;
-    std::unique_ptr<FrameSync> m_frameSync;
-    std::unique_ptr<CommandPool> m_graphicsCommandPool;
-    std::unique_ptr<CommandPool> m_transferCommandPool;
+    std::unique_ptr<VulkanInstance> m_instance;
+    std::unique_ptr<VulkanSurface> m_surface;
+    std::unique_ptr<VulkanPhysicalDevice> m_physicalDevice;
+    std::unique_ptr<VulkanDevice> m_device;
+    std::unique_ptr<VulkanAllocator> m_allocator;
+    std::unique_ptr<VulkanSwapchain> m_swapchain;
+    std::unique_ptr<VulkanFrameSync> m_frameSync;
+    std::unique_ptr<VulkanCommandPool> m_graphicsCommandPool;
+    std::unique_ptr<VulkanCommandPool> m_transferCommandPool;
     std::string m_lastError;
 
     u32 m_currentImageIndex = 0;
 
-    VulkanDevice *m_parent;
+    VulkanGPUDevice *m_parent;
 };
 
-auto VulkanDevice::create(const CreateInfo &createInfo)
+auto VulkanGPUDevice::create(const CreateInfo &createInfo)
     -> std::expected<std::unique_ptr<GPUDevice>, std::string>
 {
     auto device = Factory::create();
@@ -130,8 +133,8 @@ auto VulkanDevice::create(const CreateInfo &createInfo)
     return device;
 }
 
-VulkanDevice::Impl::Impl(
-    VulkanDevice *parent,
+VulkanGPUDevice::Impl::Impl(
+    VulkanGPUDevice *parent,
     const GPUDevice::CreateInfo &createInfo
 )
     : m_parent(parent)
@@ -167,9 +170,9 @@ VulkanDevice::Impl::Impl(
     }
 }
 
-VulkanDevice::Impl::~Impl()
+VulkanGPUDevice::Impl::~Impl()
 {
-    Logger::debug("VulkanDevice::Impl destructor called");
+    Logger::debug("Vulkan GPU device destructor called");
 
     if (m_frameSync) {
         Logger::debug("Destroying FrameSync");
@@ -216,15 +219,16 @@ VulkanDevice::Impl::~Impl()
         m_instance.reset();
     }
 
-    Logger::debug("VulkanDevice::Impl destructor completed");
+    Logger::debug("Vulkan GPU device destructor completed");
 }
 
-auto VulkanDevice::Impl::initInstance(const GPUDevice::CreateInfo &createInfo)
-    -> bool
+auto VulkanGPUDevice::Impl::initInstance(
+    const GPUDevice::CreateInfo &createInfo
+) -> bool
 {
     auto platform = std::make_unique<platform::GlfwPlatform>();
 
-    Instance::CreateInfo instanceCreateInfo;
+    VulkanInstance::CreateInfo instanceCreateInfo;
     instanceCreateInfo.appName = createInfo.appName;
     instanceCreateInfo.appVersion = createInfo.appVersion.toPackedInt();
     instanceCreateInfo.engineName = createInfo.engineName;
@@ -233,7 +237,7 @@ auto VulkanDevice::Impl::initInstance(const GPUDevice::CreateInfo &createInfo)
         createInfo.enableValidationLayers;
     instanceCreateInfo.platform = std::move(platform);
 
-    auto result = Instance::create(instanceCreateInfo);
+    auto result = VulkanInstance::create(instanceCreateInfo);
     if (!result) {
         m_lastError = result.error();
         return false;
@@ -244,14 +248,14 @@ auto VulkanDevice::Impl::initInstance(const GPUDevice::CreateInfo &createInfo)
     return true;
 }
 
-auto VulkanDevice::Impl::initSurface(void *windowHandle) -> bool
+auto VulkanGPUDevice::Impl::initSurface(void *windowHandle) -> bool
 {
     if (!m_instance) {
         m_lastError = "Instance is not initialized";
         return false;
     }
 
-    auto result = Surface::create(m_instance.get(), windowHandle);
+    auto result = VulkanSurface::create(m_instance.get(), windowHandle);
     if (!result) {
         m_lastError = result.error();
         return false;
@@ -262,10 +266,12 @@ auto VulkanDevice::Impl::initSurface(void *windowHandle) -> bool
     return true;
 }
 
-auto VulkanDevice::Impl::initPhysicalDevice() -> bool
+auto VulkanGPUDevice::Impl::initPhysicalDevice() -> bool
 {
-    auto result =
-        PhysicalDevice::create(m_instance->getHandle(), m_surface->getHandle());
+    auto result = VulkanPhysicalDevice::create(
+        m_instance->getHandle(),
+        m_surface->getHandle()
+    );
     if (!result) {
         m_lastError = result.error();
         return false;
@@ -276,10 +282,10 @@ auto VulkanDevice::Impl::initPhysicalDevice() -> bool
     return true;
 }
 
-auto VulkanDevice::Impl::initDevice(const GPUDevice::CreateInfo &createInfo)
+auto VulkanGPUDevice::Impl::initDevice(const GPUDevice::CreateInfo &createInfo)
     -> bool
 {
-    Device::CreateInfo deviceInfo;
+    VulkanDevice::CreateInfo deviceInfo;
     deviceInfo.physicalDevice = m_physicalDevice.get();
     deviceInfo.surface = m_surface->getHandle();
 
@@ -313,7 +319,7 @@ auto VulkanDevice::Impl::initDevice(const GPUDevice::CreateInfo &createInfo)
     deviceInfo.pNext = &deviceFeatures2;
     deviceInfo.enableValidationLayers = createInfo.enableValidationLayers;
 
-    auto result = Device::create(deviceInfo);
+    auto result = VulkanDevice::create(deviceInfo);
     if (!result) {
         m_lastError = result.error();
         return false;
@@ -324,19 +330,19 @@ auto VulkanDevice::Impl::initDevice(const GPUDevice::CreateInfo &createInfo)
     return true;
 }
 
-auto VulkanDevice::Impl::initAllocator() -> bool
+auto VulkanGPUDevice::Impl::initAllocator() -> bool
 {
     if (!m_device) {
         m_lastError = "Device is not initialized";
         return false;
     }
 
-    Allocator::CreateInfo allocatorInfo;
+    VulkanAllocator::CreateInfo allocatorInfo;
     allocatorInfo.instance = m_instance.get();
     allocatorInfo.physicalDevice = m_physicalDevice.get();
     allocatorInfo.device = m_device.get();
 
-    auto result = Allocator::create(allocatorInfo);
+    auto result = VulkanAllocator::create(allocatorInfo);
     if (!result) {
         m_lastError = result.error();
         return false;
@@ -347,20 +353,20 @@ auto VulkanDevice::Impl::initAllocator() -> bool
     return true;
 }
 
-auto VulkanDevice::Impl::initSwapchain(const SwapchainExtent &size) -> bool
+auto VulkanGPUDevice::Impl::initSwapchain(const SwapchainExtent &size) -> bool
 {
     if (!m_device) {
         m_lastError = "Device is not initialized";
         return false;
     }
 
-    Swapchain::CreateInfo createInfo;
+    VulkanSwapchain::CreateInfo createInfo;
     createInfo.device = m_device.get();
     createInfo.surface = m_surface->getHandle();
     createInfo.width = size.width;
     createInfo.height = size.height;
 
-    auto result = Swapchain::create(createInfo);
+    auto result = VulkanSwapchain::create(createInfo);
     if (!result) {
         m_lastError = result.error();
         return false;
@@ -371,7 +377,7 @@ auto VulkanDevice::Impl::initSwapchain(const SwapchainExtent &size) -> bool
     return true;
 }
 
-auto VulkanDevice::Impl::initFrameSync() -> bool
+auto VulkanGPUDevice::Impl::initFrameSync() -> bool
 {
     if (!m_device) {
         m_lastError = "Device is not initialized";
@@ -381,7 +387,7 @@ auto VulkanDevice::Impl::initFrameSync() -> bool
     auto *physicalDevice = m_device->getPhysicalDevice();
     auto queueFamilyIndices = physicalDevice->getQueueFamilyIndices();
 
-    auto graphicsPoolResult = CommandPool::create(
+    auto graphicsPoolResult = VulkanCommandPool::create(
         { .device = m_device.get(),
           .queueFamilyIndex = queueFamilyIndices.graphicsFamily.value(),
           .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
@@ -395,7 +401,7 @@ auto VulkanDevice::Impl::initFrameSync() -> bool
 
     m_graphicsCommandPool = std::move(graphicsPoolResult.value());
 
-    auto transferPoolResult = CommandPool::create(
+    auto transferPoolResult = VulkanCommandPool::create(
         { .device = m_device.get(),
           .queueFamilyIndex = queueFamilyIndices.transferFamily.value(),
           .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
@@ -409,14 +415,14 @@ auto VulkanDevice::Impl::initFrameSync() -> bool
 
     m_transferCommandPool = std::move(transferPoolResult.value());
 
-    FrameSync::CreateInfo createInfo;
+    VulkanFrameSync::CreateInfo createInfo;
     createInfo.device = m_device.get();
     createInfo.maxFramesInFlight = 2;
     createInfo.commandPools.graphics = m_graphicsCommandPool.get();
     createInfo.commandPools.transfer = m_transferCommandPool.get();
     createInfo.transferQueue = m_device->getTransferQueue();
 
-    auto frameSyncResult = FrameSync::create(createInfo);
+    auto frameSyncResult = VulkanFrameSync::create(createInfo);
     if (!frameSyncResult) {
         m_lastError = frameSyncResult.error();
         return false;
@@ -427,7 +433,7 @@ auto VulkanDevice::Impl::initFrameSync() -> bool
     return true;
 }
 
-void VulkanDevice::Impl::waitIdle()
+void VulkanGPUDevice::Impl::waitIdle()
 {
     if (!m_device) {
         return;
@@ -436,7 +442,7 @@ void VulkanDevice::Impl::waitIdle()
     m_device->waitIdle();
 }
 
-auto VulkanDevice::Impl::beginFrame() -> std::expected<u32, std::string>
+auto VulkanGPUDevice::Impl::beginFrame() -> std::expected<u32, std::string>
 {
     if (!m_device || !m_swapchain || !m_frameSync) {
         return std::unexpected("Instance is not initialized");
@@ -519,7 +525,7 @@ auto VulkanDevice::Impl::beginFrame() -> std::expected<u32, std::string>
     return {};
 }
 
-auto VulkanDevice::Impl::endFrame() -> std::expected<void, std::string>
+auto VulkanGPUDevice::Impl::endFrame() -> std::expected<void, std::string>
 {
     if (!m_device || !m_swapchain || !m_frameSync) {
         return std::unexpected("Instance is not initialized");
@@ -632,7 +638,7 @@ auto VulkanDevice::Impl::endFrame() -> std::expected<void, std::string>
     return {};
 }
 
-auto VulkanDevice::Impl::resize(const FramebufferSize &size)
+auto VulkanGPUDevice::Impl::resize(const FramebufferSize &size)
     -> std::expected<void, std::string>
 {
     if (size.width == 0 || size.height == 0) {
@@ -647,7 +653,7 @@ auto VulkanDevice::Impl::resize(const FramebufferSize &size)
     return std::unexpected("Not implemented");
 }
 
-void VulkanDevice::Impl::draw(
+void VulkanGPUDevice::Impl::draw(
     u32 vertexCount,
     u32 instanceCount,
     u32 firstVertex,
@@ -662,7 +668,7 @@ void VulkanDevice::Impl::draw(
         ->cmdDraw(vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-auto VulkanDevice::Impl::createPipelineBuilder()
+auto VulkanGPUDevice::Impl::createPipelineBuilder()
     -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string>
 {
     if (!m_device) {
@@ -672,7 +678,7 @@ auto VulkanDevice::Impl::createPipelineBuilder()
     return VulkanPipeline::Builder::create(m_parent);
 }
 
-auto VulkanDevice::Impl::createBuffer(
+auto VulkanGPUDevice::Impl::createBuffer(
     const graphics::BufferCreateInfo &createInfo
 ) -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>
 {
@@ -692,50 +698,50 @@ auto VulkanDevice::Impl::createBuffer(
     return std::unique_ptr<graphics::Buffer>(vulkanBuffer.release());
 }
 
-VulkanDevice::VulkanDevice()
+VulkanGPUDevice::VulkanGPUDevice()
     : m_impl(nullptr)
 {}
 
-VulkanDevice::~VulkanDevice()
+VulkanGPUDevice::~VulkanGPUDevice()
 {
     if (m_impl) {
         m_impl->waitIdle();
     }
 }
 
-void VulkanDevice::waitIdle()
+void VulkanGPUDevice::waitIdle()
 {
     if (m_impl) {
         m_impl->waitIdle();
     }
 }
 
-auto VulkanDevice::beginFrame() -> std::expected<u32, std::string>
+auto VulkanGPUDevice::beginFrame() -> std::expected<u32, std::string>
 {
     if (m_impl) {
         return m_impl->beginFrame();
     }
-    return std::unexpected("VulkanDevice is not initialized");
+    return std::unexpected("Vulkan GPU device is not initialized");
 }
 
-auto VulkanDevice::endFrame() -> std::expected<void, std::string>
+auto VulkanGPUDevice::endFrame() -> std::expected<void, std::string>
 {
     if (m_impl) {
         return m_impl->endFrame();
     }
-    return std::unexpected("VulkanDevice is not initialized");
+    return std::unexpected("Vulkan GPU device is not initialized");
 }
 
-auto VulkanDevice::resize(const FramebufferSize &size)
+auto VulkanGPUDevice::resize(const FramebufferSize &size)
     -> std::expected<void, std::string>
 {
     if (m_impl) {
         return m_impl->resize(size);
     }
-    return std::unexpected("VulkanDevice is not initialized");
+    return std::unexpected("Vulkan GPU device is not initialized");
 }
 
-void VulkanDevice::draw(
+void VulkanGPUDevice::draw(
     u32 vertexCount,
     u32 instanceCount,
     u32 firstVertex,
@@ -747,26 +753,26 @@ void VulkanDevice::draw(
     }
 }
 
-auto VulkanDevice::createPipelineBuilder()
+auto VulkanGPUDevice::createPipelineBuilder()
     -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string>
 {
     if (m_impl) {
         return m_impl->createPipelineBuilder();
     }
-    return std::unexpected("VulkanDevice is not initialized");
+    return std::unexpected("Vulkan GPU device is not initialized");
 }
 
-auto VulkanDevice::createBuffer(const graphics::BufferCreateInfo &createInfo)
+auto VulkanGPUDevice::createBuffer(const graphics::BufferCreateInfo &createInfo)
     -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>
 {
     if (m_impl) {
         return m_impl->createBuffer(createInfo);
     }
 
-    return std::unexpected("VulkanDevice is not initialized");
+    return std::unexpected("Vulkan GPU device is not initialized");
 }
 
-auto VulkanDevice::getInstance() const -> Instance *
+auto VulkanGPUDevice::getInstance() const -> VulkanInstance *
 {
     if (m_impl) {
         return m_impl->getInstance();
@@ -774,7 +780,7 @@ auto VulkanDevice::getInstance() const -> Instance *
     return nullptr;
 }
 
-auto VulkanDevice::getSurface() const -> Surface *
+auto VulkanGPUDevice::getSurface() const -> VulkanSurface *
 {
     if (m_impl) {
         return m_impl->getSurface();
@@ -782,7 +788,7 @@ auto VulkanDevice::getSurface() const -> Surface *
     return nullptr;
 }
 
-auto VulkanDevice::getPhysicalDevice() const -> PhysicalDevice *
+auto VulkanGPUDevice::getPhysicalDevice() const -> VulkanPhysicalDevice *
 {
     if (m_impl) {
         return m_impl->getPhysicalDevice();
@@ -790,7 +796,7 @@ auto VulkanDevice::getPhysicalDevice() const -> PhysicalDevice *
     return nullptr;
 }
 
-auto VulkanDevice::getDevice() const -> Device *
+auto VulkanGPUDevice::getDevice() const -> VulkanDevice *
 {
     if (m_impl) {
         return m_impl->getDevice();
@@ -798,7 +804,7 @@ auto VulkanDevice::getDevice() const -> Device *
     return nullptr;
 }
 
-auto VulkanDevice::getAllocator() const -> Allocator *
+auto VulkanGPUDevice::getAllocator() const -> VulkanAllocator *
 {
     if (m_impl) {
         return m_impl->getAllocator();
@@ -806,7 +812,7 @@ auto VulkanDevice::getAllocator() const -> Allocator *
     return nullptr;
 }
 
-auto VulkanDevice::getSwapchain() const -> Swapchain *
+auto VulkanGPUDevice::getSwapchain() const -> VulkanSwapchain *
 {
     if (m_impl) {
         return m_impl->getSwapchain();
@@ -814,7 +820,7 @@ auto VulkanDevice::getSwapchain() const -> Swapchain *
     return nullptr;
 }
 
-auto VulkanDevice::getFrameSync() const -> FrameSync *
+auto VulkanGPUDevice::getFrameSync() const -> VulkanFrameSync *
 {
     if (m_impl) {
         return m_impl->getFrameSync();
