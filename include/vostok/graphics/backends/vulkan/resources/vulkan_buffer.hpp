@@ -13,7 +13,7 @@ namespace vostok::graphics::vulkan
 {
 
 class VulkanAllocator;
-class VulkanGPUDevice;
+class VulkanGPU;
 
 class VulkanBuffer : public graphics::Buffer
 {
@@ -51,10 +51,10 @@ private:
 
     VulkanBuffer(std::unique_ptr<Impl> impl);
 
-    friend class VulkanGPUDevice;
+    friend class VulkanGPU;
 
     static auto
-    create(VulkanGPUDevice *device, const graphics::BufferCreateInfo &info)
+    create(VulkanGPU *device, const graphics::BufferCreateInfo &info)
         -> std::unique_ptr<VulkanBuffer>;
 };
 

@@ -1,8 +1,8 @@
-#include "graphics/vulkan/platform/glfw_platform.hpp"
+#include "graphics/backends/vulkan/platform/glfw_platform.hpp"
 
 #include "core/logger/logger.hpp"
 #include "core/type.hpp"
-#include "graphics/vulkan/utils/vk_utils.hpp"
+#include "graphics/backends/vulkan/utils/vk_utils.hpp"
 
 #include <GLFW/glfw3.h>
 #include <vector>

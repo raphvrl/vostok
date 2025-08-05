@@ -1,7 +1,7 @@
-#include "graphics/vulkan/core/vulkan_physical_device.hpp"
+#include "graphics/backends/vulkan/core/vulkan_physical_device.hpp"
 
 #include "core/logger/logger.hpp"
-#include "graphics/vulkan/utils/vk_utils.hpp"
+#include "graphics/backends/vulkan/utils/vk_utils.hpp"
 #include "utils/stl/optional.inl"
 
 #include <algorithm>

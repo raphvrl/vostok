@@ -1,6 +1,6 @@
 #pragma once
 
-#include "graphics/vulkan/platform/platform_interface.hpp"
+#include "graphics/backends/vulkan/platform/platform_interface.hpp"
 #include "vostok/core/type.hpp"
 
 #include <expected>

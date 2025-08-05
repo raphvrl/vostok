@@ -1,9 +1,9 @@
-#include "graphics/vulkan/core/vulkan_instance.hpp"
+#include "graphics/backends/vulkan/core/vulkan_instance.hpp"
 
 #include "core/logger/logger.hpp"
-#include "graphics/vulkan/platform/platform_interface.hpp"
-#include "graphics/vulkan/utils/vk_logger.hpp"
-#include "graphics/vulkan/utils/vk_utils.hpp"
+#include "graphics/backends/vulkan/platform/platform_interface.hpp"
+#include "graphics/backends/vulkan/utils/vk_logger.hpp"
+#include "graphics/backends/vulkan/utils/vk_utils.hpp"
 
 #include <cstring>
 #include <memory>

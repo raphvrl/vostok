@@ -1,7 +1,7 @@
 #pragma once
 
-#include "vostok/graphics/gpu_device.hpp"
-#include "vostok/graphics/vulkan/vulkan_pipeline.hpp"
+#include "vostok/graphics/gpu.hpp"
+#include "vostok/graphics/backends/vulkan/vulkan_pipeline.hpp"
 
 #include <expected>
 #include <memory>
@@ -20,18 +20,18 @@ class VulkanAllocator;
 
 class Buffer;
 
-class VulkanGPUDevice : public graphics::GPUDevice
+class VulkanGPU : public graphics::GPU
 {
 public:
     static auto create(const CreateInfo &createInfo)
-        -> std::expected<std::unique_ptr<GPUDevice>, std::string>;
+        -> std::expected<std::unique_ptr<GPU>, std::string>;
 
-    ~VulkanGPUDevice() override;
+    ~VulkanGPU() override;
 
-    VulkanGPUDevice(const VulkanGPUDevice &) = delete;
-    auto operator=(const VulkanGPUDevice &) -> VulkanGPUDevice & = delete;
-    VulkanGPUDevice(VulkanGPUDevice &&) = delete;
-    auto operator=(VulkanGPUDevice &&) -> VulkanGPUDevice & = delete;
+    VulkanGPU(const VulkanGPU &) = delete;
+    auto operator=(const VulkanGPU &) -> VulkanGPU & = delete;
+    VulkanGPU(VulkanGPU &&) = delete;
+    auto operator=(VulkanGPU &&) -> VulkanGPU & = delete;
 
     void waitIdle() override;
 
@@ -64,13 +64,13 @@ public:
     ) -> std::expected<std::unique_ptr<graphics::Buffer>, std::string> override;
 
 private:
-    VulkanGPUDevice();
+    VulkanGPU();
 
     struct Factory
     {
-        static auto create() -> std::unique_ptr<VulkanGPUDevice>
+        static auto create() -> std::unique_ptr<VulkanGPU>
         {
-            return std::unique_ptr<VulkanGPUDevice>(new VulkanGPUDevice());
+            return std::unique_ptr<VulkanGPU>(new VulkanGPU());
         }
     };
 

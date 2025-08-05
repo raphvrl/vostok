@@ -1,6 +1,6 @@
-#include "graphics/vulkan/core/vulkan_surface.hpp"
+#include "graphics/backends/vulkan/core/vulkan_surface.hpp"
 
-#include "graphics/vulkan/core/vulkan_instance.hpp"
+#include "graphics/backends/vulkan/core/vulkan_instance.hpp"
 
 namespace vostok::graphics::vulkan
 {

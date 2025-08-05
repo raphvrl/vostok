@@ -9,7 +9,7 @@
 namespace vostok::graphics::vulkan
 {
 
-class VulkanGPUDevice;
+class VulkanGPU;
 
 class VulkanPipeline : public Pipeline
 {
@@ -27,10 +27,10 @@ public:
     class Builder : public Pipeline::Builder
     {
     public:
-        static auto create(VulkanGPUDevice *device)
+        static auto create(VulkanGPU *device)
             -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string>;
 
-        Builder(VulkanGPUDevice *device);
+        Builder(VulkanGPU *device);
         ~Builder() override;
 
         Builder(Builder &) = delete;
@@ -93,7 +93,7 @@ public:
 
 private:
     VulkanPipeline(
-        VulkanGPUDevice *device,
+        VulkanGPU *device,
         VkPipeline pipeline,
         VkPipelineLayout layout
     );
@@ -101,7 +101,7 @@ private:
     struct Factory
     {
         static auto create(
-            VulkanGPUDevice *device,
+            VulkanGPU *device,
             VkPipeline pipeline,
             VkPipelineLayout layout
         ) -> std::unique_ptr<VulkanPipeline>

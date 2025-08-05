@@ -1,10 +1,10 @@
-#include "vostok/graphics/vulkan/resources/vulkan_buffer.hpp"
+#include "vostok/graphics/backends/vulkan/resources/vulkan_buffer.hpp"
 
 #include "vostok/core/logger/logger.hpp"
-#include "vostok/graphics/vulkan/core/vulkan_allocator.hpp"
-#include "vostok/graphics/vulkan/core/vulkan_frame_sync.hpp"
-#include "vostok/graphics/vulkan/utils/vk_utils.hpp"
-#include "vostok/graphics/vulkan/vulkan_device.hpp"
+#include "vostok/graphics/backends/vulkan/core/vulkan_allocator.hpp"
+#include "vostok/graphics/backends/vulkan/core/vulkan_frame_sync.hpp"
+#include "vostok/graphics/backends/vulkan/utils/vk_utils.hpp"
+#include "vostok/graphics/backends/vulkan/vulkan_gpu.hpp"
 
 #include <cstring>
 #include <vk_mem_alloc.h>
@@ -409,7 +409,7 @@ auto VulkanBuffer::operator=(VulkanBuffer &&other) noexcept -> VulkanBuffer &
 }
 
 auto VulkanBuffer::create(
-    VulkanGPUDevice *device,
+    VulkanGPU *device,
     const graphics::BufferCreateInfo &info
 ) -> std::unique_ptr<VulkanBuffer>
 {

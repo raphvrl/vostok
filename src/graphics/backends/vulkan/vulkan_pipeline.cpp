@@ -1,11 +1,11 @@
-#include "graphics/vulkan/vulkan_pipeline.hpp"
+#include "graphics/backends/vulkan/vulkan_pipeline.hpp"
 
 #include "core/logger/logger.hpp"
-#include "graphics/vulkan/core/vulkan_device.hpp"
-#include "graphics/vulkan/core/vulkan_frame_sync.hpp"
-#include "graphics/vulkan/core/vulkan_swapchain.hpp"
-#include "graphics/vulkan/utils/vk_utils.hpp"
-#include "graphics/vulkan/vulkan_device.hpp"
+#include "graphics/backends/vulkan/core/vulkan_device.hpp"
+#include "graphics/backends/vulkan/core/vulkan_frame_sync.hpp"
+#include "graphics/backends/vulkan/core/vulkan_swapchain.hpp"
+#include "graphics/backends/vulkan/utils/vk_utils.hpp"
+#include "graphics/backends/vulkan/vulkan_gpu.hpp"
 
 #include <expected>
 #include <fstream>
@@ -20,7 +20,7 @@ class VulkanPipeline::Impl
 {
 public:
     explicit Impl(
-        VulkanGPUDevice *device,
+        VulkanGPU *device,
         VkPipeline pipeline,
         VkPipelineLayout layout
     );
@@ -40,7 +40,7 @@ public:
     void bind();
 
 private:
-    VulkanGPUDevice *m_ctx;
+    VulkanGPU *m_ctx;
 
     VkPipeline m_pipeline = VK_NULL_HANDLE;
     VkPipelineLayout m_layout = VK_NULL_HANDLE;
@@ -51,7 +51,7 @@ private:
 class VulkanPipeline::Builder::Impl
 {
 public:
-    explicit Impl(VulkanGPUDevice *device);
+    explicit Impl(VulkanGPU *device);
     ~Impl() = default;
 
     Impl(Impl &) = delete;
@@ -104,7 +104,7 @@ private:
     auto createShaderModule(const std::vector<char> &code)
         -> std::expected<VkShaderModule, std::string>;
 
-    VulkanGPUDevice *m_ctx;
+    VulkanGPU *m_ctx;
     std::string m_name;
 
     struct ShaderStage
@@ -146,7 +146,7 @@ private:
 };
 
 VulkanPipeline::Impl::Impl(
-    VulkanGPUDevice *device,
+    VulkanGPU *device,
     VkPipeline pipeline,
     VkPipelineLayout layout
 )
@@ -212,7 +212,7 @@ void VulkanPipeline::Impl::bind()
     );
 }
 
-VulkanPipeline::Builder::Impl::Impl(VulkanGPUDevice *device)
+VulkanPipeline::Builder::Impl::Impl(VulkanGPU *device)
     : m_ctx(device)
 {
     Logger::debug("Created VulkanPipeline Builder");
@@ -889,18 +889,18 @@ auto VulkanPipeline::Builder::Impl::createShaderModule(
 }
 
 VulkanPipeline::VulkanPipeline(
-    VulkanGPUDevice *device,
+    VulkanGPU *device,
     VkPipeline pipeline,
     VkPipelineLayout layout
 )
     : m_impl(std::make_unique<Impl>(device, pipeline, layout))
 {}
 
-VulkanPipeline::Builder::Builder(VulkanGPUDevice *device)
+VulkanPipeline::Builder::Builder(VulkanGPU *device)
     : m_impl(std::make_unique<Impl>(device))
 {}
 
-auto VulkanPipeline::Builder::create(VulkanGPUDevice *device)
+auto VulkanPipeline::Builder::create(VulkanGPU *device)
     -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string>
 {
     if (device == nullptr) {

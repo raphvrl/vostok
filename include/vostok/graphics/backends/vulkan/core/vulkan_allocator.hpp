@@ -1,8 +1,8 @@
 #pragma once
 
-#include "vostok/graphics/vulkan/core/vulkan_device.hpp"
-#include "vostok/graphics/vulkan/core/vulkan_instance.hpp"
-#include "vostok/graphics/vulkan/core/vulkan_physical_device.hpp"
+#include "vostok/graphics/backends/vulkan/core/vulkan_device.hpp"
+#include "vostok/graphics/backends/vulkan/core/vulkan_instance.hpp"
+#include "vostok/graphics/backends/vulkan/core/vulkan_physical_device.hpp"
 
 #include <expected>
 #include <memory>

@@ -1,7 +1,7 @@
-#include "graphics/vulkan/core/vulkan_allocator.hpp"
+#include "graphics/backends/vulkan/core/vulkan_allocator.hpp"
 
 #include "core/logger/logger.hpp"
-#include "graphics/vulkan/utils/vk_utils.hpp"
+#include "graphics/backends/vulkan/utils/vk_utils.hpp"
 
 #define VMA_IMPLEMENTATION
 #define VMA_STATIC_VULKAN_FUNCTIONS 0

@@ -23,7 +23,7 @@ struct FramebufferSize
     u32 height = 0;
 };
 
-class GPUDevice
+class GPU
 {
 public:
     struct CreateInfo
@@ -41,18 +41,18 @@ public:
         bool enableVSync = true;
     };
 
-    GPUDevice() = default;
-    virtual ~GPUDevice() = default;
+    GPU() = default;
+    virtual ~GPU() = default;
 
-    GPUDevice(const GPUDevice &) = delete;
-    auto operator=(const GPUDevice &) -> GPUDevice & = delete;
-    GPUDevice(GPUDevice &&) = delete;
-    auto operator=(GPUDevice &&) -> GPUDevice & = delete;
+    GPU(const GPU &) = delete;
+    auto operator=(const GPU &) -> GPU & = delete;
+    GPU(GPU &&) = delete;
+    auto operator=(GPU &&) -> GPU & = delete;
 
     static auto create(
         const CreateInfo &createInfo,
         RenderBackend backend = RenderBackend::VULKAN
-    ) -> std::expected<std::unique_ptr<GPUDevice>, std::string>;
+    ) -> std::expected<std::unique_ptr<GPU>, std::string>;
 
     virtual void waitIdle() = 0;
 
