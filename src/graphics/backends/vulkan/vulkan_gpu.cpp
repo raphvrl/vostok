@@ -1,7 +1,6 @@
 #include "graphics/backends/vulkan/vulkan_gpu.hpp"
 
 #include "core/logger/logger.hpp"
-#include "graphics/gpu.hpp"
 #include "graphics/backends/vulkan/core/vulkan_allocator.hpp"
 #include "graphics/backends/vulkan/core/vulkan_command_pool.hpp"
 #include "graphics/backends/vulkan/core/vulkan_device.hpp"
@@ -14,6 +13,7 @@
 #include "graphics/backends/vulkan/resources/vulkan_buffer.hpp"
 #include "graphics/backends/vulkan/utils/vk_utils.hpp"
 #include "graphics/backends/vulkan/vulkan_pipeline.hpp"
+#include "graphics/gpu.hpp"
 #include "volk.h"
 
 #include <expected>
@@ -89,8 +89,9 @@ public:
         return m_frameSync.get();
     }
 
-    auto createPipelineBuilder()
-        -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string>;
+    auto createPipeline(const PipelineCreateInfo &createInfo)
+        -> std::expected<std::unique_ptr<Pipeline>, std::string>;
+
     auto createBuffer(const graphics::BufferCreateInfo &createInfo)
         -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>;
 
@@ -133,10 +134,7 @@ auto VulkanGPU::create(const CreateInfo &createInfo)
     return device;
 }
 
-VulkanGPU::Impl::Impl(
-    VulkanGPU *parent,
-    const GPU::CreateInfo &createInfo
-)
+VulkanGPU::Impl::Impl(VulkanGPU *parent, const GPU::CreateInfo &createInfo)
     : m_parent(parent)
 {
     if (!initInstance(createInfo)) {
@@ -222,9 +220,7 @@ VulkanGPU::Impl::~Impl()
     Logger::debug("Vulkan GPU device destructor completed");
 }
 
-auto VulkanGPU::Impl::initInstance(
-    const GPU::CreateInfo &createInfo
-) -> bool
+auto VulkanGPU::Impl::initInstance(const GPU::CreateInfo &createInfo) -> bool
 {
     auto platform = std::make_unique<platform::GlfwPlatform>();
 
@@ -282,8 +278,7 @@ auto VulkanGPU::Impl::initPhysicalDevice() -> bool
     return true;
 }
 
-auto VulkanGPU::Impl::initDevice(const GPU::CreateInfo &createInfo)
-    -> bool
+auto VulkanGPU::Impl::initDevice(const GPU::CreateInfo &createInfo) -> bool
 {
     VulkanDevice::CreateInfo deviceInfo;
     deviceInfo.physicalDevice = m_physicalDevice.get();
@@ -668,19 +663,18 @@ void VulkanGPU::Impl::draw(
         ->cmdDraw(vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-auto VulkanGPU::Impl::createPipelineBuilder()
-    -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string>
+auto VulkanGPU::Impl::createPipeline(const PipelineCreateInfo &createInfo)
+    -> std::expected<std::unique_ptr<Pipeline>, std::string>
 {
     if (!m_device) {
         return std::unexpected("Device is not initialized");
     }
 
-    return VulkanPipeline::Builder::create(m_parent);
+    return VulkanPipeline::create(m_parent, createInfo);
 }
 
-auto VulkanGPU::Impl::createBuffer(
-    const graphics::BufferCreateInfo &createInfo
-) -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>
+auto VulkanGPU::Impl::createBuffer(const graphics::BufferCreateInfo &createInfo)
+    -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>
 {
     if (!m_allocator) {
         return std::unexpected("Allocator is not initialized");
@@ -753,11 +747,11 @@ void VulkanGPU::draw(
     }
 }
 
-auto VulkanGPU::createPipelineBuilder()
-    -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string>
+auto VulkanGPU::createPipeline(const PipelineCreateInfo &createInfo)
+    -> std::expected<std::unique_ptr<Pipeline>, std::string>
 {
     if (m_impl) {
-        return m_impl->createPipelineBuilder();
+        return m_impl->createPipeline(createInfo);
     }
     return std::unexpected("Vulkan GPU device is not initialized");
 }

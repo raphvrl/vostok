@@ -1,7 +1,7 @@
 #pragma once
 
-#include "vostok/graphics/gpu.hpp"
 #include "vostok/graphics/backends/vulkan/vulkan_pipeline.hpp"
+#include "vostok/graphics/gpu.hpp"
 
 #include <expected>
 #include <memory>
@@ -48,9 +48,6 @@ public:
         u32 firstInstance = 0
     ) override;
 
-    auto createPipelineBuilder() -> std::
-        expected<std::unique_ptr<Pipeline::Builder>, std::string> override;
-
     [[nodiscard]] auto getInstance() const -> VulkanInstance *;
     [[nodiscard]] auto getSurface() const -> VulkanSurface *;
     [[nodiscard]] auto getPhysicalDevice() const -> VulkanPhysicalDevice *;
@@ -58,6 +55,9 @@ public:
     [[nodiscard]] auto getAllocator() const -> VulkanAllocator *;
     [[nodiscard]] auto getSwapchain() const -> VulkanSwapchain *;
     [[nodiscard]] auto getFrameSync() const -> VulkanFrameSync *;
+
+    auto createPipeline(const PipelineCreateInfo &createInfo)
+        -> std::expected<std::unique_ptr<Pipeline>, std::string> override;
 
     auto createBuffer(
         const graphics::BufferCreateInfo &createInfo

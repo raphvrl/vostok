@@ -69,8 +69,8 @@ public:
         u32 firstInstance = 0
     ) = 0;
 
-    virtual auto createPipelineBuilder()
-        -> std::expected<std::unique_ptr<Pipeline::Builder>, std::string> = 0;
+    virtual auto createPipeline(const PipelineCreateInfo &createInfo)
+        -> std::expected<std::unique_ptr<Pipeline>, std::string> = 0;
 
     virtual auto createBuffer(const BufferCreateInfo &createInfo)
         -> std::expected<std::unique_ptr<Buffer>, std::string> = 0;

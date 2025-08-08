@@ -5,6 +5,8 @@
 #include <expected>
 #include <filesystem>
 #include <memory>
+#include <optional>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -109,6 +111,43 @@ enum class ColorComponentFlags : u8
     ALL = RED | GREEN | BLUE | ALPHA
 };
 
+struct PipelineCreateInfo
+{
+    std::optional<fs::path> vertexShader;
+    std::optional<fs::path> fragmentShader;
+    std::optional<fs::path> geometryShader;
+    std::optional<fs::path> tessellationControlShader;
+    std::optional<fs::path> tessellationEvaluationShader;
+    std::optional<fs::path> computeShader;
+
+    PrimitiveTopology primitiveTopology = PrimitiveTopology::TRIANGLE_LIST;
+    PolygonMode polygonMode = PolygonMode::FILL;
+    CullMode cullMode = CullMode::BACK;
+    FrontFace frontFace = FrontFace::COUNTER_CLOCKWISE;
+    f32 lineWidth = 1.0F;
+
+    bool depthTest = true;
+    bool depthWrite = true;
+    CompareOp depthCompareOp = CompareOp::LESS;
+    bool stencilTest = false;
+    StencilOp stencilFailOp = StencilOp::KEEP;
+    StencilOp stencilPassOp = StencilOp::KEEP;
+    StencilOp stencilDepthFailOp = StencilOp::KEEP;
+
+    bool blend = false;
+    BlendFactor srcColorBlendFactor = BlendFactor::ONE;
+    BlendFactor dstColorBlendFactor = BlendFactor::ZERO;
+    BlendFactor srcAlphaBlendFactor = BlendFactor::ONE;
+    BlendFactor dstAlphaBlendFactor = BlendFactor::ZERO;
+    BlendOp colorBlendOp = BlendOp::ADD;
+    BlendOp alphaBlendOp = BlendOp::ADD;
+    ColorComponentFlags colorWriteMask = ColorComponentFlags::ALL;
+
+    size_t pushConstantSize = 0;
+
+    std::string name;
+};
+
 class Pipeline
 {
 public:
@@ -118,64 +157,6 @@ public:
     auto operator=(const Pipeline &) -> Pipeline & = delete;
     Pipeline(Pipeline &&) = delete;
     auto operator=(Pipeline &&) -> Pipeline & = delete;
-
-    class Builder
-    {
-    public:
-        Builder() = default;
-        virtual ~Builder() = default;
-
-        Builder(Builder &) = delete;
-        auto operator=(const Builder &) -> Builder & = delete;
-        Builder(Builder &&) = delete;
-        auto operator=(Builder &&) -> Builder & = delete;
-
-        virtual auto setVertexShader(const fs::path &path) -> Builder & = 0;
-        virtual auto setFragmentShader(const fs::path &path) -> Builder & = 0;
-        virtual auto setGeometryShader(const fs::path &path) -> Builder & = 0;
-        virtual auto setTessellationControlShader(const fs::path &path)
-            -> Builder & = 0;
-        virtual auto setTessellationEvaluationShader(const fs::path &path)
-            -> Builder & = 0;
-        virtual auto setComputeShader(const fs::path &path) -> Builder & = 0;
-
-        virtual auto setPrimitiveTopology(const PrimitiveTopology &topology)
-            -> Builder & = 0;
-
-        virtual auto setPolygonMode(const PolygonMode &mode) -> Builder & = 0;
-        virtual auto setCullMode(const CullMode &mode) -> Builder & = 0;
-        virtual auto setFrontFace(const FrontFace &face) -> Builder & = 0;
-        virtual auto setLineWidth(f32 width) -> Builder & = 0;
-
-        virtual auto setDepthTest(bool enable) -> Builder & = 0;
-        virtual auto setDepthWrite(bool enable) -> Builder & = 0;
-        virtual auto setDepthCompareOp(const CompareOp &op) -> Builder & = 0;
-        virtual auto setStencilTest(bool enable) -> Builder & = 0;
-        virtual auto setStencilOp(
-            const StencilOp &failOp,
-            const StencilOp &passOp,
-            const StencilOp &depthFailOp
-        ) -> Builder & = 0;
-
-        virtual auto setBlend(bool enable) -> Builder & = 0;
-        virtual auto setBlendFactor(
-            const BlendFactor &srcColor,
-            const BlendFactor &dstColor,
-            const BlendFactor &srcAlpha,
-            const BlendFactor &dstAlpha
-        ) -> Builder & = 0;
-        virtual auto setBlendOp(const BlendOp &colorOp, const BlendOp &alphaOp)
-            -> Builder & = 0;
-        virtual auto setColorWriteMask(const ColorComponentFlags &mask)
-            -> Builder & = 0;
-
-        virtual auto addPushConstant(u32 size) -> Builder & = 0;
-
-        virtual auto setName(const std::string &name) -> Builder & = 0;
-
-        virtual auto build()
-            -> std::expected<std::unique_ptr<Pipeline>, std::string> = 0;
-    };
 
     virtual void bind() = 0;
 
