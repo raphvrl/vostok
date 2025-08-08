@@ -4,9 +4,7 @@
 
 #include <expected>
 #include <filesystem>
-#include <memory>
 #include <optional>
-#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -160,8 +158,18 @@ public:
 
     virtual void bind() = 0;
 
+    template <typename T>
+        requires std::is_trivially_copyable_v<T> && (sizeof(T) <= 128)
+    auto push(const T &data, u32 offset = 0) -> std::expected<void, std::string>
+    {
+        return pushRaw(std::bit_cast<const void *>(&data), sizeof(T), offset);
+    }
+
 protected:
     Pipeline() = default;
+
+    virtual auto pushRaw(const void *data, size_t size, u32 offset = 0)
+        -> std::expected<void, std::string> = 0;
 };
 
 } // namespace vostok::graphics

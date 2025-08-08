@@ -1,10 +1,12 @@
 
 
 #include "vostok/core/logger/logger.hpp"
+#include "vostok/core/type.hpp"
 #include "vostok/graphics/backends/vulkan/vulkan_gpu.hpp"
 #include "vostok/graphics/backends/vulkan/vulkan_pipeline.hpp"
 #include "vostok/graphics/gpu.hpp"
 #include "vostok/graphics/pipeline.hpp"
+#include "vostok/math/types.hpp"
 #include "vostok/window/window.hpp"
 #include "vostok/window/window_config.hpp"
 
@@ -150,13 +152,11 @@ auto createGPUDevice(Window *window)
 auto createPipeline(graphics::GPU *gpu)
     -> std::expected<std::unique_ptr<graphics::Pipeline>, std::string>
 {
-    // Trouver les shaders
     fs::path vertexShaderPath =
         findResourcePath("shaders", "triangle.vert.spv");
     fs::path fragmentShaderPath =
         findResourcePath("shaders", "triangle.frag.spv");
 
-    // Fallback pour les shaders si pas trouvés dans le chemin principal
     if (!fs::exists(vertexShaderPath) || !fs::exists(fragmentShaderPath)) {
         std::vector<fs::path> shaderLocations = {
             "shaders",
@@ -192,7 +192,6 @@ auto createPipeline(graphics::GPU *gpu)
         Logger::info("  Fragment shader: {}", fragmentShaderPath.string());
     }
 
-    // Configuration du pipeline avec le nouveau système
     graphics::PipelineCreateInfo pipelineInfo;
     pipelineInfo.name = "TrianglePipeline";
     pipelineInfo.vertexShader = vertexShaderPath;
@@ -203,13 +202,11 @@ auto createPipeline(graphics::GPU *gpu)
     pipelineInfo.frontFace = graphics::FrontFace::COUNTER_CLOCKWISE;
     pipelineInfo.lineWidth = 1.0F;
 
-    // Configuration du depth/stencil
     pipelineInfo.depthTest = false;
     pipelineInfo.depthWrite = false;
     pipelineInfo.depthCompareOp = graphics::CompareOp::LESS;
     pipelineInfo.stencilTest = false;
 
-    // Configuration du blending
     pipelineInfo.blend = true;
     pipelineInfo.srcColorBlendFactor = graphics::BlendFactor::SRC_ALPHA;
     pipelineInfo.dstColorBlendFactor =
@@ -220,7 +217,8 @@ auto createPipeline(graphics::GPU *gpu)
     pipelineInfo.alphaBlendOp = graphics::BlendOp::ADD;
     pipelineInfo.colorWriteMask = graphics::ColorComponentFlags::ALL;
 
-    // Création du pipeline avec le nouveau système
+    pipelineInfo.pushConstantSize = sizeof(math::Vec3);
+
     auto *vulkanGPU = dynamic_cast<vostok::graphics::vulkan::VulkanGPU *>(gpu);
     auto pipelineResult = vostok::graphics::vulkan::VulkanPipeline::create(
         vulkanGPU,
@@ -244,6 +242,9 @@ auto mainLoop(HelloTriangleApp &app) -> void
     uint32_t frameCount = 0;
     auto startTime = std::chrono::high_resolution_clock::now();
 
+    math::Vec3 color{ 1.0F, 0.0F, 0.0F };
+    f32 time = 0.0F;
+
     while (!app.window->shouldClose()) {
         try {
             app.window->pollEvents();
@@ -251,6 +252,25 @@ auto mainLoop(HelloTriangleApp &app) -> void
             auto frameResult = app.gpu->beginFrame();
             if (frameResult) {
                 app.pipeline->bind();
+
+                time = static_cast<f32>(frameCount) * 0.02F;
+                color.x = (sinf(time) + 1.0F) * 0.5F;
+                color.y = (sinf(time + (math::PI / 3.0F)) + 1.0F) * 0.5F;
+                color.z = (sinf(time + (math::PI * 2.0F / 3.0F)) + 1.0F) * 0.5F;
+
+                math::Vec3 normalizedColor = color;
+                normalizedColor.x = std::clamp(normalizedColor.x, 0.0F, 1.0F);
+                normalizedColor.y = std::clamp(normalizedColor.y, 0.0F, 1.0F);
+                normalizedColor.z = std::clamp(normalizedColor.z, 0.0F, 1.0F);
+
+                auto pushResult = app.pipeline->push(normalizedColor);
+                if (!pushResult) {
+                    Logger::warning(
+                        "Failed to push color: {}",
+                        pushResult.error()
+                    );
+                }
+
                 app.gpu->draw(3, 1, 0, 0);
                 auto endResult = app.gpu->endFrame();
                 if (!endResult) {

@@ -33,6 +33,9 @@ public:
 
     void bind() override;
 
+    auto pushRaw(const void *data, size_t size, u32 offset = 0)
+        -> std::expected<void, std::string> override;
+
 private:
     class Impl;
     std::unique_ptr<Impl> m_impl;
