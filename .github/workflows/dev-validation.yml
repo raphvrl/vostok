@@ -27,7 +27,7 @@ jobs:
           vulkan-version: "1.4.313.0"
           build-type: "Debug"
           enable-examples: "false"
-          enable-clang-tidy: "false"
+          enable-clang-tidy: "true"
 
       - name: 🎨 Format Check
         uses: jidicula/clang-format-action@v4.11.0
