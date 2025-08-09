@@ -6,6 +6,8 @@
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <span>
+#include <type_traits>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -160,8 +162,19 @@ public:
 
     virtual void bind() = 0;
 
+    template <typename T>
+        requires std::is_trivially_copyable_v<T> && (sizeof(T) <= 128)
+    auto push(const T &data, u32 offset = 0) -> std::expected<void, std::string>
+    {
+        auto bytes = std::as_bytes(std::span{ &data, static_cast<size_t>(1) });
+        return pushRaw(bytes, offset);
+    }
+
 protected:
     Pipeline() = default;
+
+    virtual auto pushRaw(std::span<const std::byte> data, u32 offset = 0)
+        -> std::expected<void, std::string> = 0;
 };
 
 } // namespace vostok::graphics
