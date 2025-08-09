@@ -32,6 +32,9 @@ public:
 
     void bind() const;
 
+    auto pushRaw(std::span<const std::byte> data, u32 offset = 0)
+        -> std::expected<void, std::string>;
+
 private:
     VulkanGPU *m_gpu = nullptr;
     VkPipeline m_pipeline = VK_NULL_HANDLE;
@@ -150,7 +153,24 @@ auto VulkanPipeline::create(VulkanGPU *gpu, const PipelineCreateInfo &info)
     }
 
     Logger::debug("Creating pipeline layout");
-    auto layout = utils::createPipelineLayout(device->getHandle(), {}, {});
+    std::vector<VkPushConstantRange> pushConstantRanges;
+    if (info.pushConstantSize > 0) {
+        VkPushConstantRange range{};
+        range.stageFlags = VK_SHADER_STAGE_ALL;
+        range.offset = 0;
+        range.size = static_cast<u32>(info.pushConstantSize);
+        pushConstantRanges.push_back(range);
+        Logger::debug(
+            "Adding push constant range: size={} bytes, stages=ALL",
+            info.pushConstantSize
+        );
+    }
+
+    auto layout = utils::createPipelineLayout(
+        device->getHandle(),
+        {},
+        pushConstantRanges
+    );
 
     if (!layout) {
         Logger::error("Failed to create pipeline layout: {}", layout.error());
@@ -258,6 +278,29 @@ void VulkanPipeline::Impl::bind() const
     );
 }
 
+auto VulkanPipeline::Impl::pushRaw(std::span<const std::byte> data, u32 offset)
+    -> std::expected<void, std::string>
+{
+    if (m_gpu == nullptr || m_gpu->getFrameSync() == nullptr) {
+        Logger::error("GPU or frame sync is not initialized");
+        return std::unexpected("GPU or frame sync is not initialized");
+    }
+
+    auto *frameSync = m_gpu->getFrameSync();
+    auto *commandBuffer = frameSync->getCommandBuffer();
+
+    vkCmdPushConstants(
+        commandBuffer,
+        m_layout,
+        VK_SHADER_STAGE_ALL,
+        offset,
+        static_cast<u32>(data.size()),
+        data.data()
+    );
+
+    return {};
+}
+
 VulkanPipeline::VulkanPipeline(
     VulkanGPU *gpu,
     VkPipeline pipeline,
@@ -273,6 +316,12 @@ VulkanPipeline::~VulkanPipeline() = default;
 void VulkanPipeline::bind()
 {
     m_impl->bind();
+}
+
+auto VulkanPipeline::pushRaw(std::span<const std::byte> data, u32 offset)
+    -> std::expected<void, std::string>
+{
+    return m_impl->pushRaw(data, offset);
 }
 
 } // namespace vostok::graphics::vulkan

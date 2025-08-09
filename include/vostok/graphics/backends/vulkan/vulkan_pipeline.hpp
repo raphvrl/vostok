@@ -4,6 +4,7 @@
 
 #include <expected>
 #include <memory>
+#include <span>
 
 struct VkPipeline_T;
 struct VkPipelineLayout_T;
@@ -32,6 +33,9 @@ public:
         -> std::expected<std::unique_ptr<VulkanPipeline>, std::string>;
 
     void bind() override;
+
+    auto pushRaw(std::span<const std::byte> data, u32 offset = 0)
+        -> std::expected<void, std::string> override;
 
 private:
     class Impl;
