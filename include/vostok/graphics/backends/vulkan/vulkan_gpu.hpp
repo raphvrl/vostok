@@ -17,6 +17,7 @@ class VulkanDevice;
 class VulkanSwapchain;
 class VulkanFrameSync;
 class VulkanAllocator;
+class VulkanBindlessManager;
 
 class Buffer;
 
@@ -55,6 +56,7 @@ public:
     [[nodiscard]] auto getAllocator() const -> VulkanAllocator *;
     [[nodiscard]] auto getSwapchain() const -> VulkanSwapchain *;
     [[nodiscard]] auto getFrameSync() const -> VulkanFrameSync *;
+    [[nodiscard]] auto getBindlessManager() const -> VulkanBindlessManager *;
 
     auto createPipeline(const PipelineCreateInfo &createInfo)
         -> std::expected<std::unique_ptr<Pipeline>, std::string> override;
@@ -78,6 +80,11 @@ private:
 
     class Impl;
     std::unique_ptr<Impl> m_impl;
+
+    auto registerUBO(BindableResource *ubo, size_t size)
+        -> std::expected<u32, std::string> override;
+
+    void notifyDirtyResource(u32 bindlessIndex) override;
 };
 
 } // namespace vostok::graphics::vulkan

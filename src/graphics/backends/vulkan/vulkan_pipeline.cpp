@@ -5,6 +5,7 @@
 #include "graphics/backends/vulkan/core/vulkan_frame_sync.hpp"
 #include "graphics/backends/vulkan/core/vulkan_swapchain.hpp"
 #include "graphics/backends/vulkan/utils/vk_utils.hpp"
+#include "graphics/backends/vulkan/vulkan_bindless_manager.hpp"
 #include "graphics/backends/vulkan/vulkan_gpu.hpp"
 
 #include <expected>
@@ -19,7 +20,12 @@ namespace vostok::graphics::vulkan
 class VulkanPipeline::Impl
 {
 public:
-    explicit Impl(VulkanGPU *gpu, VkPipeline pipeline, VkPipelineLayout layout);
+    explicit Impl(
+        VulkanGPU *gpu,
+        VkPipeline pipeline,
+        VkPipelineLayout layout,
+        std::vector<VkShaderModule> shaderModules
+    );
     ~Impl();
 
     Impl(const Impl &) = delete;
@@ -39,6 +45,7 @@ private:
     VulkanGPU *m_gpu = nullptr;
     VkPipeline m_pipeline = VK_NULL_HANDLE;
     VkPipelineLayout m_layout = VK_NULL_HANDLE;
+    std::vector<VkShaderModule> m_shaderModules;
 };
 
 auto VulkanPipeline::create(VulkanGPU *gpu, const PipelineCreateInfo &info)
@@ -166,9 +173,27 @@ auto VulkanPipeline::create(VulkanGPU *gpu, const PipelineCreateInfo &info)
         );
     }
 
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+
+    if (auto *bindlessManager = gpu->getBindlessManager()) {
+        VkDescriptorSetLayout bindlessLayout =
+            bindlessManager->getDescriptorSetLayout();
+        if (bindlessLayout != VK_NULL_HANDLE) {
+            descriptorSetLayouts.push_back(bindlessLayout);
+        } else {
+            Logger::warning(
+                "Bindless layout is null, skipping bindless layout"
+            );
+        }
+    } else {
+        Logger::warning(
+            "No bindless manager available, skipping bindless layout"
+        );
+    }
+
     auto layout = utils::createPipelineLayout(
         device->getHandle(),
-        {},
+        descriptorSetLayouts,
         pushConstantRanges
     );
 
@@ -221,18 +246,21 @@ auto VulkanPipeline::create(VulkanGPU *gpu, const PipelineCreateInfo &info)
     return std::make_unique<VulkanPipeline>(
         gpu,
         pipeline.value(),
-        layout.value()
+        layout.value(),
+        shaderModules
     );
 }
 
 VulkanPipeline::Impl::Impl(
     VulkanGPU *gpu,
     VkPipeline pipeline,
-    VkPipelineLayout layout
+    VkPipelineLayout layout,
+    std::vector<VkShaderModule> shaderModules
 )
     : m_gpu(gpu),
       m_pipeline(pipeline),
-      m_layout(layout)
+      m_layout(layout),
+      m_shaderModules(std::move(shaderModules))
 {
     Logger::debug("VulkanPipeline::Impl constructor called");
 }
@@ -241,6 +269,15 @@ VulkanPipeline::Impl::~Impl()
 {
     Logger::debug("VulkanPipeline::Impl destructor called");
     auto *device = m_gpu->getDevice();
+
+    for (auto *shaderModule : m_shaderModules) {
+        if (shaderModule != VK_NULL_HANDLE) {
+            Logger::debug("Destroying shader module");
+            vkDestroyShaderModule(device->getHandle(), shaderModule, nullptr);
+        }
+    }
+
+    m_shaderModules.clear();
 
     if (m_pipeline != VK_NULL_HANDLE) {
         Logger::debug("Destroying Vulkan pipeline");
@@ -270,6 +307,23 @@ void VulkanPipeline::Impl::bind() const
     Logger::trace("Binding Vulkan pipeline to command buffer");
     auto *frameSync = m_gpu->getFrameSync();
     auto *commandBuffer = frameSync->getCommandBuffer();
+
+    if (auto *bindlessManager = m_gpu->getBindlessManager()) {
+        VkDescriptorSet bindlessDescriptorSet =
+            bindlessManager->getDescriptorSet();
+        if (bindlessDescriptorSet != VK_NULL_HANDLE) {
+            vkCmdBindDescriptorSets(
+                commandBuffer,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                m_layout,
+                0,
+                1,
+                &bindlessDescriptorSet,
+                0,
+                nullptr
+            );
+        }
+    }
 
     vkCmdBindPipeline(
         commandBuffer,
@@ -304,9 +358,17 @@ auto VulkanPipeline::Impl::pushRaw(std::span<const std::byte> data, u32 offset)
 VulkanPipeline::VulkanPipeline(
     VulkanGPU *gpu,
     VkPipeline pipeline,
-    VkPipelineLayout layout
+    VkPipelineLayout layout,
+    std::vector<VkShaderModule> shaderModules
 )
-    : m_impl(std::make_unique<Impl>(gpu, pipeline, layout))
+    : m_impl(
+          std::make_unique<Impl>(
+              gpu,
+              pipeline,
+              layout,
+              std::move(shaderModules)
+          )
+      )
 {
     Logger::debug("VulkanPipeline constructor called");
 }

@@ -5,9 +5,11 @@
 #include <expected>
 #include <memory>
 #include <span>
+#include <vector>
 
 struct VkPipeline_T;
 struct VkPipelineLayout_T;
+struct VkShaderModule_T;
 
 namespace vostok::graphics::vulkan
 {
@@ -20,7 +22,8 @@ public:
     VulkanPipeline(
         VulkanGPU *gpu,
         VkPipeline_T *pipeline,
-        VkPipelineLayout_T *layout
+        VkPipelineLayout_T *layout,
+        std::vector<VkShaderModule_T *> shaderModules
     );
     ~VulkanPipeline() override;
 

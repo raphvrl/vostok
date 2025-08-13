@@ -1,6 +1,8 @@
 #include "vostok/core/logger/logger.hpp"
 #include "vostok/graphics/backends/vulkan/vulkan_gpu.hpp"
 #include "vostok/graphics/backends/vulkan/vulkan_pipeline.hpp"
+#include "vostok/graphics/buffers/ubo.hpp"
+#include "vostok/graphics/camera/perspective_camera.hpp"
 #include "vostok/graphics/gpu.hpp"
 #include "vostok/graphics/pipeline.hpp"
 #include "vostok/math/types.hpp"
@@ -24,11 +26,23 @@
 namespace fs = std::filesystem;
 using namespace vostok;
 
+struct CameraUBO
+{
+    alignas(16) math::Mat4 view;
+    alignas(16) math::Mat4 proj;
+    alignas(16) math::Vec3 position;
+    alignas(4) f32 time;
+};
+
 struct HelloTriangleApp
 {
     std::unique_ptr<Window> window;
     std::unique_ptr<graphics::GPU> gpu;
     std::unique_ptr<graphics::Pipeline> pipeline;
+
+    graphics::UBO<CameraUBO> cameraUBO;
+
+    std::unique_ptr<graphics::PerspectiveCamera> camera;
 };
 
 auto getExecutablePath() -> fs::path
@@ -149,13 +163,11 @@ auto createGPUDevice(Window *window)
 auto createPipeline(graphics::GPU *gpu)
     -> std::expected<std::unique_ptr<graphics::Pipeline>, std::string>
 {
-    // Trouver les shaders
     fs::path vertexShaderPath =
         findResourcePath("shaders", "triangle.vert.spv");
     fs::path fragmentShaderPath =
         findResourcePath("shaders", "triangle.frag.spv");
 
-    // Fallback pour les shaders si pas trouvés dans le chemin principal
     if (!fs::exists(vertexShaderPath) || !fs::exists(fragmentShaderPath)) {
         std::vector<fs::path> shaderLocations = {
             "shaders",
@@ -234,14 +246,43 @@ auto createPipeline(graphics::GPU *gpu)
     return std::move(pipelineResult.value());
 }
 
+auto createUBO(graphics::GPU *gpu) -> std::expected<
+    std::pair<
+        graphics::UBO<CameraUBO>,
+        std::unique_ptr<graphics::PerspectiveCamera>>,
+    std::string>
+{
+    graphics::PerspectiveCamera::CreateInfo cameraInfo;
+    cameraInfo.name = "MainCamera";
+    cameraInfo.position = { 0.0F, 0.0F, 3.0F };
+    cameraInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
+    cameraInfo.perspective.fieldOfView = 45.0F;
+    cameraInfo.perspective.aspectRatio = 800.0F / 600.0F;
+    cameraInfo.perspective.nearPlane = 0.1F;
+    cameraInfo.perspective.farPlane = 100.0F;
+
+    auto camera = std::make_unique<graphics::PerspectiveCamera>(cameraInfo);
+
+    CameraUBO initialData{};
+    initialData.view = camera->getViewMatrix();
+    initialData.proj = camera->getProjectionMatrix();
+    initialData.position = camera->getPosition();
+    initialData.time = 0.0F;
+
+    auto uboResult = gpu->createUBO<CameraUBO>(initialData);
+    if (!uboResult) {
+        return std::unexpected(uboResult.error());
+    }
+
+    return std::make_pair(std::move(uboResult.value()), std::move(camera));
+}
+
 auto mainLoop(HelloTriangleApp &app) -> void
 {
     Logger::info("Entering main render loop");
 
     uint32_t frameCount = 0;
     auto startTime = std::chrono::high_resolution_clock::now();
-
-    math::Vec3 color{ 1.0F, 0.0F, 0.0F };
 
     while (!app.window->shouldClose()) {
         try {
@@ -252,19 +293,26 @@ auto mainLoop(HelloTriangleApp &app) -> void
                 app.pipeline->bind();
 
                 const f32 T = static_cast<f32>(frameCount) * 0.02F;
-                color.x = 0.5F + 0.5F * sinf(T);
-                color.y = 0.5F + 0.5F * sinf(T + (2.0F * math::PI / 3.0F));
-                color.z = 0.5F + 0.5F * sinf(T + (4.0F * math::PI / 3.0F));
+                if (app.camera && app.cameraUBO) {
+                    const f32 RADIUS = 3.0F;
+                    const f32 HEIGHT = 1.0F;
 
-                auto pushResult = app.pipeline->push(color);
-                if (!pushResult) {
-                    Logger::warning(
-                        "Failed to push color: {}",
-                        pushResult.error()
+                    app.camera->setPosition(
+                        { RADIUS * std::cos(T),
+                          HEIGHT + (0.5F * std::sin(T * 2.0F)),
+                          RADIUS * std::sin(T) }
                     );
+
+                    app.camera->lookAt({ .target = { 0.0F, 0.0F, 0.0F } });
+
+                    app.cameraUBO->view = app.camera->getViewMatrix();
+                    app.cameraUBO->proj = app.camera->getProjectionMatrix();
+                    app.cameraUBO->position = app.camera->getPosition();
+                    app.cameraUBO->time = T;
                 }
 
-                app.gpu->draw(3, 1, 0, 0);
+                app.gpu->draw(3);
+
                 auto endResult = app.gpu->endFrame();
                 if (!endResult) {
                     Logger::warning(
@@ -355,6 +403,15 @@ auto main(int argc, char *argv[]) -> int
         }
         app.pipeline = std::move(pipelineResult.value());
         Logger::info("Pipeline created successfully");
+
+        auto uboResult = createUBO(app.gpu.get());
+        if (!uboResult) {
+            Logger::error("Failed to create UBO: {}", uboResult.error());
+            return -1;
+        }
+        app.cameraUBO = std::move(uboResult.value().first);
+        app.camera = std::move(uboResult.value().second);
+        Logger::info("UBO created successfully");
 
         mainLoop(app);
 

@@ -409,7 +409,10 @@ auto VulkanBuffer::operator=(VulkanBuffer &&other) noexcept -> VulkanBuffer &
 }
 
 auto VulkanBuffer::create(
-    VulkanGPU *device,
+    VulkanInstance *instance,
+    VulkanDevice *device,
+    VulkanAllocator *allocator,
+    VulkanFrameSync *frameSync,
     const graphics::BufferCreateInfo &info
 ) -> std::unique_ptr<VulkanBuffer>
 {
@@ -444,11 +447,7 @@ auto VulkanBuffer::create(
 
     auto memoryUsage = utils::toVmaMemoryUsage(info.memory);
 
-    auto *instance = device->getInstance();
-    auto *allocator = device->getAllocator();
-    auto *frameSync = device->getFrameSync();
-
-    auto *transferQueue = device->getDevice()->getTransferQueue();
+    auto *transferQueue = device->getTransferQueue();
     if (transferQueue == nullptr) {
         Logger::error("Transfer queue is not set");
         return nullptr;
@@ -464,7 +463,7 @@ auto VulkanBuffer::create(
 
     if (!info.debugName.empty() && instance->hasValidation()) {
         bool success = utils::setDebugObjectName(
-            device->getDevice()->getHandle(),
+            device->getHandle(),
             VK_OBJECT_TYPE_BUFFER,
             std::bit_cast<u64>(buffer),
             info.debugName

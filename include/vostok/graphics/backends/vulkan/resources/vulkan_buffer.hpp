@@ -12,12 +12,22 @@
 namespace vostok::graphics::vulkan
 {
 
+class VulkanInstance;
+class VulkanDevice;
 class VulkanAllocator;
-class VulkanGPU;
+class VulkanFrameSync;
 
 class VulkanBuffer : public graphics::Buffer
 {
 public:
+    static auto create(
+        VulkanInstance *instance,
+        VulkanDevice *device,
+        VulkanAllocator *allocator,
+        VulkanFrameSync *frameSync,
+        const graphics::BufferCreateInfo &info
+    ) -> std::unique_ptr<VulkanBuffer>;
+
     ~VulkanBuffer() override;
 
     VulkanBuffer(const VulkanBuffer &) = delete;
@@ -52,10 +62,6 @@ private:
     VulkanBuffer(std::unique_ptr<Impl> impl);
 
     friend class VulkanGPU;
-
-    static auto
-    create(VulkanGPU *device, const graphics::BufferCreateInfo &info)
-        -> std::unique_ptr<VulkanBuffer>;
 };
 
 } // namespace vostok::graphics::vulkan

@@ -356,4 +356,14 @@ auto VulkanPhysicalDevice::checkDeviceExtensionSupport(
     return true;
 }
 
+auto VulkanPhysicalDevice::supportsBindlessResources() const -> bool
+{
+    return true;
+}
+
+auto VulkanPhysicalDevice::getMaxDescriptorSets() const -> u32
+{
+    return 1024;
+}
+
 } // namespace vostok::graphics::vulkan

@@ -1,8 +1,10 @@
 #pragma once
 
+#include "vostok/core/logger/logger.hpp"
 #include "vostok/core/type.hpp"
 #include "vostok/core/version.hpp"
 #include "vostok/graphics/buffer.hpp"
+#include "vostok/graphics/buffers/ubo.hpp"
 #include "vostok/graphics/pipeline.hpp"
 
 #include <expected>
@@ -74,6 +76,42 @@ public:
 
     virtual auto createBuffer(const BufferCreateInfo &createInfo)
         -> std::expected<std::unique_ptr<Buffer>, std::string> = 0;
+
+    template <typename T>
+        requires std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>
+    auto createUBO(const T &initialData = T{})
+        -> std::expected<UBO<T>, std::string>
+    {
+        auto ubo = std::make_unique<UBOImpl<T>>(initialData);
+
+        auto result = registerUBO(ubo.get(), sizeof(T));
+        if (!result) {
+            return std::unexpected(result.error());
+        }
+
+        const u32 INDEX = result.value();
+        ubo->setBindlessIndex(INDEX);
+
+        ubo->setDirtyCallback([this, INDEX](const BindableResource *resource) {
+            if (resource->getBindlessIndex() != INDEX) {
+                Logger::error(
+                    "Null resource in dirty callback for index {}",
+                    INDEX
+                );
+                return;
+            }
+
+            notifyDirtyResource(INDEX);
+        });
+
+        return UBO<T>(std::move(ubo));
+    }
+
+private:
+    virtual auto registerUBO(BindableResource *ubo, size_t size)
+        -> std::expected<u32, std::string> = 0;
+
+    virtual void notifyDirtyResource(u32 bindlessIndex) = 0;
 };
 
 } // namespace vostok::graphics
