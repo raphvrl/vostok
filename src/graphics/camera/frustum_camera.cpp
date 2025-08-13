@@ -174,9 +174,15 @@ auto FrustumCamerahandle::setPlanes(f32 nearPlane, f32 farPlane) noexcept
     return {};
 }
 
+auto FrustumCamerahandle::create(const CreateInfo &createInfo)
+    -> std::unique_ptr<FrustumCamerahandle>
+{
+    return std::make_unique<FrustumCamerahandle>(createInfo);
+}
+
 auto FrustumCamerahandle::createFromPerspective(
     const PerspectiveCameraHandle &perspectiveCamera
-) noexcept -> FrustumCamerahandle
+) noexcept -> std::unique_ptr<FrustumCamerahandle>
 {
     const auto FOV = perspectiveCamera.getFieldOfView();
     const auto ASPECT_RATIO = perspectiveCamera.getAspectRatio();
@@ -213,7 +219,7 @@ auto FrustumCamerahandle::createFromPerspective(
         TOP
     );
 
-    return FrustumCamerahandle{ createInfo };
+    return std::make_unique<FrustumCamerahandle>(createInfo);
 }
 
 void FrustumCamerahandle::onTransformChanged() noexcept {}

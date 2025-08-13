@@ -65,9 +65,11 @@ public:
         return m_config.farPlane;
     }
 
+    [[nodiscard]] static auto create(const CreateInfo &createInfo)
+        -> std::unique_ptr<FrustumCamerahandle>;
     [[nodiscard]] static auto createFromPerspective(
         const PerspectiveCameraHandle &perspectiveCamera
-    ) noexcept -> FrustumCamerahandle;
+    ) noexcept -> std::unique_ptr<FrustumCamerahandle>;
 
 protected:
     void onTransformChanged() noexcept override;
@@ -85,6 +87,40 @@ private:
     void markProjectionDirty() noexcept;
 };
 
-using FrustumCamera = std::unique_ptr<FrustumCamerahandle>;
+struct FrustumCamera : public std::unique_ptr<FrustumCamerahandle>
+{
+    using Base = std::unique_ptr<FrustumCamerahandle>;
+    using Base::Base;
+
+    FrustumCamera() = default;
+    ~FrustumCamera() = default;
+
+    FrustumCamera(FrustumCamera &&) = default;
+    auto operator=(FrustumCamera &&) -> FrustumCamera & = default;
+    FrustumCamera(const FrustumCamera &) = delete;
+    auto operator=(const FrustumCamera &) -> FrustumCamera & = delete;
+
+    explicit FrustumCamera(std::unique_ptr<FrustumCamerahandle> &&ptr)
+        : Base(std::move(ptr))
+    {}
+
+    using Config = FrustumCamerahandle::FrustumConfig;
+    using CreateInfo = FrustumCamerahandle::CreateInfo;
+
+    static auto create(const CreateInfo &createInfo) -> FrustumCamera
+    {
+        auto result = FrustumCamerahandle::create(createInfo);
+        return FrustumCamera(std::move(result));
+    }
+
+    static auto createFromPerspective(
+        const PerspectiveCameraHandle &perspectiveCamera
+    ) noexcept -> FrustumCamera
+    {
+        auto result =
+            FrustumCamerahandle::createFromPerspective(perspectiveCamera);
+        return FrustumCamera(std::move(result));
+    }
+};
 
 } // namespace vostok::graphics

@@ -78,9 +78,12 @@ public:
         const math::Vec2 &screenSize
     ) const -> std::pair<math::Vec3, math::Vec3>;
 
-    [[nodiscard]] static auto createDefault() -> PerspectiveCameraHandle;
+    [[nodiscard]] static auto create(const CreateInfo &createInfo)
+        -> std::unique_ptr<PerspectiveCameraHandle>;
+    [[nodiscard]] static auto createDefault()
+        -> std::unique_ptr<PerspectiveCameraHandle>;
     [[nodiscard]] static auto createWithFOV(f32 fov, f32 aspectRatio)
-        -> PerspectiveCameraHandle;
+        -> std::unique_ptr<PerspectiveCameraHandle>;
 
 protected:
     void onTransformChanged() noexcept override;
@@ -98,6 +101,43 @@ private:
     void markProjectionDirty() noexcept;
 };
 
-using PerspectiveCamera = std::unique_ptr<PerspectiveCameraHandle>;
+struct PerspectiveCamera : public std::unique_ptr<PerspectiveCameraHandle>
+{
+    using Base = std::unique_ptr<PerspectiveCameraHandle>;
+    using Base::Base;
+
+    PerspectiveCamera() = default;
+    ~PerspectiveCamera() = default;
+
+    PerspectiveCamera(PerspectiveCamera &&) = default;
+    auto operator=(PerspectiveCamera &&) -> PerspectiveCamera & = default;
+    PerspectiveCamera(const PerspectiveCamera &) = delete;
+    auto operator=(const PerspectiveCamera &) -> PerspectiveCamera & = delete;
+
+    explicit PerspectiveCamera(std::unique_ptr<PerspectiveCameraHandle> &&ptr)
+        : Base(std::move(ptr))
+    {}
+
+    using Config = PerspectiveCameraHandle::PerspectiveConfig;
+    using CreateInfo = PerspectiveCameraHandle::CreateInfo;
+
+    static auto create(const CreateInfo &createInfo) -> PerspectiveCamera
+    {
+        auto result = PerspectiveCameraHandle::create(createInfo);
+        return PerspectiveCamera(std::move(result));
+    }
+
+    static auto createDefault() -> PerspectiveCamera
+    {
+        auto result = PerspectiveCameraHandle::createDefault();
+        return PerspectiveCamera(std::move(result));
+    }
+
+    static auto createWithFOV(f32 fov, f32 aspectRatio) -> PerspectiveCamera
+    {
+        auto result = PerspectiveCameraHandle::createWithFOV(fov, aspectRatio);
+        return PerspectiveCamera(std::move(result));
+    }
+};
 
 } // namespace vostok::graphics

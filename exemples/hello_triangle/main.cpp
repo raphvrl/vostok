@@ -234,7 +234,7 @@ auto createUBO(graphics::GPUHandle *gpu) -> std::expected<
     std::pair<graphics::UBO<CameraUBO>, graphics::PerspectiveCamera>,
     std::string>
 {
-    graphics::PerspectiveCameraHandle::CreateInfo cameraInfo;
+    graphics::PerspectiveCamera::CreateInfo cameraInfo;
     cameraInfo.name = "MainCamera";
     cameraInfo.position = { 0.0F, 0.0F, 3.0F };
     cameraInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
@@ -243,8 +243,7 @@ auto createUBO(graphics::GPUHandle *gpu) -> std::expected<
     cameraInfo.perspective.nearPlane = 0.1F;
     cameraInfo.perspective.farPlane = 100.0F;
 
-    auto camera =
-        std::make_unique<graphics::PerspectiveCameraHandle>(cameraInfo);
+    auto camera = graphics::PerspectiveCamera::create(cameraInfo);
 
     CameraUBO initialData{};
     initialData.view = camera->getViewMatrix();

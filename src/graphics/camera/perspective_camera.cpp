@@ -234,7 +234,14 @@ auto PerspectiveCameraHandle::getWorldToScreenRay(
     return { RAY_ORIGIN, RAY_DIRECTION };
 }
 
-auto PerspectiveCameraHandle::createDefault() -> PerspectiveCameraHandle
+auto PerspectiveCameraHandle::create(const CreateInfo &createInfo)
+    -> std::unique_ptr<PerspectiveCameraHandle>
+{
+    return std::make_unique<PerspectiveCameraHandle>(createInfo);
+}
+
+auto PerspectiveCameraHandle::createDefault()
+    -> std::unique_ptr<PerspectiveCameraHandle>
 {
     PerspectiveConfig defaultConfig{};
     CreateInfo createInfo{};
@@ -243,11 +250,11 @@ auto PerspectiveCameraHandle::createDefault() -> PerspectiveCameraHandle
     createInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
     createInfo.perspective = defaultConfig;
 
-    return PerspectiveCameraHandle{ createInfo };
+    return std::make_unique<PerspectiveCameraHandle>(createInfo);
 }
 
 auto PerspectiveCameraHandle::createWithFOV(f32 fov, f32 aspectRatio)
-    -> PerspectiveCameraHandle
+    -> std::unique_ptr<PerspectiveCameraHandle>
 {
     CreateInfo createInfo{};
     createInfo.name = "PerspectiveCamera";
@@ -255,7 +262,7 @@ auto PerspectiveCameraHandle::createWithFOV(f32 fov, f32 aspectRatio)
     createInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
     createInfo.perspective = { .fieldOfView = fov, .aspectRatio = aspectRatio };
 
-    return PerspectiveCameraHandle{ createInfo };
+    return std::make_unique<PerspectiveCameraHandle>(createInfo);
 }
 
 void PerspectiveCameraHandle::onTransformChanged() noexcept {}

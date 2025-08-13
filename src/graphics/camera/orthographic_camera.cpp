@@ -179,8 +179,14 @@ auto OrthographicCamerahandle::getAspectRatio() const noexcept -> f32
     return WIDTH / HEIGHT;
 }
 
+auto OrthographicCamerahandle::create(const CreateInfo &createInfo)
+    -> std::unique_ptr<OrthographicCamerahandle>
+{
+    return std::make_unique<OrthographicCamerahandle>(createInfo);
+}
+
 auto OrthographicCamerahandle::createCentered(const CenteredParams &params)
-    -> OrthographicCamerahandle
+    -> std::unique_ptr<OrthographicCamerahandle>
 {
     const f32 HALF_WIDTH = params.width * 0.5F;
     const f32 HALF_HEIGHT = params.height * 0.5F;
@@ -196,11 +202,11 @@ auto OrthographicCamerahandle::createCentered(const CenteredParams &params)
                           .nearPlane = params.nearPlane,
                           .farPlane = params.farPlane };
 
-    return OrthographicCamerahandle{ createInfo };
+    return std::make_unique<OrthographicCamerahandle>(createInfo);
 }
 
 auto OrthographicCamerahandle::createUI(f32 screenWidth, f32 screenHeight)
-    -> OrthographicCamerahandle
+    -> std::unique_ptr<OrthographicCamerahandle>
 {
     CreateInfo createInfo{};
     createInfo.name = "OrthographicCamera_UI";
@@ -213,11 +219,11 @@ auto OrthographicCamerahandle::createUI(f32 screenWidth, f32 screenHeight)
                           .nearPlane = -1.0F,
                           .farPlane = 1.0F };
 
-    return OrthographicCamerahandle{ createInfo };
+    return std::make_unique<OrthographicCamerahandle>(createInfo);
 }
 
 auto OrthographicCamerahandle::createFromBounds(const BoundsParams &params)
-    -> OrthographicCamerahandle
+    -> std::unique_ptr<OrthographicCamerahandle>
 {
     CreateInfo createInfo{};
     createInfo.name = "OrthographicCamera";
@@ -230,7 +236,7 @@ auto OrthographicCamerahandle::createFromBounds(const BoundsParams &params)
                           .nearPlane = params.nearPlane,
                           .farPlane = params.farPlane };
 
-    return OrthographicCamerahandle{ createInfo };
+    return std::make_unique<OrthographicCamerahandle>(createInfo);
 }
 
 void OrthographicCamerahandle::onTransformChanged() noexcept {}
