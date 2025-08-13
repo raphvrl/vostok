@@ -8,7 +8,6 @@
 #include <optional>
 #include <span>
 #include <type_traits>
-#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -150,15 +149,15 @@ struct PipelineCreateInfo
     std::string name;
 };
 
-class Pipeline
+class PipelineHandle
 {
 public:
-    virtual ~Pipeline() = default;
+    virtual ~PipelineHandle() = default;
 
-    Pipeline(Pipeline &) = delete;
-    auto operator=(const Pipeline &) -> Pipeline & = delete;
-    Pipeline(Pipeline &&) = delete;
-    auto operator=(Pipeline &&) -> Pipeline & = delete;
+    PipelineHandle(PipelineHandle &) = delete;
+    auto operator=(const PipelineHandle &) -> PipelineHandle & = delete;
+    PipelineHandle(PipelineHandle &&) = delete;
+    auto operator=(PipelineHandle &&) -> PipelineHandle & = delete;
 
     virtual void bind() = 0;
 
@@ -171,10 +170,12 @@ public:
     }
 
 protected:
-    Pipeline() = default;
+    PipelineHandle() = default;
 
     virtual auto pushRaw(std::span<const std::byte> data, u32 offset = 0)
         -> std::expected<void, std::string> = 0;
 };
+
+using Pipeline = std::unique_ptr<PipelineHandle>;
 
 } // namespace vostok::graphics

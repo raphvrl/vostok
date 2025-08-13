@@ -51,7 +51,7 @@ public:
     void setVSync(bool enabled);
     void setFullscreen(bool enabled);
 
-    void setEventCallback(Window::EventCallback callback);
+    void setEventCallback(WindowHandle::EventCallback callback);
 
     void centerOnScreen();
     void maximize();
@@ -80,7 +80,7 @@ private:
     u32 m_windowedWidth = 1280;
     u32 m_windowedHeight = 720;
 
-    Window::EventCallback m_eventCallback;
+    WindowHandle::EventCallback m_eventCallback;
 
     static bool g_glfwInitialized;
     static int g_windowCount;
@@ -339,7 +339,7 @@ void GlfwWindow::Impl::setFullscreen(bool enabled)
     }
 }
 
-void GlfwWindow::Impl::setEventCallback(Window::EventCallback callback)
+void GlfwWindow::Impl::setEventCallback(WindowHandle::EventCallback callback)
 {
     m_eventCallback = std::move(callback);
 }

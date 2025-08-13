@@ -21,11 +21,11 @@ class VulkanBindlessManager;
 
 class Buffer;
 
-class VulkanGPU : public graphics::GPU
+class VulkanGPU : public graphics::GPUHandle
 {
 public:
     static auto create(const CreateInfo &createInfo)
-        -> std::expected<std::unique_ptr<GPU>, std::string>;
+        -> std::expected<std::unique_ptr<GPUHandle>, std::string>;
 
     ~VulkanGPU() override;
 
@@ -59,7 +59,7 @@ public:
     [[nodiscard]] auto getBindlessManager() const -> VulkanBindlessManager *;
 
     auto createPipeline(const PipelineCreateInfo &createInfo)
-        -> std::expected<std::unique_ptr<Pipeline>, std::string> override;
+        -> std::expected<std::unique_ptr<PipelineHandle>, std::string> override;
 
     auto createBuffer(
         const graphics::BufferCreateInfo &createInfo

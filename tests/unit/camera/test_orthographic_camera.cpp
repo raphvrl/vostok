@@ -16,20 +16,21 @@ protected:
         [[maybe_unused]] auto loggerResult = vostok::Logger::init();
     }
 
-    static auto createDefaultCamera() -> OrthographicCamera
+    static auto createDefaultCamera() -> OrthographicCamerahandle
     {
-        OrthographicCamera::OrthographicConfig config{ .left = -1.0F,
-                                                       .right = 1.0F,
-                                                       .bottom = -1.0F,
-                                                       .top = 1.0F,
-                                                       .nearPlane = 0.1F,
-                                                       .farPlane = 100.0F };
-        OrthographicCamera::CreateInfo createInfo;
+        OrthographicCamerahandle::OrthographicConfig config{ .left = -1.0F,
+                                                             .right = 1.0F,
+                                                             .bottom = -1.0F,
+                                                             .top = 1.0F,
+                                                             .nearPlane = 0.1F,
+                                                             .farPlane =
+                                                                 100.0F };
+        OrthographicCamerahandle::CreateInfo createInfo;
         createInfo.name = "TestOrthoCamera";
         createInfo.position = { 0.0F, 0.0F, 0.0F };
         createInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
         createInfo.config = config;
-        return OrthographicCamera(createInfo);
+        return OrthographicCamerahandle(createInfo);
     }
 };
 
@@ -52,7 +53,7 @@ TEST_F(OrthographicCameraTest, StaticCreateCentered)
                            .height = 2.0F,
                            .nearPlane = 0.1F,
                            .farPlane = 10.0F };
-    auto camera = OrthographicCamera::createCentered(params);
+    auto camera = OrthographicCamerahandle::createCentered(params);
     EXPECT_FLOAT_EQ(camera.getLeft(), -2.0F);
     EXPECT_FLOAT_EQ(camera.getRight(), 2.0F);
     EXPECT_FLOAT_EQ(camera.getBottom(), -1.0F);
@@ -65,7 +66,7 @@ TEST_F(OrthographicCameraTest, StaticCreateUI)
 {
     float w = 1920.0F;
     float h = 1080.0F;
-    auto camera = OrthographicCamera::createUI(w, h);
+    auto camera = OrthographicCamerahandle::createUI(w, h);
     EXPECT_FLOAT_EQ(camera.getLeft(), 0.0F);
     EXPECT_FLOAT_EQ(camera.getRight(), w);
     EXPECT_FLOAT_EQ(camera.getBottom(), 0.0F);
@@ -82,7 +83,7 @@ TEST_F(OrthographicCameraTest, StaticCreateFromBounds)
                          .top = 5.0F,
                          .nearPlane = 0.5F,
                          .farPlane = 50.0F };
-    auto camera = OrthographicCamera::createFromBounds(params);
+    auto camera = OrthographicCamerahandle::createFromBounds(params);
     EXPECT_FLOAT_EQ(camera.getLeft(), -10.0F);
     EXPECT_FLOAT_EQ(camera.getRight(), 10.0F);
     EXPECT_FLOAT_EQ(camera.getBottom(), -5.0F);
@@ -130,12 +131,12 @@ TEST_F(OrthographicCameraTest, SetPlanes_Invalid)
 TEST_F(OrthographicCameraTest, UpdateConfig_Valid)
 {
     auto camera = createDefaultCamera();
-    OrthographicCamera::OrthographicConfig config{ .left = -5.0F,
-                                                   .right = 5.0F,
-                                                   .bottom = -2.0F,
-                                                   .top = 2.0F,
-                                                   .nearPlane = 0.2F,
-                                                   .farPlane = 20.0F };
+    OrthographicCamerahandle::OrthographicConfig config{ .left = -5.0F,
+                                                         .right = 5.0F,
+                                                         .bottom = -2.0F,
+                                                         .top = 2.0F,
+                                                         .nearPlane = 0.2F,
+                                                         .farPlane = 20.0F };
     auto result = camera.updateConfig(config);
     EXPECT_TRUE(result.has_value());
     EXPECT_FLOAT_EQ(camera.getLeft(), -5.0F);
@@ -149,12 +150,12 @@ TEST_F(OrthographicCameraTest, UpdateConfig_Valid)
 TEST_F(OrthographicCameraTest, UpdateConfig_Invalid)
 {
     auto camera = createDefaultCamera();
-    OrthographicCamera::OrthographicConfig config{ .left = 5.0F,
-                                                   .right = -5.0F,
-                                                   .bottom = -2.0F,
-                                                   .top = 2.0F,
-                                                   .nearPlane = 0.2F,
-                                                   .farPlane = 20.0F };
+    OrthographicCamerahandle::OrthographicConfig config{ .left = 5.0F,
+                                                         .right = -5.0F,
+                                                         .bottom = -2.0F,
+                                                         .top = 2.0F,
+                                                         .nearPlane = 0.2F,
+                                                         .farPlane = 20.0F };
     auto result = camera.updateConfig(config);
     EXPECT_FALSE(result.has_value());
 }

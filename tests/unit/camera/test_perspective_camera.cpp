@@ -17,23 +17,23 @@ protected:
         [[maybe_unused]] auto loggerResult = vostok::Logger::init();
     }
 
-    static auto createDefaultCamera() -> PerspectiveCamera
+    static auto createDefaultCamera() -> PerspectiveCameraHandle
     {
-        PerspectiveCamera::PerspectiveConfig config{ .fieldOfView = 60.0F,
-                                                     .aspectRatio =
-                                                         16.0F / 9.0F,
-                                                     .nearPlane = 0.1F,
-                                                     .farPlane = 100.0F,
-                                                     .infiniteFarPlane =
-                                                         false };
+        PerspectiveCameraHandle::PerspectiveConfig config{ .fieldOfView = 60.0F,
+                                                           .aspectRatio =
+                                                               16.0F / 9.0F,
+                                                           .nearPlane = 0.1F,
+                                                           .farPlane = 100.0F,
+                                                           .infiniteFarPlane =
+                                                               false };
 
-        PerspectiveCamera::CreateInfo createInfo;
+        PerspectiveCameraHandle::CreateInfo createInfo;
         createInfo.name = "TestCamera";
         createInfo.position = { 0.0F, 0.0F, 0.0F };
         createInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
         createInfo.perspective = config;
 
-        return PerspectiveCamera(createInfo);
+        return PerspectiveCameraHandle(createInfo);
     }
 };
 
@@ -52,7 +52,7 @@ TEST_F(PerspectiveCameraTest, DefaultConstruction)
 
 TEST_F(PerspectiveCameraTest, StaticCreateDefault)
 {
-    auto camera = PerspectiveCamera::createDefault();
+    auto camera = PerspectiveCameraHandle::createDefault();
 
     EXPECT_GT(camera.getFieldOfView(), 0.0F);
     EXPECT_GT(camera.getAspectRatio(), 0.0F);
@@ -64,7 +64,8 @@ TEST_F(PerspectiveCameraTest, StaticCreateWithFOV)
 {
     const f32 TEST_FOV = 75.0F;
     const f32 TEST_ASPECT_RATIO = 4.0F / 3.0F;
-    auto camera = PerspectiveCamera::createWithFOV(TEST_FOV, TEST_ASPECT_RATIO);
+    auto camera =
+        PerspectiveCameraHandle::createWithFOV(TEST_FOV, TEST_ASPECT_RATIO);
 
     EXPECT_FLOAT_EQ(camera.getFieldOfView(), TEST_FOV);
     EXPECT_FLOAT_EQ(camera.getAspectRatio(), TEST_ASPECT_RATIO);
@@ -223,11 +224,12 @@ TEST_F(PerspectiveCameraTest, UpdateConfig_ValidConfig)
 {
     auto camera = createDefaultCamera();
 
-    PerspectiveCamera::PerspectiveConfig newConfig{ .fieldOfView = 90.0F,
-                                                    .aspectRatio = 1.0F,
-                                                    .nearPlane = 0.5F,
-                                                    .farPlane = 500.0F,
-                                                    .infiniteFarPlane = true };
+    PerspectiveCameraHandle::PerspectiveConfig newConfig{ .fieldOfView = 90.0F,
+                                                          .aspectRatio = 1.0F,
+                                                          .nearPlane = 0.5F,
+                                                          .farPlane = 500.0F,
+                                                          .infiniteFarPlane =
+                                                              true };
 
     auto result = camera.updateConfig(newConfig);
     EXPECT_TRUE(result.has_value());
@@ -244,12 +246,13 @@ TEST_F(PerspectiveCameraTest, UpdateConfig_InvalidConfig)
     auto camera = createDefaultCamera();
     const f32 ORIGINAL_FOV = camera.getFieldOfView();
 
-    PerspectiveCamera::PerspectiveConfig invalidConfig{ .fieldOfView = -45.0F,
-                                                        .aspectRatio = 1.0F,
-                                                        .nearPlane = 0.1F,
-                                                        .farPlane = 100.0F,
-                                                        .infiniteFarPlane =
-                                                            false };
+    PerspectiveCameraHandle::PerspectiveConfig invalidConfig{
+        .fieldOfView = -45.0F,
+        .aspectRatio = 1.0F,
+        .nearPlane = 0.1F,
+        .farPlane = 100.0F,
+        .infiniteFarPlane = false
+    };
 
     auto result = camera.updateConfig(invalidConfig);
     EXPECT_FALSE(result.has_value());

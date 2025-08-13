@@ -16,7 +16,7 @@ namespace vostok::graphics::vulkan
 
 class VulkanGPU;
 
-class VulkanPipeline : public Pipeline
+class VulkanPipeline : public PipelineHandle
 {
 public:
     VulkanPipeline(

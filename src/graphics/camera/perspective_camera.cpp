@@ -9,7 +9,7 @@
 namespace vostok::graphics
 {
 
-PerspectiveCamera::PerspectiveCamera(const CreateInfo &createInfo)
+PerspectiveCameraHandle::PerspectiveCameraHandle(const CreateInfo &createInfo)
     : Camera(createInfo),
       m_config(createInfo.perspective)
 {
@@ -20,7 +20,7 @@ PerspectiveCamera::PerspectiveCamera(const CreateInfo &createInfo)
     markProjectionDirty();
 }
 
-auto PerspectiveCamera::getProjectionMatrix() const noexcept
+auto PerspectiveCameraHandle::getProjectionMatrix() const noexcept
     -> const math::Mat4 &
 {
     if (m_projectionMatrixDirty) {
@@ -30,17 +30,18 @@ auto PerspectiveCamera::getProjectionMatrix() const noexcept
     return m_projectionMatrix;
 }
 
-auto PerspectiveCamera::getViewMatrix() const noexcept -> const math::Mat4 &
+auto PerspectiveCameraHandle::getViewMatrix() const noexcept
+    -> const math::Mat4 &
 {
     return Camera::getViewMatrix();
 }
 
-auto PerspectiveCamera::getViewProjectionMatrix() const -> math::Mat4
+auto PerspectiveCameraHandle::getViewProjectionMatrix() const -> math::Mat4
 {
     return getProjectionMatrix() * getViewMatrix();
 }
 
-auto PerspectiveCamera::setFieldOfView(f32 fieldOfView) noexcept
+auto PerspectiveCameraHandle::setFieldOfView(f32 fieldOfView) noexcept
     -> std::expected<void, std::string>
 {
     if (fieldOfView <= 0.0F || fieldOfView >= 180.0F) {
@@ -60,7 +61,7 @@ auto PerspectiveCamera::setFieldOfView(f32 fieldOfView) noexcept
     return {};
 }
 
-auto PerspectiveCamera::setAspectRatio(f32 aspectRatio) noexcept
+auto PerspectiveCameraHandle::setAspectRatio(f32 aspectRatio) noexcept
     -> std::expected<void, std::string>
 {
     if (aspectRatio <= 0.0F) {
@@ -80,7 +81,7 @@ auto PerspectiveCamera::setAspectRatio(f32 aspectRatio) noexcept
     return {};
 }
 
-auto PerspectiveCamera::setNearPlane(f32 nearPlane) noexcept
+auto PerspectiveCameraHandle::setNearPlane(f32 nearPlane) noexcept
     -> std::expected<void, std::string>
 {
     if (nearPlane <= 0.0F) {
@@ -110,7 +111,7 @@ auto PerspectiveCamera::setNearPlane(f32 nearPlane) noexcept
     return {};
 }
 
-auto PerspectiveCamera::setFarPlane(f32 farPlane) noexcept
+auto PerspectiveCameraHandle::setFarPlane(f32 farPlane) noexcept
     -> std::expected<void, std::string>
 {
     if (m_config.infiniteFarPlane) {
@@ -137,7 +138,7 @@ auto PerspectiveCamera::setFarPlane(f32 farPlane) noexcept
     return {};
 }
 
-void PerspectiveCamera::setInfiniteFarPlane(bool infinite) noexcept
+void PerspectiveCameraHandle::setInfiniteFarPlane(bool infinite) noexcept
 {
     if (m_config.infiniteFarPlane != infinite) {
         m_config.infiniteFarPlane = infinite;
@@ -145,8 +146,9 @@ void PerspectiveCamera::setInfiniteFarPlane(bool infinite) noexcept
     }
 }
 
-auto PerspectiveCamera::updateConfig(const PerspectiveConfig &config) noexcept
-    -> std::expected<void, std::string>
+auto PerspectiveCameraHandle::updateConfig(
+    const PerspectiveConfig &config
+) noexcept -> std::expected<void, std::string>
 {
     if (auto result = validateConfig(config); !result.has_value()) {
         return std::unexpected(result.error());
@@ -166,7 +168,8 @@ auto PerspectiveCamera::updateConfig(const PerspectiveConfig &config) noexcept
     return {};
 }
 
-auto PerspectiveCamera::getFrustumCorners() const -> std::array<math::Vec3, 8>
+auto PerspectiveCameraHandle::getFrustumCorners() const
+    -> std::array<math::Vec3, 8>
 {
     const auto INV_VIEW_PROJ =
         math::inverse(getProjectionMatrix() * getViewMatrix());
@@ -198,7 +201,7 @@ auto PerspectiveCamera::getFrustumCorners() const -> std::array<math::Vec3, 8>
     return worldCorners;
 }
 
-auto PerspectiveCamera::getWorldToScreenRay(
+auto PerspectiveCameraHandle::getWorldToScreenRay(
     const math::Vec2 &screenPos,
     const math::Vec2 &screenSize
 ) const -> std::pair<math::Vec3, math::Vec3>
@@ -231,7 +234,7 @@ auto PerspectiveCamera::getWorldToScreenRay(
     return { RAY_ORIGIN, RAY_DIRECTION };
 }
 
-auto PerspectiveCamera::createDefault() -> PerspectiveCamera
+auto PerspectiveCameraHandle::createDefault() -> PerspectiveCameraHandle
 {
     PerspectiveConfig defaultConfig{};
     CreateInfo createInfo{};
@@ -240,11 +243,11 @@ auto PerspectiveCamera::createDefault() -> PerspectiveCamera
     createInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
     createInfo.perspective = defaultConfig;
 
-    return PerspectiveCamera{ createInfo };
+    return PerspectiveCameraHandle{ createInfo };
 }
 
-auto PerspectiveCamera::createWithFOV(f32 fov, f32 aspectRatio)
-    -> PerspectiveCamera
+auto PerspectiveCameraHandle::createWithFOV(f32 fov, f32 aspectRatio)
+    -> PerspectiveCameraHandle
 {
     CreateInfo createInfo{};
     createInfo.name = "PerspectiveCamera";
@@ -252,17 +255,17 @@ auto PerspectiveCamera::createWithFOV(f32 fov, f32 aspectRatio)
     createInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
     createInfo.perspective = { .fieldOfView = fov, .aspectRatio = aspectRatio };
 
-    return PerspectiveCamera{ createInfo };
+    return PerspectiveCameraHandle{ createInfo };
 }
 
-void PerspectiveCamera::onTransformChanged() noexcept {}
+void PerspectiveCameraHandle::onTransformChanged() noexcept {}
 
-void PerspectiveCamera::onProjectionChanged() noexcept
+void PerspectiveCameraHandle::onProjectionChanged() noexcept
 {
     markProjectionDirty();
 }
 
-void PerspectiveCamera::updateProjectionMatrix() const noexcept
+void PerspectiveCameraHandle::updateProjectionMatrix() const noexcept
 {
     const f32 FOV_RADIANS = math::radians(m_config.fieldOfView);
 
@@ -284,8 +287,9 @@ void PerspectiveCamera::updateProjectionMatrix() const noexcept
     m_projectionMatrixDirty = false;
 }
 
-auto PerspectiveCamera::validateConfig(const PerspectiveConfig &config) noexcept
-    -> std::expected<bool, std::string>
+auto PerspectiveCameraHandle::validateConfig(
+    const PerspectiveConfig &config
+) noexcept -> std::expected<bool, std::string>
 {
     if (config.fieldOfView <= 0.0F || config.fieldOfView >= 180.0F) {
         return std::unexpected(
@@ -337,7 +341,7 @@ auto PerspectiveCamera::validateConfig(const PerspectiveConfig &config) noexcept
     return {};
 }
 
-void PerspectiveCamera::markProjectionDirty() noexcept
+void PerspectiveCameraHandle::markProjectionDirty() noexcept
 {
     m_projectionMatrixDirty = true;
 }

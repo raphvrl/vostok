@@ -3,11 +3,12 @@
 #include "perspective_camera.hpp"
 
 #include <expected>
+#include <memory>
 
 namespace vostok::graphics
 {
 
-class FrustumCamera : public Camera
+class FrustumCamerahandle : public Camera
 {
 public:
     struct FrustumConfig
@@ -25,7 +26,7 @@ public:
         FrustumConfig config{};
     };
 
-    explicit FrustumCamera(const CreateInfo &createInfo);
+    explicit FrustumCamerahandle(const CreateInfo &createInfo);
 
     [[nodiscard]] auto getProjectionMatrix() const noexcept
         -> const math::Mat4 & override;
@@ -64,9 +65,9 @@ public:
         return m_config.farPlane;
     }
 
-    [[nodiscard]] static auto
-    createFromPerspective(const PerspectiveCamera &perspectiveCamera) noexcept
-        -> FrustumCamera;
+    [[nodiscard]] static auto createFromPerspective(
+        const PerspectiveCameraHandle &perspectiveCamera
+    ) noexcept -> FrustumCamerahandle;
 
 protected:
     void onTransformChanged() noexcept override;
@@ -83,5 +84,7 @@ private:
         -> std::expected<void, std::string>;
     void markProjectionDirty() noexcept;
 };
+
+using FrustumCamera = std::unique_ptr<FrustumCamerahandle>;
 
 } // namespace vostok::graphics

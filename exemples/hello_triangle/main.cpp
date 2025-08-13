@@ -1,6 +1,4 @@
 #include "vostok/core/logger/logger.hpp"
-#include "vostok/graphics/backends/vulkan/vulkan_gpu.hpp"
-#include "vostok/graphics/backends/vulkan/vulkan_pipeline.hpp"
 #include "vostok/graphics/buffers/ubo.hpp"
 #include "vostok/graphics/camera/perspective_camera.hpp"
 #include "vostok/graphics/gpu.hpp"
@@ -36,13 +34,12 @@ struct CameraUBO
 
 struct HelloTriangleApp
 {
-    std::unique_ptr<Window> window;
-    std::unique_ptr<graphics::GPU> gpu;
-    std::unique_ptr<graphics::Pipeline> pipeline;
+    Window window;
+    graphics::GPU gpu;
+    graphics::Pipeline pipeline;
 
     graphics::UBO<CameraUBO> cameraUBO;
-
-    std::unique_ptr<graphics::PerspectiveCamera> camera;
+    graphics::PerspectiveCamera camera;
 };
 
 auto getExecutablePath() -> fs::path
@@ -135,7 +132,7 @@ auto initializeLogger() -> bool
     return true;
 }
 
-auto createWindow() -> std::expected<std::unique_ptr<Window>, std::string>
+auto createWindow() -> std::expected<std::unique_ptr<WindowHandle>, std::string>
 {
     WindowConfig windowInfo;
     windowInfo.title = "Vostok Hello Triangle";
@@ -143,13 +140,13 @@ auto createWindow() -> std::expected<std::unique_ptr<Window>, std::string>
     windowInfo.height = 600;
     windowInfo.resizable = true;
 
-    return Window::create(windowInfo);
+    return WindowHandle::create(windowInfo);
 }
 
-auto createGPUDevice(Window *window)
-    -> std::expected<std::unique_ptr<graphics::GPU>, std::string>
+auto createGPUDevice(WindowHandle *window)
+    -> std::expected<graphics::GPU, std::string>
 {
-    graphics::GPU::CreateInfo deviceInfo;
+    graphics::GPUHandle::CreateInfo deviceInfo;
     deviceInfo.appName = "Vostok Hello Triangle";
     deviceInfo.appVersion = core::Version{ .major = 0, .minor = 1, .patch = 0 };
     deviceInfo.enableValidationLayers = true;
@@ -157,11 +154,11 @@ auto createGPUDevice(Window *window)
     deviceInfo.width = window->getWidth();
     deviceInfo.height = window->getHeight();
 
-    return graphics::GPU::create(deviceInfo);
+    return graphics::GPUHandle::create(deviceInfo);
 }
 
-auto createPipeline(graphics::GPU *gpu)
-    -> std::expected<std::unique_ptr<graphics::Pipeline>, std::string>
+auto createPipeline(graphics::GPUHandle *gpu)
+    -> std::expected<std::unique_ptr<graphics::PipelineHandle>, std::string>
 {
     fs::path vertexShaderPath =
         findResourcePath("shaders", "triangle.vert.spv");
@@ -230,11 +227,7 @@ auto createPipeline(graphics::GPU *gpu)
 
     pipelineInfo.pushConstantSize = sizeof(math::Vec3);
 
-    auto *vulkanGPU = dynamic_cast<vostok::graphics::vulkan::VulkanGPU *>(gpu);
-    auto pipelineResult = vostok::graphics::vulkan::VulkanPipeline::create(
-        vulkanGPU,
-        pipelineInfo
-    );
+    auto pipelineResult = gpu->createPipeline(pipelineInfo);
 
     if (!pipelineResult) {
         return std::unexpected(
@@ -246,13 +239,11 @@ auto createPipeline(graphics::GPU *gpu)
     return std::move(pipelineResult.value());
 }
 
-auto createUBO(graphics::GPU *gpu) -> std::expected<
-    std::pair<
-        graphics::UBO<CameraUBO>,
-        std::unique_ptr<graphics::PerspectiveCamera>>,
+auto createUBO(graphics::GPUHandle *gpu) -> std::expected<
+    std::pair<graphics::UBO<CameraUBO>, graphics::PerspectiveCamera>,
     std::string>
 {
-    graphics::PerspectiveCamera::CreateInfo cameraInfo;
+    graphics::PerspectiveCameraHandle::CreateInfo cameraInfo;
     cameraInfo.name = "MainCamera";
     cameraInfo.position = { 0.0F, 0.0F, 3.0F };
     cameraInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
@@ -261,7 +252,8 @@ auto createUBO(graphics::GPU *gpu) -> std::expected<
     cameraInfo.perspective.nearPlane = 0.1F;
     cameraInfo.perspective.farPlane = 100.0F;
 
-    auto camera = std::make_unique<graphics::PerspectiveCamera>(cameraInfo);
+    auto camera =
+        std::make_unique<graphics::PerspectiveCameraHandle>(cameraInfo);
 
     CameraUBO initialData{};
     initialData.view = camera->getViewMatrix();

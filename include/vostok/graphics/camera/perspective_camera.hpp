@@ -4,11 +4,12 @@
 
 #include <array>
 #include <expected>
+#include <memory>
 
 namespace vostok::graphics
 {
 
-class PerspectiveCamera final : public Camera
+class PerspectiveCameraHandle final : public Camera
 {
 public:
     struct PerspectiveConfig
@@ -25,7 +26,7 @@ public:
         PerspectiveConfig perspective{};
     };
 
-    explicit PerspectiveCamera(const CreateInfo &createInfo);
+    explicit PerspectiveCameraHandle(const CreateInfo &createInfo);
 
     [[nodiscard]] auto getProjectionMatrix() const noexcept
         -> const math::Mat4 & override;
@@ -77,9 +78,9 @@ public:
         const math::Vec2 &screenSize
     ) const -> std::pair<math::Vec3, math::Vec3>;
 
-    [[nodiscard]] static auto createDefault() -> PerspectiveCamera;
+    [[nodiscard]] static auto createDefault() -> PerspectiveCameraHandle;
     [[nodiscard]] static auto createWithFOV(f32 fov, f32 aspectRatio)
-        -> PerspectiveCamera;
+        -> PerspectiveCameraHandle;
 
 protected:
     void onTransformChanged() noexcept override;
@@ -96,5 +97,7 @@ private:
         -> std::expected<bool, std::string>;
     void markProjectionDirty() noexcept;
 };
+
+using PerspectiveCamera = std::unique_ptr<PerspectiveCameraHandle>;
 
 } // namespace vostok::graphics

@@ -17,41 +17,41 @@ protected:
         [[maybe_unused]] auto loggerResult = vostok::Logger::init();
     }
 
-    static auto createDefaultCamera() -> FrustumCamera
+    static auto createDefaultCamera() -> FrustumCamerahandle
     {
-        FrustumCamera::FrustumConfig config{ .left = -1.0F,
-                                             .right = 1.0F,
-                                             .bottom = -1.0F,
-                                             .top = 1.0F,
-                                             .nearPlane = 0.1F,
-                                             .farPlane = 100.0F };
+        FrustumCamerahandle::FrustumConfig config{ .left = -1.0F,
+                                                   .right = 1.0F,
+                                                   .bottom = -1.0F,
+                                                   .top = 1.0F,
+                                                   .nearPlane = 0.1F,
+                                                   .farPlane = 100.0F };
 
-        FrustumCamera::CreateInfo createInfo;
+        FrustumCamerahandle::CreateInfo createInfo;
         createInfo.name = "TestFrustumCamera";
         createInfo.position = { 0.0F, 0.0F, 0.0F };
         createInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
         createInfo.config = config;
 
-        return FrustumCamera(createInfo);
+        return FrustumCamerahandle(createInfo);
     }
 
-    static auto createTestPerspectiveCamera() -> PerspectiveCamera
+    static auto createTestPerspectiveCamera() -> PerspectiveCameraHandle
     {
-        PerspectiveCamera::PerspectiveConfig config{ .fieldOfView = 60.0F,
-                                                     .aspectRatio =
-                                                         16.0F / 9.0F,
-                                                     .nearPlane = 0.1F,
-                                                     .farPlane = 100.0F,
-                                                     .infiniteFarPlane =
-                                                         false };
+        PerspectiveCameraHandle::PerspectiveConfig config{ .fieldOfView = 60.0F,
+                                                           .aspectRatio =
+                                                               16.0F / 9.0F,
+                                                           .nearPlane = 0.1F,
+                                                           .farPlane = 100.0F,
+                                                           .infiniteFarPlane =
+                                                               false };
 
-        PerspectiveCamera::CreateInfo createInfo;
+        PerspectiveCameraHandle::CreateInfo createInfo;
         createInfo.name = "TestPerspectiveCamera";
         createInfo.position = { 0.0F, 0.0F, 0.0F };
         createInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
         createInfo.perspective = config;
 
-        return PerspectiveCamera(createInfo);
+        return PerspectiveCameraHandle(createInfo);
     }
 };
 
@@ -73,7 +73,7 @@ TEST_F(FrustumCameraTest, StaticCreateFromPerspective)
 {
     auto perspectiveCamera = createTestPerspectiveCamera();
     auto frustumCamera =
-        FrustumCamera::createFromPerspective(perspectiveCamera);
+        FrustumCamerahandle::createFromPerspective(perspectiveCamera);
 
     EXPECT_EQ(frustumCamera.getCameraType(), CameraType::FRUSTUM);
     EXPECT_GT(frustumCamera.getNearPlane(), 0.0F);
@@ -151,12 +151,12 @@ TEST_F(FrustumCameraTest, UpdateConfig_Valid)
 {
     auto camera = createDefaultCamera();
 
-    FrustumCamera::FrustumConfig config{ .left = -5.0F,
-                                         .right = 5.0F,
-                                         .bottom = -2.0F,
-                                         .top = 2.0F,
-                                         .nearPlane = 0.2F,
-                                         .farPlane = 20.0F };
+    FrustumCamerahandle::FrustumConfig config{ .left = -5.0F,
+                                               .right = 5.0F,
+                                               .bottom = -2.0F,
+                                               .top = 2.0F,
+                                               .nearPlane = 0.2F,
+                                               .farPlane = 20.0F };
 
     auto result = camera.updateConfig(config);
     EXPECT_TRUE(result.has_value());
@@ -174,12 +174,12 @@ TEST_F(FrustumCameraTest, UpdateConfig_Invalid)
     auto camera = createDefaultCamera();
     const f32 ORIGINAL_LEFT = camera.getLeft();
 
-    FrustumCamera::FrustumConfig invalidConfig{ .left = 5.0F,
-                                                .right = -5.0F,
-                                                .bottom = -2.0F,
-                                                .top = 2.0F,
-                                                .nearPlane = 0.2F,
-                                                .farPlane = 20.0F };
+    FrustumCamerahandle::FrustumConfig invalidConfig{ .left = 5.0F,
+                                                      .right = -5.0F,
+                                                      .bottom = -2.0F,
+                                                      .top = 2.0F,
+                                                      .nearPlane = 0.2F,
+                                                      .farPlane = 20.0F };
 
     auto result = camera.updateConfig(invalidConfig);
     EXPECT_FALSE(result.has_value());
@@ -321,7 +321,7 @@ TEST_F(FrustumCameraTest, ConversionFromPerspective_Accuracy)
 {
     auto perspectiveCamera = createTestPerspectiveCamera();
     auto frustumCamera =
-        FrustumCamera::createFromPerspective(perspectiveCamera);
+        FrustumCamerahandle::createFromPerspective(perspectiveCamera);
 
     const auto &perspectiveMatrix = perspectiveCamera.getProjectionMatrix();
     const auto &frustumMatrix = frustumCamera.getProjectionMatrix();

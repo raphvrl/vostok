@@ -5,8 +5,8 @@
 namespace vostok::graphics
 {
 
-auto GPU::create(const CreateInfo &createInfo, RenderBackend backend)
-    -> std::expected<std::unique_ptr<GPU>, std::string>
+auto GPUHandle::create(const CreateInfo &createInfo, RenderBackend backend)
+    -> std::expected<std::unique_ptr<GPUHandle>, std::string>
 {
     switch (backend) {
         case RenderBackend::VULKAN:

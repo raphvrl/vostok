@@ -3,6 +3,7 @@
 #include "camera.hpp"
 
 #include <expected>
+#include <memory>
 #include <string>
 
 namespace vostok::graphics
@@ -25,7 +26,7 @@ struct CenteredParams
     f32 farPlane = 100.0F;
 };
 
-class OrthographicCamera : public Camera
+class OrthographicCamerahandle : public Camera
 {
 public:
     struct OrthographicConfig
@@ -43,7 +44,7 @@ public:
         OrthographicConfig config{};
     };
 
-    explicit OrthographicCamera(const CreateInfo &createInfo);
+    explicit OrthographicCamerahandle(const CreateInfo &createInfo);
 
     [[nodiscard]] auto getProjectionMatrix() const noexcept
         -> const math::Mat4 & override;
@@ -93,11 +94,11 @@ public:
     [[nodiscard]] auto getAspectRatio() const noexcept -> f32;
 
     [[nodiscard]] static auto createCentered(const CenteredParams &params)
-        -> OrthographicCamera;
+        -> OrthographicCamerahandle;
     [[nodiscard]] static auto createUI(f32 screenWidth, f32 screenHeight)
-        -> OrthographicCamera;
+        -> OrthographicCamerahandle;
     [[nodiscard]] static auto createFromBounds(const BoundsParams &params)
-        -> OrthographicCamera;
+        -> OrthographicCamerahandle;
 
 protected:
     void onTransformChanged() noexcept override;
@@ -114,5 +115,7 @@ private:
         -> std::expected<bool, std::string>;
     void markProjectionDirty() noexcept;
 };
+
+using OrthographicCamera = std::unique_ptr<OrthographicCamerahandle>;
 
 } // namespace vostok::graphics
