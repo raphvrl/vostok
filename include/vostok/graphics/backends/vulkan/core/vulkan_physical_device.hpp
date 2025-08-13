@@ -82,6 +82,9 @@ public:
         const std::vector<const char *> &requiredExtensions
     ) const -> bool;
 
+    [[nodiscard]] auto supportsBindlessResources() const -> bool;
+    [[nodiscard]] auto getMaxDescriptorSets() const -> u32;
+
 private:
     VulkanPhysicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 

@@ -2,6 +2,7 @@
 
 #include "core/logger/logger.hpp"
 #include "graphics/backends/vulkan/utils/vk_utils.hpp"
+#include "graphics/backends/vulkan/core/vulkan_physical_device.hpp"
 #include "utils/stl/optional.inl"
 #include "volk.h"
 
@@ -250,6 +251,16 @@ void VulkanDevice::waitIdle() const
     if (m_device != VK_NULL_HANDLE) {
         vkDeviceWaitIdle(m_device);
     }
+}
+
+auto VulkanDevice::supportsBindlessResources() const -> bool
+{
+    return m_physicalDevice->supportsBindlessResources();
+}
+
+auto VulkanDevice::getMaxDescriptorSets() const -> u32
+{
+    return m_physicalDevice->getMaxDescriptorSets();
 }
 
 }; // namespace vostok::graphics::vulkan

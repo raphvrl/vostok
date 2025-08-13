@@ -1,6 +1,7 @@
 #include "vostok/core/logger/logger.hpp"
 #include "vostok/graphics/backends/vulkan/vulkan_gpu.hpp"
 #include "vostok/graphics/backends/vulkan/vulkan_pipeline.hpp"
+#include "vostok/graphics/buffers/bindable_resource_ptr.hpp"
 #include "vostok/graphics/gpu.hpp"
 #include "vostok/graphics/pipeline.hpp"
 #include "vostok/math/types.hpp"
@@ -24,11 +25,18 @@
 namespace fs = std::filesystem;
 using namespace vostok;
 
+struct ColorUBO
+{
+    alignas(16) math::Vec3 color;
+};
+
 struct HelloTriangleApp
 {
     std::unique_ptr<Window> window;
     std::unique_ptr<graphics::GPU> gpu;
     std::unique_ptr<graphics::Pipeline> pipeline;
+
+    graphics::UBOPtr<ColorUBO> colorUBO;
 };
 
 auto getExecutablePath() -> fs::path
@@ -149,13 +157,11 @@ auto createGPUDevice(Window *window)
 auto createPipeline(graphics::GPU *gpu)
     -> std::expected<std::unique_ptr<graphics::Pipeline>, std::string>
 {
-    // Trouver les shaders
     fs::path vertexShaderPath =
         findResourcePath("shaders", "triangle.vert.spv");
     fs::path fragmentShaderPath =
         findResourcePath("shaders", "triangle.frag.spv");
 
-    // Fallback pour les shaders si pas trouvés dans le chemin principal
     if (!fs::exists(vertexShaderPath) || !fs::exists(fragmentShaderPath)) {
         std::vector<fs::path> shaderLocations = {
             "shaders",
@@ -234,14 +240,20 @@ auto createPipeline(graphics::GPU *gpu)
     return std::move(pipelineResult.value());
 }
 
+auto createUBO(graphics::GPU *gpu)
+    -> std::expected<std::unique_ptr<graphics::UBO<ColorUBO>>, std::string>
+{
+    ColorUBO initialData = { .color = math::Vec3{ 1.0F, 0.0F, 0.0F } };
+
+    return gpu->createUBO<ColorUBO>(initialData);
+}
+
 auto mainLoop(HelloTriangleApp &app) -> void
 {
     Logger::info("Entering main render loop");
 
     uint32_t frameCount = 0;
     auto startTime = std::chrono::high_resolution_clock::now();
-
-    math::Vec3 color{ 1.0F, 0.0F, 0.0F };
 
     while (!app.window->shouldClose()) {
         try {
@@ -252,19 +264,16 @@ auto mainLoop(HelloTriangleApp &app) -> void
                 app.pipeline->bind();
 
                 const f32 T = static_cast<f32>(frameCount) * 0.02F;
-                color.x = 0.5F + 0.5F * sinf(T);
-                color.y = 0.5F + 0.5F * sinf(T + (2.0F * math::PI / 3.0F));
-                color.z = 0.5F + 0.5F * sinf(T + (4.0F * math::PI / 3.0F));
-
-                auto pushResult = app.pipeline->push(color);
-                if (!pushResult) {
-                    Logger::warning(
-                        "Failed to push color: {}",
-                        pushResult.error()
-                    );
+                if (app.colorUBO) {
+                    app.colorUBO->color.x = 0.5F + 0.5F * std::sin(T);
+                    app.colorUBO->color.y =
+                        0.5F + 0.5F * std::sin(T + 2.0943951F);
+                    app.colorUBO->color.z =
+                        0.5F + 0.5F * std::sin(T + 4.1887902F);
                 }
 
                 app.gpu->draw(3, 1, 0, 0);
+
                 auto endResult = app.gpu->endFrame();
                 if (!endResult) {
                     Logger::warning(
@@ -355,6 +364,14 @@ auto main(int argc, char *argv[]) -> int
         }
         app.pipeline = std::move(pipelineResult.value());
         Logger::info("Pipeline created successfully");
+
+        auto uboResult = createUBO(app.gpu.get());
+        if (!uboResult) {
+            Logger::error("Failed to create UBO: {}", uboResult.error());
+            return -1;
+        }
+        app.colorUBO = graphics::UBOPtr<ColorUBO>(std::move(uboResult.value()));
+        Logger::info("UBO created successfully");
 
         mainLoop(app);
 

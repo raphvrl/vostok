@@ -57,6 +57,9 @@ public:
 
     void waitIdle() const;
 
+    [[nodiscard]] auto supportsBindlessResources() const -> bool;
+    [[nodiscard]] auto getMaxDescriptorSets() const -> u32;
+
 private:
     VulkanDevice(VkDevice device, VulkanPhysicalDevice *physicalDevice);
 

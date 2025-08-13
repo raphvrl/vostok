@@ -1,25 +1,35 @@
 #pragma once
 
+#include "vostok/core/logger/logger.hpp"
 #include "vostok/core/type.hpp"
 #include "vostok/graphics/buffer.hpp"
 #include "vostok/graphics/buffers/bindable_resource.hpp"
 #include "vostok/graphics/buffers/ubo.hpp"
 
 #include <expected>
+#include <format>
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 namespace vostok::graphics::vulkan
 {
 
+class VulkanInstance;
 class VulkanDevice;
+class VulkanFrameSync;
+class VulkanAllocator;
 
 struct VulkanBindlessManagerCreateInfo
 {
-    VulkanDevice *device;
-    u32 maxUBOs;
-    std::string debugName;
+    VulkanInstance *instance = nullptr;
+    VulkanDevice *device = nullptr;
+    VulkanFrameSync *frameSync = nullptr;
+    VulkanAllocator *allocator = nullptr;
+    u32 maxUBOs = 1024;
+    std::string debugName = "VulkanBindlessManager";
 };
 
 class VulkanBindlessManager
@@ -27,55 +37,88 @@ class VulkanBindlessManager
 public:
     using CreateInfo = VulkanBindlessManagerCreateInfo;
 
-    explicit VulkanBindlessManager(const CreateInfo &createInfo);
+    static auto create(const CreateInfo &createInfo)
+        -> std::expected<std::unique_ptr<VulkanBindlessManager>, std::string>;
+
     ~VulkanBindlessManager();
 
     VulkanBindlessManager(const VulkanBindlessManager &) = delete;
     auto operator=(const VulkanBindlessManager &)
         -> VulkanBindlessManager & = delete;
-    VulkanBindlessManager(VulkanBindlessManager &&) noexcept = default;
+    VulkanBindlessManager(VulkanBindlessManager &&) noexcept;
     auto operator=(VulkanBindlessManager &&) noexcept
-        -> VulkanBindlessManager & = default;
+        -> VulkanBindlessManager &;
 
-    template <BindableType T>
-    [[nodiscard]] auto createUBO(const T &initialData = T{})
-        -> std::expected<std::unique_ptr<UBO<T>>, std::string>
-    {
-        auto ubo = std::make_unique<UBO<T>>(initialData);
-
-        auto indexResult = registerUBO(&initialData, sizeof(T));
-        if (!indexResult) {
-            return std::unexpected(indexResult.error());
-        }
-
-        ubo->setBindlessIndex(indexResult.value());
-        return ubo;
-    }
-
-    [[nodiscard]] auto registerUBO(const void *data, size_t size)
+    auto registerUBO(BindableResourceBase *ubo, size_t size)
         -> std::expected<u32, std::string>;
+
+    auto unregisterUBO(const BindableResourceBase *ubo)
+        -> std::expected<void, std::string>;
 
     auto update() -> std::expected<void, std::string>;
 
+    void notifyDirty(u32 bindlessIndex);
+
+    [[nodiscard]] auto getRegisteredUBOCount() const noexcept -> u32
+    {
+        return static_cast<u32>(m_uboToIndex.size());
+    }
+
+    [[nodiscard]] auto getMaxUBOCount() const noexcept -> u32
+    {
+        return m_maxUBOs;
+    }
+
+    [[nodiscard]] auto getDirtyUBOCount() const noexcept -> u32
+    {
+        std::lock_guard<std::mutex> lock(m_dirtyMutex);
+        return static_cast<u32>(m_dirtyStack.size());
+    }
+
+    [[nodiscard]] auto getDescriptorSet() const -> VkDescriptorSet
+    {
+        return m_descriptorSet;
+    }
+
+    [[nodiscard]] auto getDescriptorSetLayout() const -> VkDescriptorSetLayout
+    {
+        return m_descriptorSetLayout;
+    }
+
 private:
+    explicit VulkanBindlessManager(const CreateInfo &createInfo);
+
+    auto initBindlessResources() -> std::expected<void, std::string>;
+    void cleanupBindlessResources();
+
+    auto updateUBO(u32 index, const BindableResourceBase *resource)
+        -> std::expected<void, std::string>;
+
+    auto createGPUBuffer(size_t size, const void *data)
+        -> std::expected<std::unique_ptr<Buffer>, std::string>;
+
+    auto updateDescriptorSet(u32 index, VkBuffer buffer, size_t size)
+        -> std::expected<void, std::string>;
+
+    VulkanInstance *m_instance;
     VulkanDevice *m_device;
+    VulkanFrameSync *m_frameSync;
+    VulkanAllocator *m_allocator;
 
     u32 m_maxUBOs;
 
-    struct BufferInfo
-    {
-        std::unique_ptr<Buffer> buffer;
-        bool isDirty = true;
+    std::unordered_map<const BindableResourceBase *, u32> m_uboToIndex;
+    std::unordered_map<u32, const BindableResourceBase *> m_indexToUBO;
 
-        BufferInfo(std::unique_ptr<Buffer> b)
-            : buffer(std::move(b))
-        {}
-    };
+    std::vector<const BindableResourceBase *> m_dirtyStack;
+    mutable std::mutex m_dirtyMutex;
 
-    std::vector<BufferInfo> m_ubos;
+    VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
+    VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
 
-    std::unordered_map<const void *, u32> m_resourceToIndex;
-    bool m_isDirty = true;
+    std::vector<std::unique_ptr<Buffer>> m_gpuBuffers;
+    std::vector<size_t> m_bufferSizes;
 };
 
 } // namespace vostok::graphics::vulkan

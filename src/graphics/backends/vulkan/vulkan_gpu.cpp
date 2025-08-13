@@ -12,6 +12,7 @@
 #include "graphics/backends/vulkan/platform/glfw_platform.hpp"
 #include "graphics/backends/vulkan/resources/vulkan_buffer.hpp"
 #include "graphics/backends/vulkan/utils/vk_utils.hpp"
+#include "graphics/backends/vulkan/vulkan_bindless_manager.hpp"
 #include "graphics/backends/vulkan/vulkan_pipeline.hpp"
 #include "graphics/gpu.hpp"
 #include "volk.h"
@@ -88,12 +89,21 @@ public:
     {
         return m_frameSync.get();
     }
+    [[nodiscard]] auto getBindlessManager() const -> VulkanBindlessManager *
+    {
+        return m_bindlessManager.get();
+    }
 
     auto createPipeline(const PipelineCreateInfo &createInfo)
         -> std::expected<std::unique_ptr<Pipeline>, std::string>;
 
     auto createBuffer(const graphics::BufferCreateInfo &createInfo)
         -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>;
+
+    auto registerUBO(BindableResourceBase *ubo, size_t size)
+        -> std::expected<u32, std::string>;
+
+    void notifyDirtyResource(u32 bindlessIndex);
 
 private:
     auto initInstance(const GPU::CreateInfo &createInfo) -> bool;
@@ -103,6 +113,7 @@ private:
     auto initAllocator() -> bool;
     auto initSwapchain(const SwapchainExtent &size) -> bool;
     auto initFrameSync() -> bool;
+    auto initBindlessManager() -> bool;
 
     std::unique_ptr<VulkanInstance> m_instance;
     std::unique_ptr<VulkanSurface> m_surface;
@@ -113,6 +124,7 @@ private:
     std::unique_ptr<VulkanFrameSync> m_frameSync;
     std::unique_ptr<VulkanCommandPool> m_graphicsCommandPool;
     std::unique_ptr<VulkanCommandPool> m_transferCommandPool;
+    std::unique_ptr<VulkanBindlessManager> m_bindlessManager;
     std::string m_lastError;
 
     u32 m_currentImageIndex = 0;
@@ -166,6 +178,10 @@ VulkanGPU::Impl::Impl(VulkanGPU *parent, const GPU::CreateInfo &createInfo)
     if (!initFrameSync()) {
         return;
     }
+
+    if (!initBindlessManager()) {
+        return;
+    }
 }
 
 VulkanGPU::Impl::~Impl()
@@ -175,6 +191,11 @@ VulkanGPU::Impl::~Impl()
     if (m_frameSync) {
         Logger::debug("Destroying FrameSync");
         m_frameSync.reset();
+    }
+
+    if (m_bindlessManager) {
+        Logger::debug("Destroying bindless manager");
+        m_bindlessManager.reset();
     }
 
     if (m_transferCommandPool) {
@@ -428,6 +449,37 @@ auto VulkanGPU::Impl::initFrameSync() -> bool
     return true;
 }
 
+auto VulkanGPU::Impl::initBindlessManager() -> bool
+{
+    if (!m_device) {
+        m_lastError = "Device is not initialized";
+        return false;
+    }
+
+    if (!m_frameSync) {
+        m_lastError = "Frame sync is not initialized";
+        return false;
+    }
+
+    VulkanBindlessManager::CreateInfo createInfo;
+    createInfo.instance = m_instance.get();
+    createInfo.device = m_device.get();
+    createInfo.frameSync = m_frameSync.get();
+    createInfo.allocator = m_allocator.get();
+    createInfo.maxUBOs = 1024;
+    createInfo.debugName = "BindlessManager";
+
+    auto result = VulkanBindlessManager::create(createInfo);
+    if (!result) {
+        m_lastError = result.error();
+        return false;
+    }
+
+    m_bindlessManager = std::move(result.value());
+
+    return true;
+}
+
 void VulkanGPU::Impl::waitIdle()
 {
     if (!m_device) {
@@ -445,6 +497,13 @@ auto VulkanGPU::Impl::beginFrame() -> std::expected<u32, std::string>
 
     m_frameSync->waitForFence();
     m_frameSync->resetFences();
+
+    if (m_bindlessManager) {
+        auto updateResult = m_bindlessManager->update();
+        if (!updateResult) {
+            Logger::warning("Bindless update failed: {}", updateResult.error());
+        }
+    }
 
     auto imageResult = m_swapchain->acquireNextImage(
         m_frameSync->getImageAvailableSemaphore(),
@@ -684,12 +743,38 @@ auto VulkanGPU::Impl::createBuffer(const graphics::BufferCreateInfo &createInfo)
         return std::unexpected("Buffer size must be greater than 0");
     }
 
-    auto vulkanBuffer = VulkanBuffer::create(m_parent, createInfo);
+    auto vulkanBuffer = VulkanBuffer::create(
+        m_instance.get(),
+        m_device.get(),
+        m_allocator.get(),
+        m_frameSync.get(),
+        createInfo
+    );
+
     if (!vulkanBuffer) {
         return std::unexpected("Failed to create Vulkan buffer");
     }
 
     return std::unique_ptr<graphics::Buffer>(vulkanBuffer.release());
+}
+
+auto VulkanGPU::Impl::registerUBO(BindableResourceBase *ubo, size_t size)
+    -> std::expected<u32, std::string>
+{
+    if (!m_bindlessManager) {
+        return std::unexpected("Bindless manager is not initialized");
+    }
+
+    return m_bindlessManager->registerUBO(ubo, size);
+}
+
+void VulkanGPU::Impl::notifyDirtyResource(u32 bindlessIndex)
+{
+    if (!m_bindlessManager) {
+        return;
+    }
+
+    m_bindlessManager->notifyDirty(bindlessIndex);
 }
 
 VulkanGPU::VulkanGPU()
@@ -766,6 +851,23 @@ auto VulkanGPU::createBuffer(const graphics::BufferCreateInfo &createInfo)
     return std::unexpected("Vulkan GPU device is not initialized");
 }
 
+auto VulkanGPU::registerUBO(BindableResourceBase *ubo, size_t size)
+    -> std::expected<u32, std::string>
+{
+    if (m_impl) {
+        return m_impl->registerUBO(ubo, size);
+    }
+
+    return std::unexpected("Vulkan GPU device is not initialized");
+}
+
+void VulkanGPU::notifyDirtyResource(u32 bindlessIndex)
+{
+    if (m_impl) {
+        m_impl->notifyDirtyResource(bindlessIndex);
+    }
+}
+
 auto VulkanGPU::getInstance() const -> VulkanInstance *
 {
     if (m_impl) {
@@ -818,6 +920,14 @@ auto VulkanGPU::getFrameSync() const -> VulkanFrameSync *
 {
     if (m_impl) {
         return m_impl->getFrameSync();
+    }
+    return nullptr;
+}
+
+auto VulkanGPU::getBindlessManager() const -> VulkanBindlessManager *
+{
+    if (m_impl) {
+        return m_impl->getBindlessManager();
     }
     return nullptr;
 }
