@@ -2,6 +2,7 @@
 #include "vostok/graphics/backends/vulkan/vulkan_gpu.hpp"
 #include "vostok/graphics/backends/vulkan/vulkan_pipeline.hpp"
 #include "vostok/graphics/buffers/ubo.hpp"
+#include "vostok/graphics/camera/perspective_camera.hpp"
 #include "vostok/graphics/gpu.hpp"
 #include "vostok/graphics/pipeline.hpp"
 #include "vostok/math/types.hpp"
@@ -25,9 +26,12 @@
 namespace fs = std::filesystem;
 using namespace vostok;
 
-struct ColorUBO
+struct CameraUBO
 {
-    alignas(16) math::Vec3 color;
+    alignas(16) math::Mat4 view;
+    alignas(16) math::Mat4 proj;
+    alignas(16) math::Vec3 position;
+    alignas(4) f32 time;
 };
 
 struct HelloTriangleApp
@@ -36,7 +40,9 @@ struct HelloTriangleApp
     std::unique_ptr<graphics::GPU> gpu;
     std::unique_ptr<graphics::Pipeline> pipeline;
 
-    graphics::UBO<ColorUBO> colorUBO;
+    graphics::UBO<CameraUBO> cameraUBO;
+
+    std::unique_ptr<graphics::PerspectiveCamera> camera;
 };
 
 auto getExecutablePath() -> fs::path
@@ -240,12 +246,35 @@ auto createPipeline(graphics::GPU *gpu)
     return std::move(pipelineResult.value());
 }
 
-auto createUBO(graphics::GPU *gpu)
-    -> std::expected<graphics::UBO<ColorUBO>, std::string>
+auto createUBO(graphics::GPU *gpu) -> std::expected<
+    std::pair<
+        graphics::UBO<CameraUBO>,
+        std::unique_ptr<graphics::PerspectiveCamera>>,
+    std::string>
 {
-    ColorUBO initialData = { .color = math::Vec3{ 1.0F, 0.0F, 0.0F } };
+    graphics::PerspectiveCamera::CreateInfo cameraInfo;
+    cameraInfo.name = "MainCamera";
+    cameraInfo.position = { 0.0F, 0.0F, 3.0F };
+    cameraInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
+    cameraInfo.perspective.fieldOfView = 45.0F;
+    cameraInfo.perspective.aspectRatio = 800.0F / 600.0F;
+    cameraInfo.perspective.nearPlane = 0.1F;
+    cameraInfo.perspective.farPlane = 100.0F;
 
-    return gpu->createUBO<ColorUBO>(initialData);
+    auto camera = std::make_unique<graphics::PerspectiveCamera>(cameraInfo);
+
+    CameraUBO initialData{};
+    initialData.view = camera->getViewMatrix();
+    initialData.proj = camera->getProjectionMatrix();
+    initialData.position = camera->getPosition();
+    initialData.time = 0.0F;
+
+    auto uboResult = gpu->createUBO<CameraUBO>(initialData);
+    if (!uboResult) {
+        return std::unexpected(uboResult.error());
+    }
+
+    return std::make_pair(std::move(uboResult.value()), std::move(camera));
 }
 
 auto mainLoop(HelloTriangleApp &app) -> void
@@ -264,15 +293,25 @@ auto mainLoop(HelloTriangleApp &app) -> void
                 app.pipeline->bind();
 
                 const f32 T = static_cast<f32>(frameCount) * 0.02F;
-                if (app.colorUBO) {
-                    app.colorUBO->color.x = 0.5F + 0.5F * std::sin(T);
-                    app.colorUBO->color.y =
-                        0.5F + 0.5F * std::sin(T + 2.0943951F);
-                    app.colorUBO->color.z =
-                        0.5F + 0.5F * std::sin(T + 4.1887902F);
+                if (app.camera && app.cameraUBO) {
+                    const f32 RADIUS = 3.0F;
+                    const f32 HEIGHT = 1.0F;
+
+                    app.camera->setPosition(
+                        { RADIUS * std::cos(T),
+                          HEIGHT + (0.5F * std::sin(T * 2.0F)),
+                          RADIUS * std::sin(T) }
+                    );
+
+                    app.camera->lookAt({ .target = { 0.0F, 0.0F, 0.0F } });
+
+                    app.cameraUBO->view = app.camera->getViewMatrix();
+                    app.cameraUBO->proj = app.camera->getProjectionMatrix();
+                    app.cameraUBO->position = app.camera->getPosition();
+                    app.cameraUBO->time = T;
                 }
 
-                app.gpu->draw(3, 1, 0, 0);
+                app.gpu->draw(3);
 
                 auto endResult = app.gpu->endFrame();
                 if (!endResult) {
@@ -370,7 +409,8 @@ auto main(int argc, char *argv[]) -> int
             Logger::error("Failed to create UBO: {}", uboResult.error());
             return -1;
         }
-        app.colorUBO = graphics::UBO<ColorUBO>(std::move(uboResult.value()));
+        app.cameraUBO = std::move(uboResult.value().first);
+        app.camera = std::move(uboResult.value().second);
         Logger::info("UBO created successfully");
 
         mainLoop(app);

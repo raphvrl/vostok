@@ -13,14 +13,23 @@ vec3 colors[3] = vec3[](
     vec3(0.0, 0.0, 1.0)
 );
 
-layout(set = 0, binding = 0) uniform UniformBufferObject {
-    vec3 color;
-} ubo[];
+layout(set = 0, binding = 0) uniform CameraUniformBufferObject {
+    mat4 viewMatrix;
+    mat4 projectionMatrix;
+    vec3 cameraPosition;
+    float time;
+} cameraUBO;
 
 layout(location = 0) out vec3 fragColor;
 
 void main()
 {
-    gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
-    fragColor = ubo[0].color;
+    vec4 worldPos = vec4(positions[gl_VertexIndex], 0.0, 1.0);
+
+    vec4 clipPos = cameraUBO.projectionMatrix * cameraUBO.viewMatrix * worldPos;
+
+    gl_Position = clipPos;
+
+    vec3 cameraDir = normalize(cameraUBO.cameraPosition - vec3(worldPos.xy, 0.0));
+    fragColor = colors[gl_VertexIndex] * (0.5 + 0.5 * sin(cameraUBO.time + dot(cameraDir, vec3(0.0, 0.0, 1.0))));
 }
