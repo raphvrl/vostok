@@ -92,8 +92,15 @@ public:
         const u32 INDEX = result.value();
         ubo->setBindlessIndex(INDEX);
 
-        // NOLINTNEXTLINE
         ubo->setDirtyCallback([this, INDEX](const BindableResource *resource) {
+            if (resource->getBindlessIndex() != INDEX) {
+                Logger::error(
+                    "Null resource in dirty callback for index {}",
+                    INDEX
+                );
+                return;
+            }
+
             notifyDirtyResource(INDEX);
         });
 
