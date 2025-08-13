@@ -71,8 +71,8 @@ public:
         u32 firstInstance = 0
     ) = 0;
 
-    virtual auto createPipeline(const PipelineCreateInfo &createInfo)
-        -> std::expected<std::unique_ptr<PipelineHandle>, std::string> = 0;
+    virtual auto createPipeline(const Pipeline::CreateInfo &createInfo)
+        -> std::expected<Pipeline, std::string> = 0;
 
     virtual auto createBuffer(const BufferCreateInfo &createInfo)
         -> std::expected<std::unique_ptr<Buffer>, std::string> = 0;
@@ -114,6 +114,36 @@ private:
     virtual void notifyDirtyResource(u32 bindlessIndex) = 0;
 };
 
-using GPU = std::unique_ptr<GPUHandle>;
+struct GPU : public std::unique_ptr<GPUHandle>
+{
+    using Base = std::unique_ptr<GPUHandle>;
+    using Base::Base;
+
+    GPU() = default;
+    ~GPU() = default;
+
+    GPU(GPU &&) = default;
+    auto operator=(GPU &&) -> GPU & = default;
+    GPU(const GPU &) = delete;
+    auto operator=(const GPU &) -> GPU & = delete;
+
+    explicit GPU(std::unique_ptr<GPUHandle> &&ptr)
+        : Base(std::move(ptr))
+    {}
+
+    using CreateInfo = GPUHandle::CreateInfo;
+
+    static auto create(
+        const CreateInfo &createInfo,
+        RenderBackend backend = RenderBackend::VULKAN
+    ) -> std::expected<GPU, std::string>
+    {
+        auto result = GPUHandle::create(createInfo, backend);
+        if (!result) {
+            return std::unexpected(result.error());
+        }
+        return GPU(std::move(result.value()));
+    }
+};
 
 } // namespace vostok::graphics

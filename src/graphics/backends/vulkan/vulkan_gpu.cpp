@@ -94,8 +94,8 @@ public:
         return m_bindlessManager.get();
     }
 
-    auto createPipeline(const PipelineCreateInfo &createInfo)
-        -> std::expected<std::unique_ptr<PipelineHandle>, std::string>;
+    auto createPipeline(const Pipeline::CreateInfo &createInfo)
+        -> std::expected<Pipeline, std::string>;
 
     auto createBuffer(const graphics::BufferCreateInfo &createInfo)
         -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>;
@@ -728,7 +728,7 @@ void VulkanGPU::Impl::draw(
 }
 
 auto VulkanGPU::Impl::createPipeline(const PipelineCreateInfo &createInfo)
-    -> std::expected<std::unique_ptr<PipelineHandle>, std::string>
+    -> std::expected<Pipeline, std::string>
 {
     if (!m_device) {
         return std::unexpected("Device is not initialized");
@@ -837,8 +837,8 @@ void VulkanGPU::draw(
     }
 }
 
-auto VulkanGPU::createPipeline(const PipelineCreateInfo &createInfo)
-    -> std::expected<std::unique_ptr<PipelineHandle>, std::string>
+auto VulkanGPU::createPipeline(const Pipeline::CreateInfo &createInfo)
+    -> std::expected<Pipeline, std::string>
 {
     if (m_impl) {
         return m_impl->createPipeline(createInfo);

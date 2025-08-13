@@ -176,6 +176,24 @@ protected:
         -> std::expected<void, std::string> = 0;
 };
 
-using Pipeline = std::unique_ptr<PipelineHandle>;
+struct Pipeline : public std::unique_ptr<PipelineHandle>
+{
+    using Base = std::unique_ptr<PipelineHandle>;
+    using Base::Base;
+
+    Pipeline() = default;
+    ~Pipeline() = default;
+
+    Pipeline(Pipeline &&) = default;
+    auto operator=(Pipeline &&) -> Pipeline & = default;
+    Pipeline(const Pipeline &) = delete;
+    auto operator=(const Pipeline &) -> Pipeline & = delete;
+
+    explicit Pipeline(std::unique_ptr<PipelineHandle> &&ptr)
+        : Base(std::move(ptr))
+    {}
+
+    using CreateInfo = PipelineCreateInfo;
+};
 
 } // namespace vostok::graphics

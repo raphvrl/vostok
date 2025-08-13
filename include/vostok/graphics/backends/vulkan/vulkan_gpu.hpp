@@ -58,8 +58,8 @@ public:
     [[nodiscard]] auto getFrameSync() const -> VulkanFrameSync *;
     [[nodiscard]] auto getBindlessManager() const -> VulkanBindlessManager *;
 
-    auto createPipeline(const PipelineCreateInfo &createInfo)
-        -> std::expected<std::unique_ptr<PipelineHandle>, std::string> override;
+    auto createPipeline(const Pipeline::CreateInfo &createInfo)
+        -> std::expected<Pipeline, std::string> override;
 
     auto createBuffer(
         const graphics::BufferCreateInfo &createInfo

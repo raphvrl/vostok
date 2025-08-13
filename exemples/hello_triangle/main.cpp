@@ -132,7 +132,7 @@ auto initializeLogger() -> bool
     return true;
 }
 
-auto createWindow() -> std::expected<std::unique_ptr<WindowHandle>, std::string>
+auto createWindow() -> std::expected<Window, std::string>
 {
     WindowConfig windowInfo;
     windowInfo.title = "Vostok Hello Triangle";
@@ -140,7 +140,7 @@ auto createWindow() -> std::expected<std::unique_ptr<WindowHandle>, std::string>
     windowInfo.height = 600;
     windowInfo.resizable = true;
 
-    return WindowHandle::create(windowInfo);
+    return Window::create(windowInfo);
 }
 
 auto createGPUDevice(WindowHandle *window)
@@ -154,11 +154,11 @@ auto createGPUDevice(WindowHandle *window)
     deviceInfo.width = window->getWidth();
     deviceInfo.height = window->getHeight();
 
-    return graphics::GPUHandle::create(deviceInfo);
+    return graphics::GPU::create(deviceInfo);
 }
 
 auto createPipeline(graphics::GPUHandle *gpu)
-    -> std::expected<std::unique_ptr<graphics::PipelineHandle>, std::string>
+    -> std::expected<graphics::Pipeline, std::string>
 {
     fs::path vertexShaderPath =
         findResourcePath("shaders", "triangle.vert.spv");
@@ -200,7 +200,7 @@ auto createPipeline(graphics::GPUHandle *gpu)
         Logger::info("  Fragment shader: {}", fragmentShaderPath.string());
     }
 
-    graphics::PipelineCreateInfo pipelineInfo;
+    graphics::Pipeline::CreateInfo pipelineInfo;
     pipelineInfo.name = "TrianglePipeline";
     pipelineInfo.vertexShader = vertexShaderPath;
     pipelineInfo.fragmentShader = fragmentShaderPath;
@@ -227,16 +227,7 @@ auto createPipeline(graphics::GPUHandle *gpu)
 
     pipelineInfo.pushConstantSize = sizeof(math::Vec3);
 
-    auto pipelineResult = gpu->createPipeline(pipelineInfo);
-
-    if (!pipelineResult) {
-        return std::unexpected(
-            "Failed to create pipeline: " + pipelineResult.error()
-        );
-    }
-
-    Logger::info("Pipeline created successfully with new system");
-    return std::move(pipelineResult.value());
+    return gpu->createPipeline(pipelineInfo);
 }
 
 auto createUBO(graphics::GPUHandle *gpu) -> std::expected<
