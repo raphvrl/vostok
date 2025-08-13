@@ -2,6 +2,8 @@
 
 #include "vostok/graphics/buffers/bindable_resource.hpp"
 
+#include <memory>
+
 namespace vostok::graphics
 {
 
@@ -11,34 +13,34 @@ concept UBOType =
     sizeof(T) <= static_cast<u32>(64 * 1024); // 64KB max pour UBO
 
 template <UBOType T>
-class UBO : public BindableResource
+class UBOImpl : public BindableResource
 {
 public:
     using DataType = T;
 
-    UBO() = default;
-    ~UBO() = default;
+    UBOImpl() = default;
+    ~UBOImpl() override = default;
 
-    UBO(const UBO &other) noexcept = default;
-    UBO(UBO &&other) noexcept = default;
-    auto operator=(const UBO &other) -> UBO & = default;
-    auto operator=(UBO &&other) noexcept -> UBO & = default;
+    UBOImpl(const UBOImpl &other) noexcept = default;
+    UBOImpl(UBOImpl &&other) noexcept = default;
+    auto operator=(const UBOImpl &other) -> UBOImpl & = default;
+    auto operator=(UBOImpl &&other) noexcept -> UBOImpl & = default;
 
-    explicit UBO(const T &data)
+    explicit UBOImpl(const T &data)
         : BindableResource(),
           m_data(data)
     {
         markDirty();
     }
 
-    explicit UBO(T &&data)
+    explicit UBOImpl(T &&data)
         : BindableResource(),
           m_data(std::move(data))
     {
         markDirty();
     }
 
-    auto operator=(const T &data) -> UBO &
+    auto operator=(const T &data) -> UBOImpl &
     {
         if (m_data != data) {
             m_data = data;
@@ -47,7 +49,7 @@ public:
         return *this;
     }
 
-    auto setUniform(const T &data) -> UBO & { return operator=(data); }
+    auto setUniform(const T &data) -> UBOImpl & { return operator=(data); }
 
     [[nodiscard]] auto getData() const noexcept -> const T & { return m_data; }
 
@@ -68,20 +70,20 @@ private:
 };
 
 template <UBOType T>
-class UBOPtr
+class UBO
 {
 public:
-    UBOPtr() = default;
-    ~UBOPtr() = default;
+    UBO() = default;
+    ~UBO() = default;
 
-    explicit UBOPtr(std::unique_ptr<UBO<T>> &&ubo)
+    explicit UBO(std::unique_ptr<UBOImpl<T>> &&ubo)
         : m_ubo(std::move(ubo))
     {}
 
-    UBOPtr(UBOPtr &&other) noexcept = default;
-    auto operator=(UBOPtr &&other) noexcept -> UBOPtr & = default;
-    UBOPtr(const UBOPtr &) noexcept = delete;
-    auto operator=(const UBOPtr &) noexcept -> UBOPtr & = delete;
+    UBO(UBO &&other) noexcept = default;
+    auto operator=(UBO &&other) noexcept -> UBO & = default;
+    UBO(const UBO &) noexcept = delete;
+    auto operator=(const UBO &) noexcept -> UBO & = delete;
 
     auto operator->() -> T *
     {
@@ -117,15 +119,15 @@ public:
         return m_ubo->getData();
     }
 
-    auto get() -> UBO<T> * { return m_ubo.get(); }
-    auto get() const -> const UBO<T> * { return m_ubo.get(); }
+    auto get() -> UBOImpl<T> * { return m_ubo.get(); }
+    auto get() const -> const UBOImpl<T> * { return m_ubo.get(); }
 
     explicit operator bool() const { return m_ubo != nullptr; }
 
-    auto release() -> std::unique_ptr<UBO<T>> { return std::move(m_ubo); }
+    auto release() -> std::unique_ptr<UBOImpl<T>> { return std::move(m_ubo); }
 
 private:
-    std::unique_ptr<UBO<T>> m_ubo;
+    std::unique_ptr<UBOImpl<T>> m_ubo;
 };
 
 } // namespace vostok::graphics

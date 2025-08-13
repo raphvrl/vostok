@@ -80,9 +80,9 @@ public:
     template <typename T>
         requires std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>
     auto createUBO(const T &initialData = T{})
-        -> std::expected<UBOPtr<T>, std::string>
+        -> std::expected<UBO<T>, std::string>
     {
-        auto ubo = std::make_unique<UBO<T>>(initialData);
+        auto ubo = std::make_unique<UBOImpl<T>>(initialData);
 
         auto result = registerUBO(ubo.get(), sizeof(T));
         if (!result) {
@@ -97,7 +97,7 @@ public:
             notifyDirtyResource(INDEX);
         });
 
-        return UBOPtr<T>(std::move(ubo));
+        return UBO<T>(std::move(ubo));
     }
 
 private:

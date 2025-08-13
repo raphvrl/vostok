@@ -3,8 +3,6 @@
 #include "vostok/core/type.hpp"
 
 #include <functional>
-#include <memory>
-#include <type_traits>
 
 namespace vostok::graphics
 {

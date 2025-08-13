@@ -36,7 +36,7 @@ struct HelloTriangleApp
     std::unique_ptr<graphics::GPU> gpu;
     std::unique_ptr<graphics::Pipeline> pipeline;
 
-    graphics::UBOPtr<ColorUBO> colorUBO;
+    graphics::UBO<ColorUBO> colorUBO;
 };
 
 auto getExecutablePath() -> fs::path
@@ -241,7 +241,7 @@ auto createPipeline(graphics::GPU *gpu)
 }
 
 auto createUBO(graphics::GPU *gpu)
-    -> std::expected<graphics::UBOPtr<ColorUBO>, std::string>
+    -> std::expected<graphics::UBO<ColorUBO>, std::string>
 {
     ColorUBO initialData = { .color = math::Vec3{ 1.0F, 0.0F, 0.0F } };
 
@@ -370,7 +370,7 @@ auto main(int argc, char *argv[]) -> int
             Logger::error("Failed to create UBO: {}", uboResult.error());
             return -1;
         }
-        app.colorUBO = graphics::UBOPtr<ColorUBO>(std::move(uboResult.value()));
+        app.colorUBO = graphics::UBO<ColorUBO>(std::move(uboResult.value()));
         Logger::info("UBO created successfully");
 
         mainLoop(app);
