@@ -7,7 +7,7 @@
 namespace vostok
 {
 
-class GlfwWindow : public Window
+class GlfwWindow : public WindowHandle
 {
 public:
     static auto create(const WindowConfig &config = {})

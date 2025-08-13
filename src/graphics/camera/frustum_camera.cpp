@@ -10,7 +10,7 @@
 namespace vostok::graphics
 {
 
-FrustumCamera::FrustumCamera(const CreateInfo &createInfo)
+FrustumCamerahandle::FrustumCamerahandle(const CreateInfo &createInfo)
     : Camera(createInfo),
       m_config(createInfo.config)
 {
@@ -43,7 +43,8 @@ FrustumCamera::FrustumCamera(const CreateInfo &createInfo)
     markProjectionDirty();
 }
 
-auto FrustumCamera::getProjectionMatrix() const noexcept -> const math::Mat4 &
+auto FrustumCamerahandle::getProjectionMatrix() const noexcept
+    -> const math::Mat4 &
 {
     if (m_projectionMatrixDirty) {
         updateProjectionMatrix();
@@ -52,17 +53,17 @@ auto FrustumCamera::getProjectionMatrix() const noexcept -> const math::Mat4 &
     return m_projectionMatrix;
 }
 
-auto FrustumCamera::getViewMatrix() const noexcept -> const math::Mat4 &
+auto FrustumCamerahandle::getViewMatrix() const noexcept -> const math::Mat4 &
 {
     return Camera::getViewMatrix();
 }
 
-auto FrustumCamera::getViewProjectionMatrix() const -> math::Mat4
+auto FrustumCamerahandle::getViewProjectionMatrix() const -> math::Mat4
 {
     return getProjectionMatrix() * getViewMatrix();
 }
 
-auto FrustumCamera::updateConfig(const FrustumConfig &config) noexcept
+auto FrustumCamerahandle::updateConfig(const FrustumConfig &config) noexcept
     -> std::expected<void, std::string>
 {
     if (auto result = validateConfig(config); !result.has_value()) {
@@ -84,8 +85,12 @@ auto FrustumCamera::updateConfig(const FrustumConfig &config) noexcept
     return {};
 }
 
-auto FrustumCamera::setBounds(f32 left, f32 right, f32 bottom, f32 top) noexcept
-    -> std::expected<void, std::string>
+auto FrustumCamerahandle::setBounds(
+    f32 left,
+    f32 right,
+    f32 bottom,
+    f32 top
+) noexcept -> std::expected<void, std::string>
 {
     if (left >= right) {
         return std::unexpected(
@@ -128,7 +133,7 @@ auto FrustumCamera::setBounds(f32 left, f32 right, f32 bottom, f32 top) noexcept
     return {};
 }
 
-auto FrustumCamera::setPlanes(f32 nearPlane, f32 farPlane) noexcept
+auto FrustumCamerahandle::setPlanes(f32 nearPlane, f32 farPlane) noexcept
     -> std::expected<void, std::string>
 {
     if (nearPlane <= 0.0F) {
@@ -169,17 +174,21 @@ auto FrustumCamera::setPlanes(f32 nearPlane, f32 farPlane) noexcept
     return {};
 }
 
-auto FrustumCamera::createFromPerspective(
-    const PerspectiveCamera &perspectiveCamera
-) noexcept -> FrustumCamera
+auto FrustumCamerahandle::create(const CreateInfo &createInfo)
+    -> std::unique_ptr<FrustumCamerahandle>
 {
-    // Conversion de perspective vers frustum
+    return std::make_unique<FrustumCamerahandle>(createInfo);
+}
+
+auto FrustumCamerahandle::createFromPerspective(
+    const PerspectiveCameraHandle &perspectiveCamera
+) noexcept -> std::unique_ptr<FrustumCamerahandle>
+{
     const auto FOV = perspectiveCamera.getFieldOfView();
     const auto ASPECT_RATIO = perspectiveCamera.getAspectRatio();
     const auto NEAR_PLANE = perspectiveCamera.getNearPlane();
     const auto FAR_PLANE = perspectiveCamera.getFarPlane();
 
-    // Calcul des bounds du frustum à partir de FOV et aspect ratio
     const f32 FOV_RAD = math::radians(FOV);
     const f32 TAN_HALF_FOV = std::tan(FOV_RAD * 0.5F);
 
@@ -210,21 +219,20 @@ auto FrustumCamera::createFromPerspective(
         TOP
     );
 
-    return FrustumCamera{ createInfo };
+    return std::make_unique<FrustumCamerahandle>(createInfo);
 }
 
-void FrustumCamera::onTransformChanged() noexcept {}
+void FrustumCamerahandle::onTransformChanged() noexcept {}
 
-void FrustumCamera::onProjectionChanged() noexcept
+void FrustumCamerahandle::onProjectionChanged() noexcept
 {
     markProjectionDirty();
 }
 
-void FrustumCamera::updateProjectionMatrix() const noexcept
+void FrustumCamerahandle::updateProjectionMatrix() const noexcept
 {
     Logger::trace("FrustumCamera '{}' updating projection matrix", getName());
 
-    // Utilise la matrice de projection frustum (perspective asymétrique)
     m_projectionMatrix = math::frustum(
         m_config.left,
         m_config.right,
@@ -237,7 +245,7 @@ void FrustumCamera::updateProjectionMatrix() const noexcept
     m_projectionMatrixDirty = false;
 }
 
-auto FrustumCamera::validateConfig(const FrustumConfig &config) noexcept
+auto FrustumCamerahandle::validateConfig(const FrustumConfig &config) noexcept
     -> std::expected<void, std::string>
 {
     if (config.left >= config.right) {
@@ -282,7 +290,7 @@ auto FrustumCamera::validateConfig(const FrustumConfig &config) noexcept
     return {};
 }
 
-void FrustumCamera::markProjectionDirty() noexcept
+void FrustumCamerahandle::markProjectionDirty() noexcept
 {
     m_projectionMatrixDirty = true;
 }

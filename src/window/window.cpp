@@ -9,8 +9,8 @@
 namespace vostok
 {
 
-auto Window::create(const WindowConfig &config)
-    -> std::expected<std::unique_ptr<Window>, std::string>
+auto WindowHandle::create(const WindowConfig &config)
+    -> std::expected<std::unique_ptr<WindowHandle>, std::string>
 {
     WindowBackend backend = config.backend;
     if (backend == WindowBackend::AUTO) {
@@ -30,7 +30,7 @@ auto Window::create(const WindowConfig &config)
             if (!result) {
                 return std::unexpected(result.error());
             }
-            return std::unique_ptr<Window>(result.value().release());
+            return std::unique_ptr<WindowHandle>(result.value().release());
 #else
             return std::unexpected("GLFW backend is not available");
 #endif

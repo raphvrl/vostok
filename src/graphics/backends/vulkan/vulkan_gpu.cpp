@@ -27,7 +27,7 @@ namespace vostok::graphics::vulkan
 class VulkanGPU::Impl
 {
 public:
-    Impl(VulkanGPU *parent, const GPU::CreateInfo &createInfo);
+    Impl(VulkanGPU *parent, const GPUHandle::CreateInfo &createInfo);
     ~Impl();
 
     Impl(const Impl &) = delete;
@@ -94,8 +94,8 @@ public:
         return m_bindlessManager.get();
     }
 
-    auto createPipeline(const PipelineCreateInfo &createInfo)
-        -> std::expected<std::unique_ptr<Pipeline>, std::string>;
+    auto createPipeline(const Pipeline::CreateInfo &createInfo)
+        -> std::expected<Pipeline, std::string>;
 
     auto createBuffer(const graphics::BufferCreateInfo &createInfo)
         -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>;
@@ -106,10 +106,10 @@ public:
     void notifyDirtyResource(u32 bindlessIndex);
 
 private:
-    auto initInstance(const GPU::CreateInfo &createInfo) -> bool;
+    auto initInstance(const GPUHandle::CreateInfo &createInfo) -> bool;
     auto initSurface(void *windowHandle) -> bool;
     auto initPhysicalDevice() -> bool;
-    auto initDevice(const GPU::CreateInfo &createInfo) -> bool;
+    auto initDevice(const GPUHandle::CreateInfo &createInfo) -> bool;
     auto initAllocator() -> bool;
     auto initSwapchain(const SwapchainExtent &size) -> bool;
     auto initFrameSync() -> bool;
@@ -133,7 +133,7 @@ private:
 };
 
 auto VulkanGPU::create(const CreateInfo &createInfo)
-    -> std::expected<std::unique_ptr<GPU>, std::string>
+    -> std::expected<std::unique_ptr<GPUHandle>, std::string>
 {
     auto device = Factory::create();
 
@@ -146,7 +146,10 @@ auto VulkanGPU::create(const CreateInfo &createInfo)
     return device;
 }
 
-VulkanGPU::Impl::Impl(VulkanGPU *parent, const GPU::CreateInfo &createInfo)
+VulkanGPU::Impl::Impl(
+    VulkanGPU *parent,
+    const GPUHandle::CreateInfo &createInfo
+)
     : m_parent(parent)
 {
     if (!initInstance(createInfo)) {
@@ -241,7 +244,8 @@ VulkanGPU::Impl::~Impl()
     Logger::debug("Vulkan GPU device destructor completed");
 }
 
-auto VulkanGPU::Impl::initInstance(const GPU::CreateInfo &createInfo) -> bool
+auto VulkanGPU::Impl::initInstance(const GPUHandle::CreateInfo &createInfo)
+    -> bool
 {
     auto platform = std::make_unique<platform::GlfwPlatform>();
 
@@ -299,7 +303,8 @@ auto VulkanGPU::Impl::initPhysicalDevice() -> bool
     return true;
 }
 
-auto VulkanGPU::Impl::initDevice(const GPU::CreateInfo &createInfo) -> bool
+auto VulkanGPU::Impl::initDevice(const GPUHandle::CreateInfo &createInfo)
+    -> bool
 {
     VulkanDevice::CreateInfo deviceInfo;
     deviceInfo.physicalDevice = m_physicalDevice.get();
@@ -723,7 +728,7 @@ void VulkanGPU::Impl::draw(
 }
 
 auto VulkanGPU::Impl::createPipeline(const PipelineCreateInfo &createInfo)
-    -> std::expected<std::unique_ptr<Pipeline>, std::string>
+    -> std::expected<Pipeline, std::string>
 {
     if (!m_device) {
         return std::unexpected("Device is not initialized");
@@ -832,8 +837,8 @@ void VulkanGPU::draw(
     }
 }
 
-auto VulkanGPU::createPipeline(const PipelineCreateInfo &createInfo)
-    -> std::expected<std::unique_ptr<Pipeline>, std::string>
+auto VulkanGPU::createPipeline(const Pipeline::CreateInfo &createInfo)
+    -> std::expected<Pipeline, std::string>
 {
     if (m_impl) {
         return m_impl->createPipeline(createInfo);

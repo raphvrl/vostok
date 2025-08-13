@@ -16,18 +16,18 @@ struct WindowSize
     u32 height;
 };
 
-class Window
+class WindowHandle
 {
 public:
     static auto create(const WindowConfig &config = {})
-        -> std::expected<std::unique_ptr<Window>, std::string>;
+        -> std::expected<std::unique_ptr<WindowHandle>, std::string>;
 
-    virtual ~Window() = default;
+    virtual ~WindowHandle() = default;
 
-    Window(const Window &) = delete;
-    auto operator=(const Window &) -> Window & = delete;
-    Window(Window &&) = delete;
-    auto operator=(Window &&) -> Window & = delete;
+    WindowHandle(const WindowHandle &) = delete;
+    auto operator=(const WindowHandle &) -> WindowHandle & = delete;
+    WindowHandle(WindowHandle &&) = delete;
+    auto operator=(WindowHandle &&) -> WindowHandle & = delete;
 
     virtual void pollEvents() = 0;
     [[nodiscard]] virtual auto shouldClose() const -> bool = 0;
@@ -64,7 +64,34 @@ public:
     virtual void showCursor(bool show) = 0;
 
 protected:
+    WindowHandle() = default;
+};
+
+struct Window : public std::unique_ptr<WindowHandle>
+{
+    using Base = std::unique_ptr<WindowHandle>;
+    using Base::Base;
+
     Window() = default;
+    ~Window() = default;
+    Window(Window &&) = default;
+    auto operator=(Window &&) -> Window & = default;
+    Window(const Window &) = delete;
+    auto operator=(const Window &) -> Window & = delete;
+
+    explicit Window(std::unique_ptr<WindowHandle> &&ptr)
+        : Base(std::move(ptr))
+    {}
+
+    static auto create(const WindowConfig &config = {})
+        -> std::expected<Window, std::string>
+    {
+        auto result = WindowHandle::create(config);
+        if (!result) {
+            return std::unexpected(result.error());
+        }
+        return Window(std::move(result.value()));
+    }
 };
 
 } // namespace vostok

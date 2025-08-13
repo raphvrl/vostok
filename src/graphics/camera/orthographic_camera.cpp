@@ -8,7 +8,7 @@
 namespace vostok::graphics
 {
 
-OrthographicCamera::OrthographicCamera(const CreateInfo &createInfo)
+OrthographicCamerahandle::OrthographicCamerahandle(const CreateInfo &createInfo)
     : Camera(createInfo),
       m_config(createInfo.config)
 {
@@ -41,7 +41,7 @@ OrthographicCamera::OrthographicCamera(const CreateInfo &createInfo)
     markProjectionDirty();
 }
 
-auto OrthographicCamera::getProjectionMatrix() const noexcept
+auto OrthographicCamerahandle::getProjectionMatrix() const noexcept
     -> const math::Mat4 &
 {
     if (m_projectionMatrixDirty) {
@@ -51,17 +51,18 @@ auto OrthographicCamera::getProjectionMatrix() const noexcept
     return m_projectionMatrix;
 }
 
-auto OrthographicCamera::getViewMatrix() const noexcept -> const math::Mat4 &
+auto OrthographicCamerahandle::getViewMatrix() const noexcept
+    -> const math::Mat4 &
 {
     return Camera::getViewMatrix();
 }
 
-auto OrthographicCamera::getViewProjectionMatrix() const -> math::Mat4
+auto OrthographicCamerahandle::getViewProjectionMatrix() const -> math::Mat4
 {
     return getProjectionMatrix() * getViewMatrix();
 }
 
-auto OrthographicCamera::setBounds(
+auto OrthographicCamerahandle::setBounds(
     f32 left,
     f32 right,
     f32 bottom,
@@ -109,7 +110,7 @@ auto OrthographicCamera::setBounds(
     return {};
 }
 
-auto OrthographicCamera::setPlanes(f32 nearPlane, f32 farPlane) noexcept
+auto OrthographicCamerahandle::setPlanes(f32 nearPlane, f32 farPlane) noexcept
     -> std::expected<void, std::string>
 {
     if (nearPlane >= farPlane) {
@@ -144,8 +145,9 @@ auto OrthographicCamera::setPlanes(f32 nearPlane, f32 farPlane) noexcept
     return {};
 }
 
-auto OrthographicCamera::updateConfig(const OrthographicConfig &config) noexcept
-    -> std::expected<void, std::string>
+auto OrthographicCamerahandle::updateConfig(
+    const OrthographicConfig &config
+) noexcept -> std::expected<void, std::string>
 {
     if (auto result = validateConfig(config); !result.has_value()) {
         return std::unexpected(result.error());
@@ -165,7 +167,7 @@ auto OrthographicCamera::updateConfig(const OrthographicConfig &config) noexcept
     return {};
 }
 
-auto OrthographicCamera::getAspectRatio() const noexcept -> f32
+auto OrthographicCamerahandle::getAspectRatio() const noexcept -> f32
 {
     const f32 WIDTH = getWidth();
     const f32 HEIGHT = getHeight();
@@ -177,8 +179,14 @@ auto OrthographicCamera::getAspectRatio() const noexcept -> f32
     return WIDTH / HEIGHT;
 }
 
-auto OrthographicCamera::createCentered(const CenteredParams &params)
-    -> OrthographicCamera
+auto OrthographicCamerahandle::create(const CreateInfo &createInfo)
+    -> std::unique_ptr<OrthographicCamerahandle>
+{
+    return std::make_unique<OrthographicCamerahandle>(createInfo);
+}
+
+auto OrthographicCamerahandle::createCentered(const CenteredParams &params)
+    -> std::unique_ptr<OrthographicCamerahandle>
 {
     const f32 HALF_WIDTH = params.width * 0.5F;
     const f32 HALF_HEIGHT = params.height * 0.5F;
@@ -194,11 +202,11 @@ auto OrthographicCamera::createCentered(const CenteredParams &params)
                           .nearPlane = params.nearPlane,
                           .farPlane = params.farPlane };
 
-    return OrthographicCamera{ createInfo };
+    return std::make_unique<OrthographicCamerahandle>(createInfo);
 }
 
-auto OrthographicCamera::createUI(f32 screenWidth, f32 screenHeight)
-    -> OrthographicCamera
+auto OrthographicCamerahandle::createUI(f32 screenWidth, f32 screenHeight)
+    -> std::unique_ptr<OrthographicCamerahandle>
 {
     CreateInfo createInfo{};
     createInfo.name = "OrthographicCamera_UI";
@@ -211,11 +219,11 @@ auto OrthographicCamera::createUI(f32 screenWidth, f32 screenHeight)
                           .nearPlane = -1.0F,
                           .farPlane = 1.0F };
 
-    return OrthographicCamera{ createInfo };
+    return std::make_unique<OrthographicCamerahandle>(createInfo);
 }
 
-auto OrthographicCamera::createFromBounds(const BoundsParams &params)
-    -> OrthographicCamera
+auto OrthographicCamerahandle::createFromBounds(const BoundsParams &params)
+    -> std::unique_ptr<OrthographicCamerahandle>
 {
     CreateInfo createInfo{};
     createInfo.name = "OrthographicCamera";
@@ -228,17 +236,17 @@ auto OrthographicCamera::createFromBounds(const BoundsParams &params)
                           .nearPlane = params.nearPlane,
                           .farPlane = params.farPlane };
 
-    return OrthographicCamera{ createInfo };
+    return std::make_unique<OrthographicCamerahandle>(createInfo);
 }
 
-void OrthographicCamera::onTransformChanged() noexcept {}
+void OrthographicCamerahandle::onTransformChanged() noexcept {}
 
-void OrthographicCamera::onProjectionChanged() noexcept
+void OrthographicCamerahandle::onProjectionChanged() noexcept
 {
     markProjectionDirty();
 }
 
-void OrthographicCamera::updateProjectionMatrix() const noexcept
+void OrthographicCamerahandle::updateProjectionMatrix() const noexcept
 {
     Logger::trace(
         "OrthographicCamera '{}' updating projection matrix",
@@ -257,7 +265,7 @@ void OrthographicCamera::updateProjectionMatrix() const noexcept
     m_projectionMatrixDirty = false;
 }
 
-auto OrthographicCamera::validateConfig(
+auto OrthographicCamerahandle::validateConfig(
     const OrthographicConfig &config
 ) noexcept -> std::expected<bool, std::string>
 {
@@ -294,7 +302,7 @@ auto OrthographicCamera::validateConfig(
     return true;
 }
 
-void OrthographicCamera::markProjectionDirty() noexcept
+void OrthographicCamerahandle::markProjectionDirty() noexcept
 {
     m_projectionMatrixDirty = true;
 }

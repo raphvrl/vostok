@@ -25,7 +25,7 @@ struct FramebufferSize
     u32 height = 0;
 };
 
-class GPU
+class GPUHandle
 {
 public:
     struct CreateInfo
@@ -43,18 +43,18 @@ public:
         bool enableVSync = true;
     };
 
-    GPU() = default;
-    virtual ~GPU() = default;
+    GPUHandle() = default;
+    virtual ~GPUHandle() = default;
 
-    GPU(const GPU &) = delete;
-    auto operator=(const GPU &) -> GPU & = delete;
-    GPU(GPU &&) = delete;
-    auto operator=(GPU &&) -> GPU & = delete;
+    GPUHandle(const GPUHandle &) = delete;
+    auto operator=(const GPUHandle &) -> GPUHandle & = delete;
+    GPUHandle(GPUHandle &&) = delete;
+    auto operator=(GPUHandle &&) -> GPUHandle & = delete;
 
     static auto create(
         const CreateInfo &createInfo,
         RenderBackend backend = RenderBackend::VULKAN
-    ) -> std::expected<std::unique_ptr<GPU>, std::string>;
+    ) -> std::expected<std::unique_ptr<GPUHandle>, std::string>;
 
     virtual void waitIdle() = 0;
 
@@ -71,8 +71,8 @@ public:
         u32 firstInstance = 0
     ) = 0;
 
-    virtual auto createPipeline(const PipelineCreateInfo &createInfo)
-        -> std::expected<std::unique_ptr<Pipeline>, std::string> = 0;
+    virtual auto createPipeline(const Pipeline::CreateInfo &createInfo)
+        -> std::expected<Pipeline, std::string> = 0;
 
     virtual auto createBuffer(const BufferCreateInfo &createInfo)
         -> std::expected<std::unique_ptr<Buffer>, std::string> = 0;
@@ -112,6 +112,38 @@ private:
         -> std::expected<u32, std::string> = 0;
 
     virtual void notifyDirtyResource(u32 bindlessIndex) = 0;
+};
+
+struct GPU : public std::unique_ptr<GPUHandle>
+{
+    using Base = std::unique_ptr<GPUHandle>;
+    using Base::Base;
+
+    GPU() = default;
+    ~GPU() = default;
+
+    GPU(GPU &&) = default;
+    auto operator=(GPU &&) -> GPU & = default;
+    GPU(const GPU &) = delete;
+    auto operator=(const GPU &) -> GPU & = delete;
+
+    explicit GPU(std::unique_ptr<GPUHandle> &&ptr)
+        : Base(std::move(ptr))
+    {}
+
+    using CreateInfo = GPUHandle::CreateInfo;
+
+    static auto create(
+        const CreateInfo &createInfo,
+        RenderBackend backend = RenderBackend::VULKAN
+    ) -> std::expected<GPU, std::string>
+    {
+        auto result = GPUHandle::create(createInfo, backend);
+        if (!result) {
+            return std::unexpected(result.error());
+        }
+        return GPU(std::move(result.value()));
+    }
 };
 
 } // namespace vostok::graphics

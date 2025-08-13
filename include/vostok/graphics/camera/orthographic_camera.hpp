@@ -3,6 +3,7 @@
 #include "camera.hpp"
 
 #include <expected>
+#include <memory>
 #include <string>
 
 namespace vostok::graphics
@@ -25,7 +26,7 @@ struct CenteredParams
     f32 farPlane = 100.0F;
 };
 
-class OrthographicCamera : public Camera
+class OrthographicCamerahandle : public Camera
 {
 public:
     struct OrthographicConfig
@@ -43,7 +44,7 @@ public:
         OrthographicConfig config{};
     };
 
-    explicit OrthographicCamera(const CreateInfo &createInfo);
+    explicit OrthographicCamerahandle(const CreateInfo &createInfo);
 
     [[nodiscard]] auto getProjectionMatrix() const noexcept
         -> const math::Mat4 & override;
@@ -92,12 +93,16 @@ public:
     }
     [[nodiscard]] auto getAspectRatio() const noexcept -> f32;
 
+    [[nodiscard]] static auto create(const CreateInfo &createInfo)
+        -> std::unique_ptr<OrthographicCamerahandle>;
+    [[nodiscard]] static auto createDefault()
+        -> std::unique_ptr<OrthographicCamerahandle>;
     [[nodiscard]] static auto createCentered(const CenteredParams &params)
-        -> OrthographicCamera;
+        -> std::unique_ptr<OrthographicCamerahandle>;
     [[nodiscard]] static auto createUI(f32 screenWidth, f32 screenHeight)
-        -> OrthographicCamera;
+        -> std::unique_ptr<OrthographicCamerahandle>;
     [[nodiscard]] static auto createFromBounds(const BoundsParams &params)
-        -> OrthographicCamera;
+        -> std::unique_ptr<OrthographicCamerahandle>;
 
 protected:
     void onTransformChanged() noexcept override;
@@ -113,6 +118,61 @@ private:
     validateConfig(const OrthographicConfig &config) noexcept
         -> std::expected<bool, std::string>;
     void markProjectionDirty() noexcept;
+};
+
+struct OrthographicCamera : public std::unique_ptr<OrthographicCamerahandle>
+{
+    using Base = std::unique_ptr<OrthographicCamerahandle>;
+    using Base::Base;
+
+    OrthographicCamera() = default;
+    ~OrthographicCamera() = default;
+
+    OrthographicCamera(OrthographicCamera &&) = default;
+    auto operator=(OrthographicCamera &&) -> OrthographicCamera & = default;
+    OrthographicCamera(const OrthographicCamera &) = delete;
+    auto operator=(const OrthographicCamera &) -> OrthographicCamera & = delete;
+
+    explicit OrthographicCamera(std::unique_ptr<OrthographicCamerahandle> &&ptr)
+        : Base(std::move(ptr))
+    {}
+
+    using Config = OrthographicCamerahandle::OrthographicConfig;
+    using CreateInfo = OrthographicCamerahandle::CreateInfo;
+
+    static auto create(const CreateInfo &createInfo) -> OrthographicCamera
+    {
+        auto result = OrthographicCamerahandle::create(createInfo);
+        return OrthographicCamera(std::move(result));
+    }
+
+    static auto createDefault() -> OrthographicCamera
+    {
+        auto result = OrthographicCamerahandle::createDefault();
+        return OrthographicCamera(std::move(result));
+    }
+
+    static auto createCentered(const CenteredParams &params)
+        -> OrthographicCamera
+    {
+        auto result = OrthographicCamerahandle::createCentered(params);
+        return OrthographicCamera(std::move(result));
+    }
+
+    static auto createUI(f32 screenWidth, f32 screenHeight)
+        -> OrthographicCamera
+    {
+        auto result =
+            OrthographicCamerahandle::createUI(screenWidth, screenHeight);
+        return OrthographicCamera(std::move(result));
+    }
+
+    static auto createFromBounds(const BoundsParams &params)
+        -> OrthographicCamera
+    {
+        auto result = OrthographicCamerahandle::createFromBounds(params);
+        return OrthographicCamera(std::move(result));
+    }
 };
 
 } // namespace vostok::graphics
