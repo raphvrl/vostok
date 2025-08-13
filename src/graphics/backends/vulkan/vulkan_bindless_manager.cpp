@@ -243,7 +243,7 @@ void VulkanBindlessManager::cleanupBindlessResources()
 }
 
 auto VulkanBindlessManager::registerUBO(
-    graphics::BindableResourceBase *ubo,
+    graphics::BindableResource *ubo,
     size_t size
 ) -> std::expected<u32, std::string>
 {
@@ -259,7 +259,7 @@ auto VulkanBindlessManager::registerUBO(
     m_uboToIndex[ubo] = INDEX;
     m_indexToUBO[INDEX] = ubo;
 
-    auto bufferResult = createGPUBuffer(size, ubo->getData());
+    auto bufferResult = createGPUBuffer(size, ubo->getRawData());
     if (!bufferResult) {
         m_uboToIndex.erase(ubo);
         return std::unexpected(
@@ -290,26 +290,10 @@ auto VulkanBindlessManager::registerUBO(
         m_uboToIndex.size()
     );
 
-    // Temporary diagnostic log: dump first few bytes of CPU data used to init
-    const auto *bytes = static_cast<const std::byte *>(ubo->getData());
-    if (bytes != nullptr && size >= 12) {
-        auto b0 = std::to_integer<int>(bytes[0]);
-        auto b1 = std::to_integer<int>(bytes[1]);
-        auto b2 = std::to_integer<int>(bytes[2]);
-        Logger::debug(
-            "UBO[{}] initial data bytes: [{}, {}, {}] (size={})",
-            INDEX,
-            b0,
-            b1,
-            b2,
-            size
-        );
-    }
-
     return INDEX;
 }
 
-auto VulkanBindlessManager::unregisterUBO(const BindableResourceBase *ubo)
+auto VulkanBindlessManager::unregisterUBO(const BindableResource *ubo)
     -> std::expected<void, std::string>
 {
     if (ubo == nullptr) {
@@ -347,7 +331,7 @@ auto VulkanBindlessManager::unregisterUBO(const BindableResourceBase *ubo)
 
 auto VulkanBindlessManager::update() -> std::expected<void, std::string>
 {
-    std::vector<const BindableResourceBase *> dirtyResources;
+    std::vector<const BindableResource *> dirtyResources;
 
     std::lock_guard<std::mutex> lock(m_dirtyMutex);
     if (m_dirtyStack.empty()) {
@@ -397,7 +381,7 @@ void VulkanBindlessManager::notifyDirty(u32 bindlessIndex)
 
 auto VulkanBindlessManager::updateUBO(
     u32 index,
-    const BindableResourceBase *resource
+    const BindableResource *resource
 ) -> std::expected<void, std::string>
 {
     if (resource == nullptr) {
@@ -405,8 +389,8 @@ auto VulkanBindlessManager::updateUBO(
     }
 
     try {
-        const auto *data = resource->getData();
-        auto size = resource->getSize();
+        const auto *data = resource->getRawData();
+        auto size = resource->getDataSize();
 
         if ((data == nullptr) || size == 0) {
             return std::unexpected{ "Invalid resource data" };

@@ -49,10 +49,10 @@ public:
     auto operator=(VulkanBindlessManager &&) noexcept
         -> VulkanBindlessManager &;
 
-    auto registerUBO(BindableResourceBase *ubo, size_t size)
+    auto registerUBO(BindableResource *ubo, size_t size)
         -> std::expected<u32, std::string>;
 
-    auto unregisterUBO(const BindableResourceBase *ubo)
+    auto unregisterUBO(const BindableResource *ubo)
         -> std::expected<void, std::string>;
 
     auto update() -> std::expected<void, std::string>;
@@ -91,7 +91,7 @@ private:
     auto initBindlessResources() -> std::expected<void, std::string>;
     void cleanupBindlessResources();
 
-    auto updateUBO(u32 index, const BindableResourceBase *resource)
+    auto updateUBO(u32 index, const BindableResource *resource)
         -> std::expected<void, std::string>;
 
     auto createGPUBuffer(size_t size, const void *data)
@@ -107,10 +107,10 @@ private:
 
     u32 m_maxUBOs;
 
-    std::unordered_map<const BindableResourceBase *, u32> m_uboToIndex;
-    std::unordered_map<u32, const BindableResourceBase *> m_indexToUBO;
+    std::unordered_map<const BindableResource *, u32> m_uboToIndex;
+    std::unordered_map<u32, const BindableResource *> m_indexToUBO;
 
-    std::vector<const BindableResourceBase *> m_dirtyStack;
+    std::vector<const BindableResource *> m_dirtyStack;
     mutable std::mutex m_dirtyMutex;
 
     VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;

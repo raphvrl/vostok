@@ -1,7 +1,7 @@
 #include "vostok/core/logger/logger.hpp"
 #include "vostok/graphics/backends/vulkan/vulkan_gpu.hpp"
 #include "vostok/graphics/backends/vulkan/vulkan_pipeline.hpp"
-#include "vostok/graphics/buffers/bindable_resource_ptr.hpp"
+#include "vostok/graphics/buffers/ubo.hpp"
 #include "vostok/graphics/gpu.hpp"
 #include "vostok/graphics/pipeline.hpp"
 #include "vostok/math/types.hpp"
@@ -241,7 +241,7 @@ auto createPipeline(graphics::GPU *gpu)
 }
 
 auto createUBO(graphics::GPU *gpu)
-    -> std::expected<std::unique_ptr<graphics::UBO<ColorUBO>>, std::string>
+    -> std::expected<graphics::UBOPtr<ColorUBO>, std::string>
 {
     ColorUBO initialData = { .color = math::Vec3{ 1.0F, 0.0F, 0.0F } };
 

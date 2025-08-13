@@ -100,7 +100,7 @@ public:
     auto createBuffer(const graphics::BufferCreateInfo &createInfo)
         -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>;
 
-    auto registerUBO(BindableResourceBase *ubo, size_t size)
+    auto registerUBO(BindableResource *ubo, size_t size)
         -> std::expected<u32, std::string>;
 
     void notifyDirtyResource(u32 bindlessIndex);
@@ -758,7 +758,7 @@ auto VulkanGPU::Impl::createBuffer(const graphics::BufferCreateInfo &createInfo)
     return std::unique_ptr<graphics::Buffer>(vulkanBuffer.release());
 }
 
-auto VulkanGPU::Impl::registerUBO(BindableResourceBase *ubo, size_t size)
+auto VulkanGPU::Impl::registerUBO(BindableResource *ubo, size_t size)
     -> std::expected<u32, std::string>
 {
     if (!m_bindlessManager) {
@@ -851,7 +851,7 @@ auto VulkanGPU::createBuffer(const graphics::BufferCreateInfo &createInfo)
     return std::unexpected("Vulkan GPU device is not initialized");
 }
 
-auto VulkanGPU::registerUBO(BindableResourceBase *ubo, size_t size)
+auto VulkanGPU::registerUBO(BindableResource *ubo, size_t size)
     -> std::expected<u32, std::string>
 {
     if (m_impl) {

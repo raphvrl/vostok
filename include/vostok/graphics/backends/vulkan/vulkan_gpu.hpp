@@ -81,7 +81,7 @@ private:
     class Impl;
     std::unique_ptr<Impl> m_impl;
 
-    auto registerUBO(BindableResourceBase *ubo, size_t size)
+    auto registerUBO(BindableResource *ubo, size_t size)
         -> std::expected<u32, std::string> override;
 
     void notifyDirtyResource(u32 bindlessIndex) override;

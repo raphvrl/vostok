@@ -77,9 +77,10 @@ public:
     virtual auto createBuffer(const BufferCreateInfo &createInfo)
         -> std::expected<std::unique_ptr<Buffer>, std::string> = 0;
 
-    template <BindableType T>
+    template <typename T>
+        requires std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>
     auto createUBO(const T &initialData = T{})
-        -> std::expected<std::unique_ptr<UBO<T>>, std::string>
+        -> std::expected<UBOPtr<T>, std::string>
     {
         auto ubo = std::make_unique<UBO<T>>(initialData);
 
@@ -91,16 +92,16 @@ public:
         const u32 INDEX = result.value();
         ubo->setBindlessIndex(INDEX);
 
-        ubo->setDirtyCallback([this,
-                               INDEX](const BindableResource<T> *resource) {
+        // NOLINTNEXTLINE
+        ubo->setDirtyCallback([this, INDEX](const BindableResource *resource) {
             notifyDirtyResource(INDEX);
         });
 
-        return ubo;
+        return UBOPtr<T>(std::move(ubo));
     }
 
 private:
-    virtual auto registerUBO(BindableResourceBase *ubo, size_t size)
+    virtual auto registerUBO(BindableResource *ubo, size_t size)
         -> std::expected<u32, std::string> = 0;
 
     virtual void notifyDirtyResource(u32 bindlessIndex) = 0;
