@@ -49,6 +49,14 @@ public:
         u32 firstInstance = 0
     ) override;
 
+    void drawIndexed(
+        u32 indexCount,
+        u32 instanceCount = 1,
+        u32 firstIndex = 0,
+        u32 vertexOffset = 0,
+        u32 firstInstance = 0
+    ) override;
+
     [[nodiscard]] auto getInstance() const -> VulkanInstance *;
     [[nodiscard]] auto getSurface() const -> VulkanSurface *;
     [[nodiscard]] auto getPhysicalDevice() const -> VulkanPhysicalDevice *;

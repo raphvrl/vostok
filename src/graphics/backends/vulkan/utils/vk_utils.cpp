@@ -544,6 +544,32 @@ auto getRequiredAlignment(graphics::BufferUsage usage) -> size_t
     return requiredAlignment;
 }
 
+auto vertexFormatToVulkan(graphics::VertexFormat format) -> VkFormat
+{
+    static const std::unordered_map<graphics::VertexFormat, VkFormat>
+        VERTEX_FORMAT_TO_VULKAN_MAP = {
+            { graphics::VertexFormat::FLOAT1, VK_FORMAT_R32_SFLOAT },
+            { graphics::VertexFormat::FLOAT2, VK_FORMAT_R32G32_SFLOAT },
+            { graphics::VertexFormat::FLOAT3, VK_FORMAT_R32G32B32_SFLOAT },
+            { graphics::VertexFormat::FLOAT4, VK_FORMAT_R32G32B32A32_SFLOAT },
+            { graphics::VertexFormat::INT1, VK_FORMAT_R32_SINT },
+            { graphics::VertexFormat::INT2, VK_FORMAT_R32G32_SINT },
+            { graphics::VertexFormat::INT3, VK_FORMAT_R32G32B32_SINT },
+            { graphics::VertexFormat::INT4, VK_FORMAT_R32G32B32A32_SINT },
+            { graphics::VertexFormat::UINT1, VK_FORMAT_R32_UINT },
+            { graphics::VertexFormat::UINT2, VK_FORMAT_R32G32_UINT },
+            { graphics::VertexFormat::UINT3, VK_FORMAT_R32G32B32_UINT },
+            { graphics::VertexFormat::UINT4, VK_FORMAT_R32G32B32A32_UINT }
+        };
+
+    auto it = VERTEX_FORMAT_TO_VULKAN_MAP.find(format);
+    if (it != VERTEX_FORMAT_TO_VULKAN_MAP.end()) {
+        return it->second;
+    }
+
+    return VK_FORMAT_R32_SFLOAT;
+}
+
 auto loadShaderFile(const fs::path &path)
     -> std::expected<std::vector<u32>, std::string>
 {
@@ -638,10 +664,40 @@ auto createGraphicsPipeline(
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType =
         VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.pVertexBindingDescriptions = nullptr;
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+
+    VkVertexInputBindingDescription bindingDescription{};
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+
+    if (info.vertexLayout.has_value()) {
+        const auto &vertexLayout = info.vertexLayout.value();
+
+        bindingDescription.binding = 0;
+        bindingDescription.stride = vertexLayout.stride;
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        attributeDescriptions.reserve(vertexLayout.attributes.size());
+
+        for (const auto &attr : vertexLayout.attributes) {
+            VkVertexInputAttributeDescription desc{};
+            desc.binding = 0;
+            desc.location = attr.location;
+            desc.format = vertexFormatToVulkan(attr.format);
+            desc.offset = attr.offset;
+            attributeDescriptions.push_back(desc);
+        }
+
+        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+        vertexInputInfo.vertexAttributeDescriptionCount =
+            static_cast<u32>(attributeDescriptions.size());
+        vertexInputInfo.pVertexAttributeDescriptions =
+            attributeDescriptions.data();
+    } else {
+        vertexInputInfo.vertexBindingDescriptionCount = 0;
+        vertexInputInfo.pVertexBindingDescriptions = nullptr;
+        vertexInputInfo.vertexAttributeDescriptionCount = 0;
+        vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+    }
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType =
@@ -757,8 +813,6 @@ auto createGraphicsPipeline(
     pipelineInfo.renderPass = renderPass;
     pipelineInfo.subpass = subpass;
 
-    // Dynamic rendering path (no renderpass): attach
-    // VkPipelineRenderingCreateInfo
     VkPipelineRenderingCreateInfo renderingInfo{};
     if (renderPass == VK_NULL_HANDLE &&
         colorAttachmentFormat != VK_FORMAT_UNDEFINED) {
