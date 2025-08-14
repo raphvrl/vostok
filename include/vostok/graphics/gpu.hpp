@@ -3,8 +3,9 @@
 #include "vostok/core/logger/logger.hpp"
 #include "vostok/core/type.hpp"
 #include "vostok/core/version.hpp"
-#include "vostok/graphics/buffer.hpp"
+#include "vostok/graphics/buffers/buffer.hpp"
 #include "vostok/graphics/buffers/ubo.hpp"
+#include "vostok/graphics/buffers/vbo.hpp"
 #include "vostok/graphics/pipeline.hpp"
 
 #include <expected>
@@ -76,6 +77,43 @@ public:
 
     virtual auto createBuffer(const BufferCreateInfo &createInfo)
         -> std::expected<std::unique_ptr<Buffer>, std::string> = 0;
+
+    template <typename T, typename... Formats>
+        requires std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>
+    auto createVBO(const std::span<const T> &data, Formats... formats)
+        -> std::expected<VBO<T>, std::string>
+    {
+        const size_t SIZE = data.size() * sizeof(T);
+
+        BufferCreateInfo bufferInfo;
+        bufferInfo.usage =
+            BufferUsage::VERTEX |
+            BufferUsage::TRANSFER_DST;
+        bufferInfo.memory = BufferMemory::GPU_ONLY;
+        bufferInfo.size = SIZE;
+        bufferInfo.data = std::span<const std::byte>(
+            std::bit_cast<const std::byte *>(data.data()),
+            SIZE
+        );
+        bufferInfo.debugName = "VBO_" + std::string(typeid(T).name());
+
+        auto bufferResult = createBuffer(bufferInfo);
+        if (!bufferResult) {
+            return std::unexpected(
+                "Failed to create buffer: " + bufferResult.error()
+            );
+        }
+
+        auto layout = createVertexLayout({ formats... });
+
+        auto vboImpl = std::make_unique<VBOImpl<T>>(
+            std::move(bufferResult.value()),
+            data,
+            std::move(layout)
+        );
+
+        return VBO<T>(std::move(vboImpl));
+    }
 
     template <typename T>
         requires std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>

@@ -1,5 +1,6 @@
 #include "vostok/core/logger/logger.hpp"
 #include "vostok/graphics/buffers/ubo.hpp"
+#include "vostok/graphics/buffers/vbo.hpp"
 #include "vostok/graphics/camera/perspective_camera.hpp"
 #include "vostok/graphics/gpu.hpp"
 #include "vostok/graphics/pipeline.hpp"
@@ -32,6 +33,12 @@ struct CameraUBO
     alignas(4) f32 time;
 };
 
+struct Vertex
+{
+    math::Vec2 position;
+    math::Vec3 color;
+};
+
 struct HelloTriangleApp
 {
     Window window;
@@ -39,6 +46,7 @@ struct HelloTriangleApp
     graphics::Pipeline pipeline;
 
     graphics::UBO<CameraUBO> cameraUBO;
+    graphics::VBO<Vertex> vertexBuffer;
     graphics::PerspectiveCamera camera;
 };
 
@@ -157,8 +165,26 @@ auto createGPUDevice(WindowHandle *window)
     return graphics::GPU::create(deviceInfo);
 }
 
-auto createPipeline(graphics::GPUHandle *gpu)
-    -> std::expected<graphics::Pipeline, std::string>
+auto createVertexBuffer(graphics::GPUHandle *gpu)
+    -> std::expected<graphics::VBO<Vertex>, std::string>
+{
+    std::vector<Vertex> vertices = {
+        { .position = { -0.5F, 0.5F }, .color = { 1.0F, 0.0F, 0.0F } },
+        { .position = { 0.5F, 0.5F }, .color = { 0.0F, 1.0F, 0.0F } },
+        { .position = { 0.0F, -0.5F }, .color = { 0.0F, 0.0F, 1.0F } }
+    };
+
+    return gpu->createVBO<Vertex>(
+        vertices,
+        graphics::formats::VEC2,
+        graphics::formats::VEC3
+    );
+}
+
+auto createPipeline(
+    graphics::GPUHandle *gpu,
+    graphics::VBOImpl<Vertex> *vertexBuffer
+) -> std::expected<graphics::Pipeline, std::string>
 {
     fs::path vertexShaderPath =
         findResourcePath("shaders", "triangle.vert.spv");
@@ -226,6 +252,7 @@ auto createPipeline(graphics::GPUHandle *gpu)
     pipelineInfo.colorWriteMask = graphics::ColorComponentFlags::ALL;
 
     pipelineInfo.pushConstantSize = sizeof(math::Vec3);
+    pipelineInfo.vertexLayout = vertexBuffer->getLayout();
 
     return gpu->createPipeline(pipelineInfo);
 }
@@ -293,7 +320,9 @@ auto mainLoop(HelloTriangleApp &app) -> void
                     app.cameraUBO->time = T;
                 }
 
-                app.gpu->draw(3);
+                app.vertexBuffer->bind();
+
+                app.gpu->draw(app.vertexBuffer->getVertexCount());
 
                 auto endResult = app.gpu->endFrame();
                 if (!endResult) {
@@ -375,7 +404,20 @@ auto main(int argc, char *argv[]) -> int
         app.gpu = std::move(gpuResult.value());
         Logger::info("GPU device created successfully");
 
-        auto pipelineResult = createPipeline(app.gpu.get());
+        auto vertexBufferResult = createVertexBuffer(app.gpu.get());
+        if (!vertexBufferResult) {
+            Logger::error(
+                "Failed to create vertex buffer: {}",
+                vertexBufferResult.error()
+            );
+            return -1;
+        }
+        app.vertexBuffer = std::move(vertexBufferResult.value());
+        Logger::info("Vertex buffer created successfully");
+
+        auto pipelineResult =
+            createPipeline(app.gpu.get(), app.vertexBuffer.get());
+
         if (!pipelineResult) {
             Logger::error(
                 "Failed to create pipeline: {}",

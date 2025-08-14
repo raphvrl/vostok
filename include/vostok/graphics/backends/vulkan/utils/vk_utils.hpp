@@ -1,7 +1,7 @@
 #pragma once
 
 #include "vostok/core/type.hpp"
-#include "vostok/graphics/buffer.hpp"
+#include "vostok/graphics/buffers/buffer.hpp"
 #include "vostok/graphics/pipeline.hpp"
 
 #include <filesystem>
@@ -44,6 +44,8 @@ auto setDebugObjectName(
 ) -> bool;
 
 auto getRequiredAlignment(graphics::BufferUsage usage) -> size_t;
+
+auto vertexFormatToVulkan(graphics::VertexFormat format) -> VkFormat;
 
 auto loadShaderFile(const fs::path &path)
     -> std::expected<std::vector<u32>, std::string>;

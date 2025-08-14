@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vostok/graphics/buffer.hpp"
+#include "vostok/graphics/buffers/buffer.hpp"
 
 #include <expected>
 #include <memory>
@@ -38,6 +38,8 @@ public:
     [[nodiscard]] auto getBuffer() const -> VkBuffer;
     [[nodiscard]] auto getAllocation() const -> VmaAllocation;
 
+    void bind() override;
+
     auto map() -> std::expected<std::span<std::byte>, std::string> override;
     void unmap() override;
 
@@ -54,6 +56,9 @@ public:
     [[nodiscard]] auto getSize() const -> size_t override;
     [[nodiscard]] auto getUsage() const -> graphics::BufferUsage override;
     [[nodiscard]] auto getMemory() const -> graphics::BufferMemory override;
+
+    [[nodiscard]] auto getOffset() const -> size_t override;
+    auto setOffset(size_t offset) -> void override;
 
 private:
     class Impl;

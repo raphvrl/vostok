@@ -33,6 +33,8 @@ public:
     Impl(Impl &&other) noexcept;
     auto operator=(Impl &&other) noexcept -> Impl &;
 
+    void bind();
+
     auto map() -> std::expected<std::span<std::byte>, std::string>;
     void unmap();
 
@@ -61,6 +63,9 @@ public:
         size_t size
     ) -> std::expected<void, std::string>;
 
+    [[nodiscard]] auto getOffset() const -> size_t { return m_offset; }
+    auto setOffset(size_t offset) -> void { m_offset = offset; }
+
 private:
     void destroyBuffer();
 
@@ -77,7 +82,8 @@ private:
     VmaAllocation m_allocation = VK_NULL_HANDLE;
     graphics::BufferUsage m_usage;
     graphics::BufferMemory m_memory;
-    size_t m_size;
+    VkDeviceSize m_size;
+    VkDeviceSize m_offset = 0;
     void *m_mapped = nullptr;
 };
 
@@ -115,10 +121,12 @@ VulkanBuffer::Impl::Impl(Impl &&other) noexcept
       m_usage(other.m_usage),
       m_memory(other.m_memory),
       m_size(other.m_size),
+      m_offset(other.m_offset),
       m_mapped(other.m_mapped)
 {
     other.m_buffer = VK_NULL_HANDLE;
     other.m_allocation = VK_NULL_HANDLE;
+    other.m_offset = 0;
     other.m_mapped = nullptr;
 }
 
@@ -134,14 +142,34 @@ auto VulkanBuffer::Impl::operator=(Impl &&other) noexcept -> Impl &
         m_usage = other.m_usage;
         m_memory = other.m_memory;
         m_size = other.m_size;
+        m_offset = other.m_offset;
         m_mapped = other.m_mapped;
 
         other.m_buffer = VK_NULL_HANDLE;
         other.m_allocation = VK_NULL_HANDLE;
+        other.m_offset = 0;
         other.m_mapped = nullptr;
     }
 
     return *this;
+}
+
+void VulkanBuffer::Impl::bind()
+{
+    auto *commandBuffer = m_frameSync->getCommandBuffer();
+
+    const u32 USAGE = static_cast<u32>(m_usage);
+    if ((USAGE & static_cast<u32>(graphics::BufferUsage::VERTEX)) != 0U) {
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_buffer, &m_offset);
+    }
+    if ((USAGE & static_cast<u32>(graphics::BufferUsage::INDEX)) != 0U) {
+        vkCmdBindIndexBuffer(
+            commandBuffer,
+            m_buffer,
+            m_offset,
+            VK_INDEX_TYPE_UINT32
+        );
+    }
 }
 
 auto VulkanBuffer::Impl::map()
@@ -515,6 +543,11 @@ auto VulkanBuffer::getAllocation() const -> VmaAllocation
     return m_impl->getAllocation();
 }
 
+void VulkanBuffer::bind()
+{
+    m_impl->bind();
+}
+
 auto VulkanBuffer::map() -> std::expected<std::span<std::byte>, std::string>
 {
     return m_impl->map();
@@ -554,6 +587,16 @@ auto VulkanBuffer::copyFrom(
 ) -> std::expected<void, std::string>
 {
     return m_impl->copyFrom(source, srcOffset, dstOffset, size);
+}
+
+auto VulkanBuffer::getOffset() const -> size_t
+{
+    return m_impl->getOffset();
+}
+
+void VulkanBuffer::setOffset(size_t offset)
+{
+    m_impl->setOffset(offset);
 }
 
 } // namespace vostok::graphics::vulkan

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "vostok/core/type.hpp"
-#include "vostok/graphics/buffer.hpp"
 #include "vostok/graphics/buffers/bindable_resource.hpp"
+#include "vostok/graphics/buffers/buffer.hpp"
 
 #include <expected>
 #include <memory>

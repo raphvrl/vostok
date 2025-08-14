@@ -66,6 +66,8 @@ public:
     Buffer(Buffer &&) = delete;
     auto operator=(Buffer &&) -> Buffer & = delete;
 
+    virtual void bind() = 0;
+
     virtual auto map() -> std::expected<std::span<std::byte>, std::string> = 0;
     virtual void unmap() = 0;
 
@@ -184,6 +186,9 @@ public:
     {
         return offset < getSize() && size <= getSize() - offset;
     }
+
+    [[nodiscard]] virtual auto getOffset() const -> size_t = 0;
+    virtual auto setOffset(size_t offset) -> void = 0;
 
 protected:
     Buffer() = default;

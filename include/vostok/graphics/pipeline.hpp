@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vostok/core/type.hpp"
+#include "vostok/graphics/buffers/vertex_layout.hpp"
 
 #include <expected>
 #include <filesystem>
@@ -120,6 +121,8 @@ struct PipelineCreateInfo
     std::optional<fs::path> tessellationControlShader;
     std::optional<fs::path> tessellationEvaluationShader;
     std::optional<fs::path> computeShader;
+
+    std::optional<VertexLayout> vertexLayout;
 
     PrimitiveTopology primitiveTopology = PrimitiveTopology::TRIANGLE_LIST;
     PolygonMode polygonMode = PolygonMode::FILL;
