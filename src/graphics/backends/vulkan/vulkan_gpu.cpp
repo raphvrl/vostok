@@ -50,6 +50,14 @@ public:
         u32 firstInstance = 0
     );
 
+    void drawIndexed(
+        u32 indexCount,
+        u32 instanceCount = 1,
+        u32 firstIndex = 0,
+        u32 vertexOffset = 0,
+        u32 firstInstance = 0
+    );
+
     [[nodiscard]] auto isInitialized() const -> bool
     {
         return m_instance && m_surface && m_physicalDevice && m_device &&
@@ -727,6 +735,27 @@ void VulkanGPU::Impl::draw(
         ->cmdDraw(vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
+void VulkanGPU::Impl::drawIndexed(
+    u32 indexCount,
+    u32 instanceCount,
+    u32 firstIndex,
+    u32 vertexOffset,
+    u32 firstInstance
+)
+{
+    if (!m_device || !m_frameSync) {
+        return;
+    }
+
+    m_frameSync->cmdDrawIndexed(
+        indexCount,
+        instanceCount,
+        firstIndex,
+        vertexOffset,
+        firstInstance
+    );
+}
+
 auto VulkanGPU::Impl::createPipeline(const PipelineCreateInfo &createInfo)
     -> std::expected<Pipeline, std::string>
 {
@@ -834,6 +863,26 @@ void VulkanGPU::draw(
 {
     if (m_impl) {
         m_impl->draw(vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+}
+
+void VulkanGPU::drawIndexed(
+    u32 indexCount,
+    u32 instanceCount,
+    u32 firstIndex,
+    u32 vertexOffset,
+    u32 firstInstance
+)
+
+{
+    if (m_impl) {
+        m_impl->drawIndexed(
+            indexCount,
+            instanceCount,
+            firstIndex,
+            vertexOffset,
+            firstInstance
+        );
     }
 }
 

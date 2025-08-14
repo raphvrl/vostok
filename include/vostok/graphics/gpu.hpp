@@ -4,6 +4,7 @@
 #include "vostok/core/type.hpp"
 #include "vostok/core/version.hpp"
 #include "vostok/graphics/buffers/buffer.hpp"
+#include "vostok/graphics/buffers/ibo.hpp"
 #include "vostok/graphics/buffers/ubo.hpp"
 #include "vostok/graphics/buffers/vbo.hpp"
 #include "vostok/graphics/pipeline.hpp"
@@ -72,6 +73,14 @@ public:
         u32 firstInstance = 0
     ) = 0;
 
+    virtual void drawIndexed(
+        u32 indexCount,
+        u32 instanceCount = 1,
+        u32 firstIndex = 0,
+        u32 vertexOffset = 0,
+        u32 firstInstance = 0
+    ) = 0;
+
     virtual auto createPipeline(const Pipeline::CreateInfo &createInfo)
         -> std::expected<Pipeline, std::string> = 0;
 
@@ -86,9 +95,7 @@ public:
         const size_t SIZE = data.size() * sizeof(T);
 
         BufferCreateInfo bufferInfo;
-        bufferInfo.usage =
-            BufferUsage::VERTEX |
-            BufferUsage::TRANSFER_DST;
+        bufferInfo.usage = BufferUsage::VERTEX | BufferUsage::TRANSFER_DST;
         bufferInfo.memory = BufferMemory::GPU_ONLY;
         bufferInfo.size = SIZE;
         bufferInfo.data = std::span<const std::byte>(
@@ -113,6 +120,36 @@ public:
         );
 
         return VBO<T>(std::move(vboImpl));
+    }
+
+    template <typename T>
+        requires std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>
+    auto createIBO(const std::span<const T> &data)
+        -> std::expected<IBO<T>, std::string>
+    {
+        const size_t SIZE = data.size() * sizeof(T);
+
+        BufferCreateInfo bufferInfo;
+        bufferInfo.usage = BufferUsage::INDEX | BufferUsage::TRANSFER_DST;
+        bufferInfo.memory = BufferMemory::GPU_ONLY;
+        bufferInfo.size = SIZE;
+        bufferInfo.data = std::span<const std::byte>(
+            std::bit_cast<const std::byte *>(data.data()),
+            SIZE
+        );
+        bufferInfo.debugName = "IBO_" + std::string(typeid(T).name());
+
+        auto bufferResult = createBuffer(bufferInfo);
+        if (!bufferResult) {
+            return std::unexpected(
+                "Failed to create buffer: " + bufferResult.error()
+            );
+        }
+
+        auto iboImpl =
+            std::make_unique<IBOImpl<T>>(std::move(bufferResult.value()), data);
+
+        return IBO<T>(std::move(iboImpl));
     }
 
     template <typename T>

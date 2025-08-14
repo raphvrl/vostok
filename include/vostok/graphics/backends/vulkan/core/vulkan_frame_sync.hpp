@@ -67,6 +67,14 @@ public:
         u32 firstInstance = 0
     );
 
+    void cmdDrawIndexed(
+        u32 indexCount,
+        u32 instanceCount = 1,
+        u32 firstIndex = 0,
+        u32 vertexOffset = 0,
+        u32 firstInstance = 0
+    );
+
     [[nodiscard]] auto getTransferCommandBuffer() const -> VkCommandBuffer;
     auto beginTransferCommandBuffer() -> std::expected<void, std::string>;
     auto endTransferCommandBuffer() -> std::expected<void, std::string>;

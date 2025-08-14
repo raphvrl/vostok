@@ -35,7 +35,7 @@ struct CameraUBO
 
 struct Vertex
 {
-    math::Vec2 position;
+    math::Vec3 position;
     math::Vec3 color;
 };
 
@@ -43,10 +43,12 @@ struct HelloTriangleApp
 {
     Window window;
     graphics::GPU gpu;
+
+    graphics::VBO<Vertex> vertexBuffer;
+    graphics::IBO<u32> indexBuffer;
     graphics::Pipeline pipeline;
 
     graphics::UBO<CameraUBO> cameraUBO;
-    graphics::VBO<Vertex> vertexBuffer;
     graphics::PerspectiveCamera camera;
 };
 
@@ -169,16 +171,74 @@ auto createVertexBuffer(graphics::GPUHandle *gpu)
     -> std::expected<graphics::VBO<Vertex>, std::string>
 {
     std::vector<Vertex> vertices = {
-        { .position = { -0.5F, 0.5F }, .color = { 1.0F, 0.0F, 0.0F } },
-        { .position = { 0.5F, 0.5F }, .color = { 0.0F, 1.0F, 0.0F } },
-        { .position = { 0.0F, -0.5F }, .color = { 0.0F, 0.0F, 1.0F } }
+        { .position = { -0.5F, -0.5F, 0.5F }, .color = { 1.0F, 0.0F, 0.0F } },
+        { .position = { 0.5F, -0.5F, 0.5F }, .color = { 0.0F, 1.0F, 0.0F } },
+        { .position = { 0.5F, 0.5F, 0.5F }, .color = { 0.0F, 0.0F, 1.0F } },
+        { .position = { -0.5F, 0.5F, 0.5F }, .color = { 1.0F, 1.0F, 0.0F } },
+
+        { .position = { -0.5F, -0.5F, -0.5F }, .color = { 1.0F, 0.0F, 1.0F } },
+        { .position = { 0.5F, -0.5F, -0.5F }, .color = { 0.0F, 1.0F, 1.0F } },
+        { .position = { 0.5F, 0.5F, -0.5F }, .color = { 1.0F, 1.0F, 1.0F } },
+        { .position = { -0.5F, 0.5F, -0.5F }, .color = { 0.0F, 0.0F, 0.0F } }
     };
 
     return gpu->createVBO<Vertex>(
         vertices,
-        graphics::formats::VEC2,
+        graphics::formats::VEC3,
         graphics::formats::VEC3
     );
+}
+
+auto createIndexBuffer(graphics::GPUHandle *gpu)
+    -> std::expected<graphics::IBO<u32>, std::string>
+{
+    // Indices pour dessiner un cube à partir des 8 sommets définis dans
+    // createVertexBuffer
+    std::vector<u32> indices = { // Face avant (z = 0.5)
+                                 0,
+                                 1,
+                                 2,
+                                 2,
+                                 3,
+                                 0,
+                                 // Face arrière (z = -0.5)
+                                 4,
+                                 5,
+                                 6,
+                                 6,
+                                 7,
+                                 4,
+                                 // Face gauche (x = -0.5)
+                                 0,
+                                 3,
+                                 7,
+                                 7,
+                                 4,
+                                 0,
+                                 // Face droite (x = 0.5)
+                                 1,
+                                 5,
+                                 6,
+                                 6,
+                                 2,
+                                 1,
+                                 // Face du bas (y = -0.5)
+                                 0,
+                                 1,
+                                 5,
+                                 5,
+                                 4,
+                                 0,
+                                 // Face du haut (y = 0.5)
+                                 3,
+                                 2,
+                                 6,
+                                 6,
+                                 7,
+                                 3
+    };
+
+    return gpu->createIBO<u32>(indices);
 }
 
 auto createPipeline(
@@ -321,8 +381,9 @@ auto mainLoop(HelloTriangleApp &app) -> void
                 }
 
                 app.vertexBuffer->bind();
+                app.indexBuffer->bind();
 
-                app.gpu->draw(app.vertexBuffer->getVertexCount());
+                app.gpu->drawIndexed(app.indexBuffer->getIndexCount());
 
                 auto endResult = app.gpu->endFrame();
                 if (!endResult) {
@@ -414,6 +475,17 @@ auto main(int argc, char *argv[]) -> int
         }
         app.vertexBuffer = std::move(vertexBufferResult.value());
         Logger::info("Vertex buffer created successfully");
+
+        auto indexBufferResult = createIndexBuffer(app.gpu.get());
+        if (!indexBufferResult) {
+            Logger::error(
+                "Failed to create index buffer: {}",
+                indexBufferResult.error()
+            );
+            return -1;
+        }
+        app.indexBuffer = std::move(indexBufferResult.value());
+        Logger::info("Index buffer created successfully");
 
         auto pipelineResult =
             createPipeline(app.gpu.get(), app.vertexBuffer.get());

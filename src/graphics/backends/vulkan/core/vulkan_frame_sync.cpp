@@ -305,6 +305,24 @@ void VulkanFrameSync::cmdDraw(
     );
 }
 
+void VulkanFrameSync::cmdDrawIndexed(
+    u32 indexCount,
+    u32 instanceCount,
+    u32 firstIndex,
+    u32 vertexOffset,
+    u32 firstInstance
+)
+{
+    vkCmdDrawIndexed(
+        m_frames[m_currentFrame].commandBuffer,
+        indexCount,
+        instanceCount,
+        firstIndex,
+        static_cast<int>(vertexOffset),
+        firstInstance
+    );
+}
+
 auto VulkanFrameSync::getTransferCommandBuffer() const -> VkCommandBuffer
 {
     return m_transferCommandBuffer;
