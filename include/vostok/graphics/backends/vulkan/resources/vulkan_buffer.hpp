@@ -26,7 +26,7 @@ public:
         VulkanAllocator *allocator,
         VulkanFrameSync *frameSync,
         const graphics::BufferCreateInfo &info
-    ) -> std::unique_ptr<VulkanBuffer>;
+    ) -> std::expected<std::unique_ptr<VulkanBuffer>, std::string>;
 
     ~VulkanBuffer() override;
 

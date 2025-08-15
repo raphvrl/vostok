@@ -289,6 +289,65 @@ auto VulkanFrameSync::endCommandBuffer() -> std::expected<void, std::string>
     return {};
 }
 
+auto VulkanFrameSync::submitCommandBuffer() -> std::expected<void, std::string>
+{
+    if (m_frames.empty()) {
+        return std::unexpected("No frames available");
+    }
+
+    auto &frame = m_frames[m_currentFrame];
+    if (frame.commandBuffer == VK_NULL_HANDLE) {
+        return std::unexpected("No command buffer to submit");
+    }
+
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &frame.commandBuffer;
+
+    VkResult result = vkQueueSubmit(
+        m_device->getGraphicsQueue(),
+        1,
+        &submitInfo,
+        frame.inFlight
+    );
+
+    if (result != VK_SUCCESS) {
+        return std::unexpected(
+            "Failed to submit graphics command buffer: " +
+            utils::vkResultToString(result)
+        );
+    }
+
+    return {};
+}
+
+auto VulkanFrameSync::waitForComplete() -> std::expected<void, std::string>
+{
+    if (m_frames.empty()) {
+        return std::unexpected("No frames available");
+    }
+
+    auto &frame = m_frames[m_currentFrame];
+
+    VkResult result = vkWaitForFences(
+        m_device->getHandle(),
+        1,
+        &frame.inFlight,
+        VK_TRUE,
+        UINT64_MAX
+    );
+
+    if (result != VK_SUCCESS) {
+        return std::unexpected(
+            "Failed to wait for graphics command buffer completion: " +
+            utils::vkResultToString(result)
+        );
+    }
+
+    return {};
+}
+
 void VulkanFrameSync::cmdDraw(
     u32 vertexCount,
     u32 instanceCount,

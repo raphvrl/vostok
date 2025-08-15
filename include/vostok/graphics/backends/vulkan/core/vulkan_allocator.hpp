@@ -44,6 +44,13 @@ public:
 
     void destroyBuffer(VkBuffer buffer, VmaAllocation allocation);
 
+    auto createImage(
+        const VkImageCreateInfo &createInfo,
+        VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY
+    ) -> std::expected<std::pair<VkImage, VmaAllocation>, std::string>;
+
+    void destroyImage(VkImage image, VmaAllocation allocation);
+
     [[nodiscard]] auto getHandle() const -> VmaAllocator { return m_allocator; }
 
 private:

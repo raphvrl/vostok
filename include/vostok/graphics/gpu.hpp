@@ -5,6 +5,7 @@
 #include "vostok/core/version.hpp"
 #include "vostok/graphics/buffers/buffer.hpp"
 #include "vostok/graphics/buffers/ibo.hpp"
+#include "vostok/graphics/buffers/image.hpp"
 #include "vostok/graphics/buffers/ubo.hpp"
 #include "vostok/graphics/buffers/vbo.hpp"
 #include "vostok/graphics/pipeline.hpp"
@@ -86,6 +87,68 @@ public:
 
     virtual auto createBuffer(const BufferCreateInfo &createInfo)
         -> std::expected<std::unique_ptr<Buffer>, std::string> = 0;
+
+    virtual auto createImage(const ImageCreateInfo &createInfo)
+        -> std::expected<std::unique_ptr<Image>, std::string> = 0;
+
+    auto createColorImage(
+        u32 width,
+        u32 height,
+        ImageFormat format = ImageFormat::R8G8B8A8_UNORM,
+        SampleCount samples = SampleCount::COUNT_1
+    ) -> std::expected<std::unique_ptr<Image>, std::string>
+    {
+        ImageCreateInfo imageInfo;
+        imageInfo.width = width;
+        imageInfo.height = height;
+        imageInfo.format = format;
+        imageInfo.usage =
+            ImageUsage::COLOR_ATTACHMENT | ImageUsage::TRANSFER_DST;
+        imageInfo.samples = samples;
+        imageInfo.debugName = "ColorImage_" + std::to_string(width) + "x" +
+                              std::to_string(height);
+
+        return createImage(imageInfo);
+    }
+
+    auto createDepthImage(
+        u32 width,
+        u32 height,
+        ImageFormat format = ImageFormat::D32_SFLOAT,
+        SampleCount samples = SampleCount::COUNT_1
+    ) -> std::expected<std::unique_ptr<Image>, std::string>
+    {
+        ImageCreateInfo imageInfo;
+        imageInfo.width = width;
+        imageInfo.height = height;
+        imageInfo.format = format;
+        imageInfo.usage =
+            ImageUsage::DEPTH_STENCIL_ATTACHMENT | ImageUsage::TRANSFER_DST;
+        imageInfo.samples = samples;
+        imageInfo.debugName = "DepthImage_" + std::to_string(width) + "x" +
+                              std::to_string(height);
+
+        return createImage(imageInfo);
+    }
+
+    auto createTextureImage(
+        u32 width,
+        u32 height,
+        ImageFormat format = ImageFormat::R8G8B8A8_UNORM,
+        u32 mipLevels = 1
+    ) -> std::expected<std::unique_ptr<Image>, std::string>
+    {
+        ImageCreateInfo imageInfo;
+        imageInfo.width = width;
+        imageInfo.height = height;
+        imageInfo.format = format;
+        imageInfo.usage = ImageUsage::SAMPLED | ImageUsage::TRANSFER_DST;
+        imageInfo.mipLevels = mipLevels;
+        imageInfo.debugName = "TextureImage_" + std::to_string(width) + "x" +
+                              std::to_string(height);
+
+        return createImage(imageInfo);
+    }
 
     template <typename T, typename... Formats>
         requires std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>

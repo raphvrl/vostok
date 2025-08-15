@@ -11,6 +11,7 @@
 #include "graphics/backends/vulkan/core/vulkan_swapchain.hpp"
 #include "graphics/backends/vulkan/platform/glfw_platform.hpp"
 #include "graphics/backends/vulkan/resources/vulkan_buffer.hpp"
+#include "graphics/backends/vulkan/resources/vulkan_image.hpp"
 #include "graphics/backends/vulkan/utils/vk_utils.hpp"
 #include "graphics/backends/vulkan/vulkan_bindless_manager.hpp"
 #include "graphics/backends/vulkan/vulkan_pipeline.hpp"
@@ -107,6 +108,9 @@ public:
 
     auto createBuffer(const graphics::BufferCreateInfo &createInfo)
         -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>;
+
+    auto createImage(const graphics::ImageCreateInfo &createInfo)
+        -> std::expected<std::unique_ptr<graphics::Image>, std::string>;
 
     auto registerUBO(BindableResource *ubo, size_t size)
         -> std::expected<u32, std::string>;
@@ -789,7 +793,28 @@ auto VulkanGPU::Impl::createBuffer(const graphics::BufferCreateInfo &createInfo)
         return std::unexpected("Failed to create Vulkan buffer");
     }
 
-    return std::unique_ptr<graphics::Buffer>(vulkanBuffer.release());
+    return std::unique_ptr<graphics::Buffer>(vulkanBuffer->release());
+}
+
+auto VulkanGPU::Impl::createImage(const graphics::ImageCreateInfo &createInfo)
+    -> std::expected<std::unique_ptr<graphics::Image>, std::string>
+{
+    if (!m_allocator) {
+        return std::unexpected("Allocator is not initialized");
+    }
+
+    auto vulkanImage = VulkanImage::create(
+        m_device.get(),
+        m_allocator.get(),
+        m_frameSync.get(),
+        createInfo
+    );
+
+    if (!vulkanImage) {
+        return std::unexpected("Failed to create Vulkan image");
+    }
+
+    return std::unique_ptr<graphics::Image>(vulkanImage->release());
 }
 
 auto VulkanGPU::Impl::registerUBO(BindableResource *ubo, size_t size)
@@ -902,6 +927,15 @@ auto VulkanGPU::createBuffer(const graphics::BufferCreateInfo &createInfo)
         return m_impl->createBuffer(createInfo);
     }
 
+    return std::unexpected("Vulkan GPU device is not initialized");
+}
+
+auto VulkanGPU::createImage(const graphics::ImageCreateInfo &createInfo)
+    -> std::expected<std::unique_ptr<graphics::Image>, std::string>
+{
+    if (m_impl) {
+        return m_impl->createImage(createInfo);
+    }
     return std::unexpected("Vulkan GPU device is not initialized");
 }
 

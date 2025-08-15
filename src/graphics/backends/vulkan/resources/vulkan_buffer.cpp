@@ -442,10 +442,10 @@ auto VulkanBuffer::create(
     VulkanAllocator *allocator,
     VulkanFrameSync *frameSync,
     const graphics::BufferCreateInfo &info
-) -> std::unique_ptr<VulkanBuffer>
+) -> std::expected<std::unique_ptr<VulkanBuffer>, std::string>
 {
     if (info.size == 0) {
-        return nullptr;
+        return std::unexpected("Buffer size must be greater than 0");
     }
 
     size_t requiredAlignment = utils::getRequiredAlignment(info.usage);
@@ -477,14 +477,12 @@ auto VulkanBuffer::create(
 
     auto *transferQueue = device->getTransferQueue();
     if (transferQueue == nullptr) {
-        Logger::error("Transfer queue is not set");
-        return nullptr;
+        return std::unexpected("Transfer queue is not set");
     }
 
     auto result = allocator->createBuffer(bufferCreateInfo, memoryUsage);
     if (!result) {
-        Logger::error("Failed to create buffer: {}", result.error());
-        return nullptr;
+        return std::unexpected("Failed to create buffer: " + result.error());
     }
 
     auto [buffer, allocation] = result.value();
@@ -498,9 +496,8 @@ auto VulkanBuffer::create(
         );
 
         if (!success) {
-            Logger::warning(
-                "Failed to set debug name for buffer: {}",
-                info.debugName
+            return std::unexpected(
+                "Failed to set debug name for buffer: " + info.debugName
             );
         }
     }
@@ -519,9 +516,8 @@ auto VulkanBuffer::create(
     if (!info.data.empty()) {
         auto updateResult = impl->update(info.data);
         if (!updateResult) {
-            Logger::error(
-                "Failed to initialize buffer with data: {}",
-                updateResult.error()
+            return std::unexpected(
+                "Failed to initialize buffer with data: " + updateResult.error()
             );
         }
     }
@@ -529,7 +525,6 @@ auto VulkanBuffer::create(
     auto bufferPtr =
         std::unique_ptr<VulkanBuffer>(new VulkanBuffer(std::move(impl)));
 
-    Logger::debug("Buffer created successfully");
     return bufferPtr;
 }
 

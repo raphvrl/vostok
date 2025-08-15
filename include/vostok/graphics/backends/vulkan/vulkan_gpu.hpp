@@ -73,6 +73,10 @@ public:
         const graphics::BufferCreateInfo &createInfo
     ) -> std::expected<std::unique_ptr<graphics::Buffer>, std::string> override;
 
+    auto createImage(
+        const graphics::ImageCreateInfo &createInfo
+    ) -> std::expected<std::unique_ptr<graphics::Image>, std::string> override;
+
 private:
     VulkanGPU();
 
