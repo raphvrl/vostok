@@ -61,10 +61,35 @@ public:
     auto setOffset(size_t offset) -> void override;
 
 private:
-    class Impl;
-    std::unique_ptr<Impl> m_impl;
+    VulkanBuffer(
+        VulkanAllocator *allocator,
+        VulkanFrameSync *frameSync,
+        VkQueue transferQueue,
+        VkBuffer buffer,
+        VmaAllocation allocation,
+        graphics::BufferUsage usage,
+        graphics::BufferMemory memory,
+        size_t size
+    );
 
-    VulkanBuffer(std::unique_ptr<Impl> impl);
+    void destroyBuffer();
+
+    auto updateGpuOnly(std::span<const std::byte> data, size_t offset = 0)
+        -> std::expected<void, std::string>;
+
+    auto updateCpuAccessible(std::span<const std::byte> data, size_t offset = 0)
+        -> std::expected<void, std::string>;
+
+    VulkanAllocator *m_allocator = nullptr;
+    VulkanFrameSync *m_frameSync = nullptr;
+    VkQueue m_transferQueue = VK_NULL_HANDLE;
+    VkBuffer m_buffer = VK_NULL_HANDLE;
+    VmaAllocation m_allocation = VK_NULL_HANDLE;
+    graphics::BufferUsage m_usage;
+    graphics::BufferMemory m_memory;
+    VkDeviceSize m_size;
+    VkDeviceSize m_offset = 0;
+    void *m_mapped = nullptr;
 
     friend class VulkanGPU;
 };
