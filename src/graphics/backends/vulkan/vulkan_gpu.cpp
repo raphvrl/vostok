@@ -22,7 +22,6 @@
 #include <memory>
 #include <string>
 
-
 namespace vostok::graphics::vulkan
 {
 
@@ -752,7 +751,17 @@ auto VulkanGPU::registerUBO(BindableResource *ubo, size_t size)
         return std::unexpected("Bindless manager is not initialized");
     }
 
-    return m_bindlessManager->registerUBO(ubo, size);
+    return m_bindlessManager->registerResource(ResourceType::UBO, ubo, size);
+}
+
+auto VulkanGPU::registerTexture(BindableResource *texture)
+    -> std::expected<u32, std::string>
+{
+    if (!m_bindlessManager) {
+        return std::unexpected("Bindless manager is not initialized");
+    }
+
+    return m_bindlessManager->registerResource(ResourceType::TEXTURE, texture);
 }
 
 void VulkanGPU::notifyDirtyResource(u32 bindlessIndex)

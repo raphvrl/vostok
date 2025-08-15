@@ -1,10 +1,12 @@
 #include "vostok/graphics/backends/vulkan/buffers/vulkan_image.hpp"
 
 #include "vostok/core/logger/logger.hpp"
+#include "vostok/graphics/backends/vulkan/buffers/vulkan_buffer.hpp"
 #include "vostok/graphics/backends/vulkan/core/vulkan_device.hpp"
 #include "vostok/graphics/backends/vulkan/core/vulkan_frame_sync.hpp"
 #include "vostok/graphics/backends/vulkan/utils/vk_utils.hpp"
 
+#include <format>
 #include <vk_mem_alloc.h>
 #include <volk.h>
 
@@ -100,6 +102,40 @@ auto VulkanImage::create(
         info.depth,
         static_cast<int>(info.format),
         static_cast<int>(info.usage)
+    );
+
+    return vulkanImage;
+}
+
+auto VulkanImage::createAndTransfer(
+    VulkanDevice *device,
+    VulkanAllocator *allocator,
+    VulkanFrameSync *frameSync,
+    const graphics::ImageCreateInfo &createInfo,
+    std::unique_ptr<graphics::Buffer> stagingBuffer
+) -> std::expected<std::unique_ptr<VulkanImage>, std::string>
+{
+    auto imageResult = create(device, allocator, frameSync, createInfo);
+    if (!imageResult) {
+        return std::unexpected{
+            std::format("Failed to create image: {}", imageResult.error())
+        };
+    }
+
+    auto vulkanImage = std::move(imageResult.value());
+
+    auto transferResult = vulkanImage->transferFromBuffer(*stagingBuffer);
+    if (!transferResult) {
+        return std::unexpected{ "Failed to transfer data: " +
+                                transferResult.error() };
+    }
+
+    Logger::debug(
+        "Created and transferred Vulkan image: {}x{}x{}, format: {}",
+        createInfo.width,
+        createInfo.height,
+        createInfo.depth,
+        static_cast<int>(createInfo.format)
     );
 
     return vulkanImage;
@@ -211,7 +247,7 @@ auto VulkanImage::transitionLayout(
     }
 
     auto transitionResult =
-        transitionLayoutInternal(vkOldLayout, vkNewLayout, vkAspectMask);
+        transitionLayoutInternal(vkOldLayout, vkNewLayout, vkAspectMask, false);
     if (!transitionResult) {
         return std::unexpected(
             "Failed to transition image layout: " + transitionResult.error()
@@ -253,7 +289,8 @@ auto VulkanImage::transitionLayout(
 auto VulkanImage::transitionLayoutInternal(
     VkImageLayout oldLayout,
     VkImageLayout newLayout,
-    VkImageAspectFlags aspectMask
+    VkImageAspectFlags aspectMask,
+    bool useTransferCommandBuffer
 ) -> std::expected<void, std::string>
 {
     if (oldLayout == newLayout) {
@@ -287,7 +324,11 @@ auto VulkanImage::transitionLayoutInternal(
     dependencyInfo.imageMemoryBarrierCount = 1;
     dependencyInfo.pImageMemoryBarriers = &imageBarrier;
 
-    vkCmdPipelineBarrier2(m_frameSync->getCommandBuffer(), &dependencyInfo);
+    VkCommandBuffer commandBuffer = useTransferCommandBuffer
+                                      ? m_frameSync->getTransferCommandBuffer()
+                                      : m_frameSync->getCommandBuffer();
+
+    vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 
     return {};
 }
@@ -336,7 +377,8 @@ auto VulkanImage::clear(
         auto transitionResult = transitionLayoutInternal(
             m_currentLayout,
             clearLayout,
-            vkAspectMask
+            vkAspectMask,
+            false
         );
         if (!transitionResult) {
             return std::unexpected(
@@ -382,8 +424,12 @@ auto VulkanImage::clear(
     }
 
     if (m_currentLayout != originalLayout) {
-        auto transitionResult =
-            transitionLayoutInternal(clearLayout, originalLayout, vkAspectMask);
+        auto transitionResult = transitionLayoutInternal(
+            clearLayout,
+            originalLayout,
+            vkAspectMask,
+            false
+        );
         if (!transitionResult) {
             return std::unexpected(
                 "Failed to transition back to original layout: " +
@@ -597,6 +643,111 @@ auto VulkanImage::getLayoutTransitionStages(
     }
 
     return info;
+}
+
+auto VulkanImage::transferFromBuffer(const graphics::Buffer &stagingBuffer)
+    -> std::expected<void, std::string>
+{
+    if (m_frameSync == nullptr) {
+        return std::unexpected{ "FrameSync is required for buffer transfer" };
+    }
+
+    auto beginResult = m_frameSync->beginTransferCommandBuffer();
+    if (!beginResult) {
+        return std::unexpected{ "Failed to begin transfer command buffer: " +
+                                beginResult.error() };
+    }
+
+    auto aspectMask = utils::toVulkanAspectFlags(getAspectMask());
+
+    auto transitionResult = transitionLayoutInternal(
+        m_currentLayout,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        aspectMask,
+        true
+    );
+    if (!transitionResult) {
+        return std::unexpected{ "Failed to transition to transfer layout: " +
+                                transitionResult.error() };
+    }
+
+    VkBufferImageCopy copyRegion = {};
+    copyRegion.bufferOffset = 0;
+    copyRegion.bufferRowLength = 0;
+    copyRegion.bufferImageHeight = 0;
+    copyRegion.imageSubresource.aspectMask = aspectMask;
+    copyRegion.imageSubresource.mipLevel = 0;
+    copyRegion.imageSubresource.baseArrayLayer = 0;
+    copyRegion.imageSubresource.layerCount = m_arrayLayers;
+    copyRegion.imageOffset = { .x = 0, .y = 0, .z = 0 };
+    copyRegion.imageExtent = { .width = m_width,
+                               .height = m_height,
+                               .depth = m_depth };
+
+    const auto *vulkanBuffer =
+        dynamic_cast<const VulkanBuffer *>(&stagingBuffer);
+
+    if (vulkanBuffer == nullptr) {
+        return std::unexpected{ "Staging buffer is not a VulkanBuffer" };
+    }
+
+    vkCmdCopyBufferToImage(
+        m_frameSync->getTransferCommandBuffer(),
+        vulkanBuffer->getBuffer(),
+        m_image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &copyRegion
+    );
+
+    auto finalTransitionResult = transitionLayoutInternal(
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        aspectMask,
+        true
+    );
+
+    if (!finalTransitionResult) {
+        return std::unexpected{ std::format(
+            "Failed to transition to final layout: {}",
+            finalTransitionResult.error()
+        ) };
+    }
+
+    auto endResult = m_frameSync->endTransferCommandBuffer();
+    if (!endResult) {
+        return std::unexpected{ std::format(
+            "Failed to end transfer command buffer: {}",
+            endResult.error()
+        ) };
+    }
+
+    auto submitResult = m_frameSync->submitTransferCommandBuffer();
+    if (!submitResult) {
+        return std::unexpected{ std::format(
+            "Failed to submit transfer command buffer: {}",
+            submitResult.error()
+        ) };
+    }
+
+    auto waitResult = m_frameSync->waitForTransferComplete();
+    if (!waitResult) {
+        return std::unexpected{ std::format(
+            "Failed to wait for transfer completion: {}",
+            waitResult.error()
+        ) };
+    }
+
+    m_currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    Logger::debug(
+        "Buffer transfer completed: {}x{}x{}",
+        m_width,
+        m_height,
+        m_depth
+    );
+
+    return {};
 }
 
 } // namespace vostok::graphics::vulkan

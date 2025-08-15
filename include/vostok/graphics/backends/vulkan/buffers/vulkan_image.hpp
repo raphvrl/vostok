@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vostok/graphics/backends/vulkan/core/vulkan_allocator.hpp"
+#include "vostok/graphics/buffers/buffer.hpp"
 #include "vostok/graphics/buffers/image.hpp"
 
 #include <memory>
@@ -55,6 +56,14 @@ public:
         VulkanAllocator *allocator,
         VulkanFrameSync *frameSync,
         const graphics::ImageCreateInfo &info
+    ) -> std::expected<std::unique_ptr<VulkanImage>, std::string>;
+
+    static auto createAndTransfer(
+        VulkanDevice *device,
+        VulkanAllocator *allocator,
+        VulkanFrameSync *frameSync,
+        const graphics::ImageCreateInfo &createInfo,
+        std::unique_ptr<graphics::Buffer> stagingBuffer
     ) -> std::expected<std::unique_ptr<VulkanImage>, std::string>;
 
     ~VulkanImage() override;
@@ -161,7 +170,8 @@ private:
     auto transitionLayoutInternal(
         VkImageLayout oldLayout,
         VkImageLayout newLayout,
-        VkImageAspectFlags aspectMask
+        VkImageAspectFlags aspectMask,
+        bool useTransferCommandBuffer = false
     ) -> std::expected<void, std::string>;
 
     VulkanDevice *m_device = nullptr;
@@ -195,6 +205,9 @@ private:
     static auto
     getLayoutTransitionStages(const LayoutTransitionRequest &request)
         -> LayoutTransitionInfo;
+
+    auto transferFromBuffer(const graphics::Buffer &buffer)
+        -> std::expected<void, std::string>;
 
     friend class VulkanGPU;
 };

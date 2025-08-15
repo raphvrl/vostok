@@ -1,7 +1,7 @@
 #version 450
 
 layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inColor;
+layout(location = 1) in vec2 inUV;
 
 layout(set = 0, binding = 0) uniform CameraUniformBufferObject {
     mat4 viewMatrix;
@@ -10,7 +10,7 @@ layout(set = 0, binding = 0) uniform CameraUniformBufferObject {
     float time;
 } cameraUBO;
 
-layout(location = 0) out vec3 fragColor;
+layout(location = 0) out vec2 fragUV;
 
 void main()
 {
@@ -20,6 +20,5 @@ void main()
 
     gl_Position = clipPos;
 
-    vec3 cameraDir = normalize(cameraUBO.cameraPosition - vec3(worldPos.xy, 0.0));
-    fragColor = inColor * (0.5 + 0.5 * sin(cameraUBO.time + dot(cameraDir, vec3(0.0, 0.0, 1.0))));
+    fragUV = inUV;
 }

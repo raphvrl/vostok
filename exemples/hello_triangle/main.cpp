@@ -1,6 +1,4 @@
 #include "vostok/core/logger/logger.hpp"
-#include "vostok/graphics/buffers/ubo.hpp"
-#include "vostok/graphics/buffers/vbo.hpp"
 #include "vostok/graphics/camera/perspective_camera.hpp"
 #include "vostok/graphics/gpu.hpp"
 #include "vostok/graphics/pipeline.hpp"
@@ -36,7 +34,7 @@ struct CameraUBO
 struct Vertex
 {
     math::Vec3 position;
-    math::Vec3 color;
+    math::Vec2 uv;
 };
 
 struct HelloTriangleApp
@@ -49,6 +47,7 @@ struct HelloTriangleApp
     graphics::Pipeline pipeline;
 
     graphics::UBO<CameraUBO> cameraUBO;
+    graphics::Texture texture;
     graphics::PerspectiveCamera camera;
 };
 
@@ -171,21 +170,21 @@ auto createVertexBuffer(graphics::GPUHandle *gpu)
     -> std::expected<graphics::VBO<Vertex>, std::string>
 {
     std::vector<Vertex> vertices = {
-        { .position = { -0.5F, -0.5F, 0.5F }, .color = { 1.0F, 0.0F, 0.0F } },
-        { .position = { 0.5F, -0.5F, 0.5F }, .color = { 0.0F, 1.0F, 0.0F } },
-        { .position = { 0.5F, 0.5F, 0.5F }, .color = { 0.0F, 0.0F, 1.0F } },
-        { .position = { -0.5F, 0.5F, 0.5F }, .color = { 1.0F, 1.0F, 0.0F } },
+        { .position = { -0.5F, -0.5F, 0.5F }, .uv = { 0.0F, 0.0F } },
+        { .position = { 0.5F, -0.5F, 0.5F }, .uv = { 1.0F, 0.0F } },
+        { .position = { 0.5F, 0.5F, 0.5F }, .uv = { 1.0F, 1.0F } },
+        { .position = { -0.5F, 0.5F, 0.5F }, .uv = { 0.0F, 1.0F } },
 
-        { .position = { -0.5F, -0.5F, -0.5F }, .color = { 1.0F, 0.0F, 1.0F } },
-        { .position = { 0.5F, -0.5F, -0.5F }, .color = { 0.0F, 1.0F, 1.0F } },
-        { .position = { 0.5F, 0.5F, -0.5F }, .color = { 1.0F, 1.0F, 1.0F } },
-        { .position = { -0.5F, 0.5F, -0.5F }, .color = { 0.0F, 0.0F, 0.0F } }
+        { .position = { -0.5F, -0.5F, -0.5F }, .uv = { 0.0F, 0.0F } },
+        { .position = { 0.5F, -0.5F, -0.5F }, .uv = { 1.0F, 0.0F } },
+        { .position = { 0.5F, 0.5F, -0.5F }, .uv = { 1.0F, 1.0F } },
+        { .position = { -0.5F, 0.5F, -0.5F }, .uv = { 0.0F, 1.0F } }
     };
 
     return gpu->createVBO<Vertex>(
         vertices,
         graphics::formats::VEC3,
-        graphics::formats::VEC3
+        graphics::formats::VEC2
     );
 }
 
@@ -237,6 +236,47 @@ auto createIndexBuffer(graphics::GPUHandle *gpu)
     };
 
     return gpu->createIBO<u32>(indices);
+}
+
+auto createTestTexture(graphics::GPUHandle *gpu)
+    -> std::expected<graphics::Texture, std::string>
+{
+    constexpr u32 TEXTURE_SIZE = 4096;
+    constexpr u32 TEXTURE_DATA_SIZE = TEXTURE_SIZE * TEXTURE_SIZE * 4;
+
+    std::vector<u8> textureData(TEXTURE_DATA_SIZE);
+
+    for (u32 y = 0; y < TEXTURE_SIZE; ++y) {
+        for (u32 x = 0; x < TEXTURE_SIZE; ++x) {
+            const u32 INDEX = (y * TEXTURE_SIZE + x) * 4;
+            const bool EVENT = ((x + y) % 2) == 0;
+
+            if (EVENT) {
+                textureData[INDEX + 0] = 255;
+                textureData[INDEX + 1] = 0;
+                textureData[INDEX + 2] = 0;
+                textureData[INDEX + 3] = 255;
+            } else {
+                textureData[INDEX + 0] = 0;
+                textureData[INDEX + 1] = 0;
+                textureData[INDEX + 2] = 255;
+                textureData[INDEX + 3] = 255;
+            }
+        }
+    }
+
+    graphics::TextureCreateInfo textureInfo;
+    textureInfo.imageData = std::span<const std::byte>(
+        std::bit_cast<const std::byte *>(textureData.data()),
+        textureData.size()
+    );
+    textureInfo.width = TEXTURE_SIZE;
+    textureInfo.height = TEXTURE_SIZE;
+    textureInfo.format = graphics::ImageFormat::R8G8B8A8_UNORM;
+    textureInfo.usage =
+        graphics::ImageUsage::SAMPLED | graphics::ImageUsage::TRANSFER_DST;
+
+    return gpu->createTexture(textureInfo);
 }
 
 auto createPipeline(
@@ -486,6 +526,17 @@ auto main(int argc, char *argv[]) -> int
         }
         app.indexBuffer = std::move(indexBufferResult.value());
         Logger::info("Index buffer created successfully");
+
+        auto textureResult = createTestTexture(app.gpu.get());
+        if (!textureResult) {
+            Logger::error(
+                "Failed to create texture: {}",
+                textureResult.error()
+            );
+            return -1;
+        }
+        app.texture = std::move(textureResult.value());
+        Logger::info("Texture created successfully");
 
         auto pipelineResult =
             createPipeline(app.gpu.get(), app.vertexBuffer.get());

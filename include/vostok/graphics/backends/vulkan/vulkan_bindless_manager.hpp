@@ -3,6 +3,7 @@
 #include "vostok/core/type.hpp"
 #include "vostok/graphics/buffers/bindable_resource.hpp"
 #include "vostok/graphics/buffers/buffer.hpp"
+#include "vostok/graphics/buffers/texture.hpp"
 
 #include <expected>
 #include <memory>
@@ -14,10 +15,18 @@
 namespace vostok::graphics::vulkan
 {
 
+enum class ResourceType : u8
+{
+    UBO,
+    TEXTURE,
+    SAMPLER
+};
+
 class VulkanInstance;
 class VulkanDevice;
 class VulkanFrameSync;
 class VulkanAllocator;
+class VulkanImage;
 
 struct VulkanBindlessManagerCreateInfo
 {
@@ -26,6 +35,7 @@ struct VulkanBindlessManagerCreateInfo
     VulkanFrameSync *frameSync = nullptr;
     VulkanAllocator *allocator = nullptr;
     u32 maxUBOs = 1024;
+    u32 maxTextures = 1024;
     std::string debugName = "VulkanBindlessManager";
 };
 
@@ -46,11 +56,31 @@ public:
     auto operator=(VulkanBindlessManager &&) noexcept
         -> VulkanBindlessManager &;
 
-    auto registerUBO(BindableResource *ubo, size_t size)
-        -> std::expected<u32, std::string>;
+    template <typename... Args>
+    auto registerResource(
+        ResourceType type,
+        graphics::BindableResource *resource,
+        Args &&...args
+    ) -> std::expected<u32, std::string>
+    {
+        switch (type) {
+            case ResourceType::UBO:
+                if constexpr (sizeof...(args) >= 1) {
+                    return registerUBO(resource, std::forward<Args>(args)...);
+                } else {
+                    return std::unexpected{ "UBO requires size parameter" };
+                }
+            case ResourceType::TEXTURE:
+                return registerTexture(resource);
+            default:
+                return std::unexpected{ "Invalid resource type" };
+        }
+    }
 
-    auto unregisterUBO(const BindableResource *ubo)
-        -> std::expected<void, std::string>;
+    auto unregisterResource(
+        ResourceType type,
+        const graphics::BindableResource *resource
+    ) -> std::expected<void, std::string>;
 
     auto update() -> std::expected<void, std::string>;
 
@@ -88,14 +118,35 @@ private:
     auto initBindlessResources() -> std::expected<void, std::string>;
     void cleanupBindlessResources();
 
-    auto updateUBO(u32 index, const BindableResource *resource)
+    auto createGlobalSampler() -> std::expected<void, std::string>;
+
+    auto registerUBO(graphics::BindableResource *ubo, size_t size)
+        -> std::expected<u32, std::string>;
+    auto registerTexture(graphics::BindableResource *texture)
+        -> std::expected<u32, std::string>;
+
+    auto unregisterUBO(const graphics::BindableResource *ubo)
+        -> std::expected<void, std::string>;
+    auto unregisterTexture(const graphics::BindableResource *texture)
+        -> std::expected<void, std::string>;
+
+    auto updateUBO(u32 index, const graphics::BindableResource *resource)
         -> std::expected<void, std::string>;
 
     auto createGPUBuffer(size_t size, const void *data)
         -> std::expected<std::unique_ptr<Buffer>, std::string>;
+    auto createGPUImage(graphics::TextureImpl *texture)
+        -> std::expected<std::unique_ptr<VulkanImage>, std::string>;
 
-    auto updateDescriptorSet(u32 index, VkBuffer buffer, size_t size)
+    auto updateUBODescriptorSet(u32 index, VkBuffer buffer, size_t size)
         -> std::expected<void, std::string>;
+    auto updateSSBODescriptorSet(u32 index, VkBuffer buffer, size_t size)
+        -> std::expected<void, std::string>;
+    auto updateTextureDescriptorSet(
+        u32 index,
+        VkImageView imageView,
+        VkSampler sampler
+    ) -> std::expected<void, std::string>;
 
     VulkanInstance *m_instance;
     VulkanDevice *m_device;
@@ -103,19 +154,29 @@ private:
     VulkanAllocator *m_allocator;
 
     u32 m_maxUBOs;
+    u32 m_maxTextures;
 
-    std::unordered_map<const BindableResource *, u32> m_uboToIndex;
-    std::unordered_map<u32, const BindableResource *> m_indexToUBO;
+    std::unordered_map<const graphics::BindableResource *, u32> m_uboToIndex;
+    std::unordered_map<u32, const graphics::BindableResource *> m_indexToUBO;
 
-    std::vector<const BindableResource *> m_dirtyStack;
+    std::unordered_map<const graphics::BindableResource *, u32>
+        m_textureToIndex;
+    std::unordered_map<u32, const graphics::BindableResource *>
+        m_indexToTexture;
+
+    std::vector<const graphics::BindableResource *> m_dirtyStack;
     mutable std::mutex m_dirtyMutex;
 
     VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
 
+    VkSampler m_globalSampler = VK_NULL_HANDLE;
+
     std::vector<std::unique_ptr<Buffer>> m_gpuBuffers;
     std::vector<size_t> m_bufferSizes;
+
+    std::vector<std::unique_ptr<Image>> m_gpuImages;
 };
 
 } // namespace vostok::graphics::vulkan
