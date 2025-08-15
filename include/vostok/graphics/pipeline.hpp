@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vostok/core/type.hpp"
+#include "vostok/graphics/buffers/image.hpp"
 #include "vostok/graphics/buffers/vertex_layout.hpp"
 
 #include <expected>
@@ -148,6 +149,8 @@ struct PipelineCreateInfo
     ColorComponentFlags colorWriteMask = ColorComponentFlags::ALL;
 
     size_t pushConstantSize = 0;
+
+    std::optional<ImageFormat> depthFormat;
 
     std::string name;
 };

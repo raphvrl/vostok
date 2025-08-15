@@ -76,59 +76,7 @@ VulkanGPU::VulkanGPU(const GPUHandle::CreateInfo &createInfo)
 
 VulkanGPU::~VulkanGPU()
 {
-    Logger::debug("Vulkan GPU device destructor called");
-
-    if (m_frameSync) {
-        Logger::debug("Destroying FrameSync");
-        m_frameSync.reset();
-    }
-
-    if (m_bindlessManager) {
-        Logger::debug("Destroying bindless manager");
-        m_bindlessManager.reset();
-    }
-
-    if (m_transferCommandPool) {
-        Logger::debug("Destroying transfer command pool");
-        m_transferCommandPool.reset();
-    }
-
-    if (m_graphicsCommandPool) {
-        Logger::debug("Destroying graphics command pool");
-        m_graphicsCommandPool.reset();
-    }
-
-    if (m_swapchain) {
-        Logger::debug("Destroying swapchain");
-        m_swapchain.reset();
-    }
-
-    if (m_allocator) {
-        Logger::debug("Destroying allocator");
-        m_allocator.reset();
-    }
-
-    if (m_device) {
-        Logger::debug("Destroying device");
-        m_device.reset();
-    }
-
-    if (m_physicalDevice) {
-        Logger::debug("Destroying physical device");
-        m_physicalDevice.reset();
-    }
-
-    if (m_surface) {
-        Logger::debug("Destroying surface");
-        m_surface.reset();
-    }
-
-    if (m_instance) {
-        Logger::debug("Destroying instance");
-        m_instance.reset();
-    }
-
-    Logger::debug("Vulkan GPU device destructor completed");
+    Logger::debug("Vulkan GPU destroyed");
 }
 
 auto VulkanGPU::initInstance(const GPUHandle::CreateInfo &createInfo) -> bool
@@ -418,6 +366,19 @@ auto VulkanGPU::beginFrame() -> std::expected<u32, std::string>
     u32 imageIndex = imageResult.value();
     m_currentImageIndex = imageIndex;
 
+    auto swapchainExtent = m_swapchain->getExtent();
+    if (!m_depthImage || m_depthImage->getWidth() != swapchainExtent.width ||
+        m_depthImage->getHeight() != swapchainExtent.height) {
+        auto depthResult =
+            createDepthBuffer(swapchainExtent.width, swapchainExtent.height);
+        if (!depthResult) {
+            Logger::warning(
+                "Failed to create depth buffer: {}",
+                depthResult.error()
+            );
+        }
+    }
+
     auto cmdBufferResult = m_frameSync->beginCommandBuffer();
     if (!cmdBufferResult) {
         return std::unexpected(cmdBufferResult.error());
@@ -453,6 +414,45 @@ auto VulkanGPU::beginFrame() -> std::expected<u32, std::string>
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachment.clearValue.color = { { 0.0F, 0.0F, 0.0F, 1.0F } };
 
+    VkRenderingAttachmentInfo depthAttachment = {};
+    if (m_depthImage && m_depthImage->getImageView() != VK_NULL_HANDLE) {
+        depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        depthAttachment.imageView = m_depthImage->getImageView();
+        depthAttachment.imageLayout =
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.clearValue.depthStencil = { .depth = 1.0F,
+                                                    .stencil = 0 };
+    }
+
+    if (m_depthImage && m_depthImage->getImageView() != VK_NULL_HANDLE) {
+        VkImageMemoryBarrier2 depthBarrier = {};
+        depthBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+        depthBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+        depthBarrier.srcAccessMask = 0;
+        depthBarrier.dstStageMask =
+            VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
+        depthBarrier.dstAccessMask =
+            VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        depthBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthBarrier.newLayout =
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthBarrier.image = m_depthImage->getImage();
+        depthBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        depthBarrier.subresourceRange.baseMipLevel = 0;
+        depthBarrier.subresourceRange.levelCount = 1;
+        depthBarrier.subresourceRange.baseArrayLayer = 0;
+        depthBarrier.subresourceRange.layerCount = 1;
+
+        VkDependencyInfo depthDepInfo = {};
+        depthDepInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        depthDepInfo.imageMemoryBarrierCount = 1;
+        depthDepInfo.pImageMemoryBarriers = &depthBarrier;
+
+        vkCmdPipelineBarrier2(m_frameSync->getCommandBuffer(), &depthDepInfo);
+    }
+
     VkRenderingInfo renderingInfo = {};
     renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
     renderingInfo.renderArea.offset = { .x = 0, .y = 0 };
@@ -460,6 +460,10 @@ auto VulkanGPU::beginFrame() -> std::expected<u32, std::string>
     renderingInfo.layerCount = 1;
     renderingInfo.colorAttachmentCount = 1;
     renderingInfo.pColorAttachments = &colorAttachment;
+
+    if (m_depthImage && m_depthImage->getImageView() != VK_NULL_HANDLE) {
+        renderingInfo.pDepthAttachment = &depthAttachment;
+    }
 
     vkCmdBeginRendering(m_frameSync->getCommandBuffer(), &renderingInfo);
 
@@ -487,6 +491,36 @@ auto VulkanGPU::endFrame() -> std::expected<void, std::string>
     }
 
     vkCmdEndRendering(m_frameSync->getCommandBuffer());
+
+    if (m_depthImage && m_depthImage->getImageView() != VK_NULL_HANDLE) {
+        VkImageMemoryBarrier2 depthBarrier = {};
+        depthBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+        depthBarrier.srcStageMask = VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+        depthBarrier.srcAccessMask =
+            VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        depthBarrier.dstStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+        depthBarrier.dstAccessMask = 0;
+        depthBarrier.oldLayout =
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthBarrier.newLayout =
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthBarrier.image = m_depthImage->getImage();
+        depthBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        depthBarrier.subresourceRange.baseMipLevel = 0;
+        depthBarrier.subresourceRange.levelCount = 1;
+        depthBarrier.subresourceRange.baseArrayLayer = 0;
+        depthBarrier.subresourceRange.layerCount = 1;
+
+        VkDependencyInfo depthDependencyInfo = {};
+        depthDependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        depthDependencyInfo.imageMemoryBarrierCount = 1;
+        depthDependencyInfo.pImageMemoryBarriers = &depthBarrier;
+
+        vkCmdPipelineBarrier2(
+            m_frameSync->getCommandBuffer(),
+            &depthDependencyInfo
+        );
+    }
 
     VkImageMemoryBarrier2 imageBarrier = {};
     imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -651,7 +685,16 @@ auto VulkanGPU::createPipeline(const Pipeline::CreateInfo &createInfo)
         return std::unexpected("Device is not initialized");
     }
 
-    return VulkanPipeline::create(this, createInfo);
+    auto infoLocal = createInfo;
+    if (infoLocal.depthTest) {
+        if (m_depthImage) {
+            infoLocal.depthFormat = m_depthImage->getFormat();
+        } else if (!infoLocal.depthFormat.has_value()) {
+            infoLocal.depthFormat = graphics::ImageFormat::D32_SFLOAT;
+        }
+    }
+
+    return VulkanPipeline::create(this, infoLocal);
 }
 
 auto VulkanGPU::createBuffer(const graphics::BufferCreateInfo &createInfo)
@@ -720,68 +763,57 @@ void VulkanGPU::notifyDirtyResource(u32 bindlessIndex)
     m_bindlessManager->notifyDirty(bindlessIndex);
 }
 
-auto VulkanGPU::getInstance() const -> VulkanInstance *
+auto VulkanGPU::createDepthBuffer(u32 width, u32 height)
+    -> std::expected<void, std::string>
 {
-    if (m_instance) {
-        return m_instance.get();
+    if (width == 0 || height == 0) {
+        return std::unexpected("Invalid depth buffer dimensions");
     }
-    return nullptr;
+
+    auto result = createImage(
+        graphics::ImageCreateInfo{
+            .width = width,
+            .height = height,
+            .format = graphics::ImageFormat::D32_SFLOAT,
+            .usage = graphics::ImageUsage::DEPTH_STENCIL_ATTACHMENT |
+                     graphics::ImageUsage::TRANSFER_DST,
+            .debugName = "DepthBuffer_" + std::to_string(width) + "x" +
+                         std::to_string(height) }
+    );
+
+    if (!result) {
+        return std::unexpected(
+            "Failed to create depth buffer: " + result.error()
+        );
+    }
+
+    m_depthImage = std::unique_ptr<VulkanImage>(
+        dynamic_cast<VulkanImage *>(result.value().release())
+    );
+
+    Logger::debug("Depth buffer created: {}x{}", width, height);
+    return {};
 }
 
-auto VulkanGPU::getSurface() const -> VulkanSurface *
+auto VulkanGPU::recreateDepthImage(u32 width, u32 height)
+    -> std::expected<void, std::string>
 {
-    if (m_surface) {
-        return m_surface.get();
+    if (width == 0 || height == 0) {
+        return std::unexpected("Invalid depth buffer dimensions");
     }
-    return nullptr;
-}
 
-auto VulkanGPU::getPhysicalDevice() const -> VulkanPhysicalDevice *
-{
-    if (m_physicalDevice) {
-        return m_physicalDevice.get();
+    if (!m_depthImage) {
+        return std::unexpected("Depth image is not initialized");
     }
-    return nullptr;
-}
 
-auto VulkanGPU::getDevice() const -> VulkanDevice *
-{
-    if (m_device) {
-        return m_device.get();
-    }
-    return nullptr;
-}
+    m_depthImage.reset();
 
-auto VulkanGPU::getAllocator() const -> VulkanAllocator *
-{
-    if (m_allocator) {
-        return m_allocator.get();
+    auto result = createDepthBuffer(width, height);
+    if (!result) {
+        return std::unexpected(result.error());
     }
-    return nullptr;
-}
 
-auto VulkanGPU::getSwapchain() const -> VulkanSwapchain *
-{
-    if (m_swapchain) {
-        return m_swapchain.get();
-    }
-    return nullptr;
-}
-
-auto VulkanGPU::getFrameSync() const -> VulkanFrameSync *
-{
-    if (m_frameSync) {
-        return m_frameSync.get();
-    }
-    return nullptr;
-}
-
-auto VulkanGPU::getBindlessManager() const -> VulkanBindlessManager *
-{
-    if (m_bindlessManager) {
-        return m_bindlessManager.get();
-    }
-    return nullptr;
+    return {};
 }
 
 } // namespace vostok::graphics::vulkan

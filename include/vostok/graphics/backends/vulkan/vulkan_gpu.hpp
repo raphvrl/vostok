@@ -20,6 +20,7 @@ class VulkanFrameSync;
 class VulkanAllocator;
 class VulkanBindlessManager;
 class VulkanCommandPool;
+class VulkanImage;
 
 class Buffer;
 
@@ -59,14 +60,43 @@ public:
         u32 firstInstance = 0
     ) override;
 
-    [[nodiscard]] auto getInstance() const -> VulkanInstance *;
-    [[nodiscard]] auto getSurface() const -> VulkanSurface *;
-    [[nodiscard]] auto getPhysicalDevice() const -> VulkanPhysicalDevice *;
-    [[nodiscard]] auto getDevice() const -> VulkanDevice *;
-    [[nodiscard]] auto getAllocator() const -> VulkanAllocator *;
-    [[nodiscard]] auto getSwapchain() const -> VulkanSwapchain *;
-    [[nodiscard]] auto getFrameSync() const -> VulkanFrameSync *;
-    [[nodiscard]] auto getBindlessManager() const -> VulkanBindlessManager *;
+    [[nodiscard]] auto getInstance() const -> VulkanInstance *
+    {
+        return m_instance.get();
+    }
+    [[nodiscard]] auto getSurface() const -> VulkanSurface *
+    {
+        return m_surface.get();
+    }
+    [[nodiscard]] auto getPhysicalDevice() const -> VulkanPhysicalDevice *
+    {
+        return m_physicalDevice.get();
+    }
+    [[nodiscard]] auto getDevice() const -> VulkanDevice *
+    {
+        return m_device.get();
+    }
+    [[nodiscard]] auto getAllocator() const -> VulkanAllocator *
+    {
+        return m_allocator.get();
+    }
+    [[nodiscard]] auto getSwapchain() const -> VulkanSwapchain *
+    {
+        return m_swapchain.get();
+    }
+    [[nodiscard]] auto getFrameSync() const -> VulkanFrameSync *
+    {
+        return m_frameSync.get();
+    }
+    [[nodiscard]] auto getBindlessManager() const -> VulkanBindlessManager *
+    {
+        return m_bindlessManager.get();
+    }
+
+    [[nodiscard]] auto getDepthImage() const -> VulkanImage *
+    {
+        return m_depthImage.get();
+    }
 
     auto createPipeline(const Pipeline::CreateInfo &createInfo)
         -> std::expected<Pipeline, std::string> override;
@@ -79,7 +109,6 @@ public:
         const graphics::ImageCreateInfo &createInfo
     ) -> std::expected<std::unique_ptr<graphics::Image>, std::string> override;
 
-    // Méthodes utilitaires
     [[nodiscard]] auto isInitialized() const -> bool;
     [[nodiscard]] auto getLastError() const -> const std::string &;
 
@@ -102,7 +131,6 @@ private:
 
     void notifyDirtyResource(u32 bindlessIndex) override;
 
-    // Méthodes d'initialisation privées
     auto initInstance(const GPUHandle::CreateInfo &createInfo) -> bool;
     auto initSurface(void *windowHandle) -> bool;
     auto initPhysicalDevice() -> bool;
@@ -112,20 +140,25 @@ private:
     auto initFrameSync() -> bool;
     auto initBindlessManager() -> bool;
 
-    // Membres privés
     std::unique_ptr<VulkanInstance> m_instance;
     std::unique_ptr<VulkanSurface> m_surface;
     std::unique_ptr<VulkanPhysicalDevice> m_physicalDevice;
     std::unique_ptr<VulkanDevice> m_device;
     std::unique_ptr<VulkanAllocator> m_allocator;
     std::unique_ptr<VulkanSwapchain> m_swapchain;
-    std::unique_ptr<VulkanFrameSync> m_frameSync;
     std::unique_ptr<VulkanCommandPool> m_graphicsCommandPool;
     std::unique_ptr<VulkanCommandPool> m_transferCommandPool;
+    std::unique_ptr<VulkanFrameSync> m_frameSync;
     std::unique_ptr<VulkanBindlessManager> m_bindlessManager;
     std::string m_lastError;
 
     u32 m_currentImageIndex = 0;
+
+    std::unique_ptr<VulkanImage> m_depthImage;
+    auto createDepthBuffer(u32 width, u32 height)
+        -> std::expected<void, std::string>;
+    auto recreateDepthImage(u32 width, u32 height)
+        -> std::expected<void, std::string>;
 };
 
 } // namespace vostok::graphics::vulkan
