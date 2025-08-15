@@ -1,4 +1,4 @@
-#include "vostok/graphics/backends/vulkan/resources/vulkan_buffer.hpp"
+#include "vostok/graphics/backends/vulkan/buffers/vulkan_buffer.hpp"
 
 #include "vostok/core/logger/logger.hpp"
 #include "vostok/graphics/backends/vulkan/core/vulkan_allocator.hpp"

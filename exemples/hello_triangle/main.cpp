@@ -192,44 +192,42 @@ auto createVertexBuffer(graphics::GPUHandle *gpu)
 auto createIndexBuffer(graphics::GPUHandle *gpu)
     -> std::expected<graphics::IBO<u32>, std::string>
 {
-    // Indices pour dessiner un cube à partir des 8 sommets définis dans
-    // createVertexBuffer
-    std::vector<u32> indices = { // Face avant (z = 0.5)
+    std::vector<u32> indices = { // Front face (z = 0.5)
                                  0,
                                  1,
                                  2,
                                  2,
                                  3,
                                  0,
-                                 // Face arrière (z = -0.5)
+                                 // Back face (z = -0.5)
                                  4,
                                  5,
                                  6,
                                  6,
                                  7,
                                  4,
-                                 // Face gauche (x = -0.5)
+                                 // Left face (x = -0.5)
                                  0,
                                  3,
                                  7,
                                  7,
                                  4,
                                  0,
-                                 // Face droite (x = 0.5)
+                                 // Right face (x = 0.5)
                                  1,
                                  5,
                                  6,
                                  6,
                                  2,
                                  1,
-                                 // Face du bas (y = -0.5)
+                                 // Bottom face (y = -0.5)
                                  0,
                                  1,
                                  5,
                                  5,
                                  4,
                                  0,
-                                 // Face du haut (y = 0.5)
+                                 // Top face (y = 0.5)
                                  3,
                                  2,
                                  6,

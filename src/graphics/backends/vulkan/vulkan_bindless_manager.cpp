@@ -1,9 +1,9 @@
 #include "vostok/graphics/backends/vulkan/vulkan_bindless_manager.hpp"
 
 #include "core/logger/logger.hpp"
+#include "graphics/backends/vulkan/buffers/vulkan_buffer.hpp"
 #include "graphics/backends/vulkan/core/vulkan_device.hpp"
 #include "graphics/backends/vulkan/core/vulkan_frame_sync.hpp"
-#include "graphics/backends/vulkan/resources/vulkan_buffer.hpp"
 #include "graphics/backends/vulkan/utils/vk_utils.hpp"
 
 #include <format>
