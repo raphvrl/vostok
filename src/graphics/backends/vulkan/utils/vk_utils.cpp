@@ -644,22 +644,39 @@ auto toVulkanSampleCount(graphics::SampleCount samples) -> VkSampleCountFlagBits
 
 auto toVulkanImageUsage(graphics::ImageUsage usage) -> VkImageUsageFlags
 {
-    static const std::unordered_map<graphics::ImageUsage, VkImageUsageFlags>
-        IMAGE_USAGE_TO_VULKAN_MAP = {
-            { graphics::ImageUsage::TRANSFER_SRC,
-              VK_IMAGE_USAGE_TRANSFER_SRC_BIT },
-            { graphics::ImageUsage::TRANSFER_DST,
-              VK_IMAGE_USAGE_TRANSFER_DST_BIT },
-            { graphics::ImageUsage::SAMPLED, VK_IMAGE_USAGE_SAMPLED_BIT },
-            { graphics::ImageUsage::STORAGE, VK_IMAGE_USAGE_STORAGE_BIT },
-        };
+    VkImageUsageFlags vkUsage = 0;
 
-    auto it = IMAGE_USAGE_TO_VULKAN_MAP.find(usage);
-    if (it != IMAGE_USAGE_TO_VULKAN_MAP.end()) {
-        return it->second;
+    if ((static_cast<u32>(usage) &
+         static_cast<u32>(graphics::ImageUsage::TRANSFER_SRC)) != 0U) {
+        vkUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    }
+    if ((static_cast<u32>(usage) &
+         static_cast<u32>(graphics::ImageUsage::TRANSFER_DST)) != 0U) {
+        vkUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    }
+    if ((static_cast<u32>(usage) &
+         static_cast<u32>(graphics::ImageUsage::SAMPLED)) != 0U) {
+        vkUsage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    }
+    if ((static_cast<u32>(usage) &
+         static_cast<u32>(graphics::ImageUsage::STORAGE)) != 0U) {
+        vkUsage |= VK_IMAGE_USAGE_STORAGE_BIT;
+    }
+    if ((static_cast<u32>(usage) &
+         static_cast<u32>(graphics::ImageUsage::COLOR_ATTACHMENT)) != 0U) {
+        vkUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    }
+    if ((static_cast<u32>(usage) &
+         static_cast<u32>(graphics::ImageUsage::DEPTH_STENCIL_ATTACHMENT)) !=
+        0U) {
+        vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    }
+    if ((static_cast<u32>(usage) &
+         static_cast<u32>(graphics::ImageUsage::INPUT_ATTACHMENT)) != 0U) {
+        vkUsage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
     }
 
-    return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    return vkUsage;
 }
 
 auto getRequiredAlignment(graphics::BufferUsage usage) -> size_t
@@ -963,7 +980,30 @@ auto createGraphicsPipeline(
         renderingInfo.viewMask = 0;
         renderingInfo.colorAttachmentCount = 1;
         renderingInfo.pColorAttachmentFormats = &colorAttachmentFormat;
-        renderingInfo.depthAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+        // Depth format selection: use info.depthFormat when provided and
+        // depthTest enabled
+        if (info.depthTest && info.depthFormat.has_value()) {
+            VkFormat depthFmt = VK_FORMAT_UNDEFINED;
+            switch (info.depthFormat.value()) {
+                case graphics::ImageFormat::D32_SFLOAT:
+                    depthFmt = VK_FORMAT_D32_SFLOAT;
+                    break;
+                case graphics::ImageFormat::D24_UNORM_S8_UINT:
+                    depthFmt = VK_FORMAT_D24_UNORM_S8_UINT;
+                    break;
+                default:
+                    depthFmt = VK_FORMAT_UNDEFINED;
+                    break;
+            }
+            renderingInfo.depthAttachmentFormat = depthFmt;
+        } else if (info.depthTest) {
+            // Fallback sensible default if depth enabled but not specified
+            renderingInfo.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
+        } else {
+            renderingInfo.depthAttachmentFormat = VK_FORMAT_UNDEFINED;
+        }
+
         renderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
         pipelineInfo.pNext = &renderingInfo;
     }

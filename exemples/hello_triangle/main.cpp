@@ -296,10 +296,12 @@ auto createPipeline(
     pipelineInfo.frontFace = graphics::FrontFace::COUNTER_CLOCKWISE;
     pipelineInfo.lineWidth = 1.0F;
 
-    pipelineInfo.depthTest = false;
-    pipelineInfo.depthWrite = false;
+    pipelineInfo.depthTest = true;
+    pipelineInfo.depthWrite = true;
     pipelineInfo.depthCompareOp = graphics::CompareOp::LESS;
     pipelineInfo.stencilTest = false;
+
+    pipelineInfo.depthFormat = graphics::ImageFormat::D32_SFLOAT;
 
     pipelineInfo.blend = true;
     pipelineInfo.srcColorBlendFactor = graphics::BlendFactor::SRC_ALPHA;

@@ -40,6 +40,20 @@ auto VulkanImage::create(
     VkSampleCountFlagBits vkSamples = utils::toVulkanSampleCount(info.samples);
     VkImageUsageFlags vkUsage = utils::toVulkanImageUsage(info.usage);
 
+    VkImageAspectFlags aspectMaskPre = VK_IMAGE_ASPECT_COLOR_BIT;
+    if (info.format == graphics::ImageFormat::D32_SFLOAT) {
+        aspectMaskPre = VK_IMAGE_ASPECT_DEPTH_BIT;
+    } else if (info.format == graphics::ImageFormat::D24_UNORM_S8_UINT) {
+        aspectMaskPre = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+    }
+
+    if ((aspectMaskPre & VK_IMAGE_ASPECT_DEPTH_BIT) != 0U) {
+        vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        vkUsage &= ~static_cast<VkImageUsageFlags>(
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+        );
+    }
+
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = determineImageType(
@@ -58,10 +72,6 @@ auto VulkanImage::create(
     imageInfo.samples = vkSamples;
 
     VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
-    if ((static_cast<u32>(info.usage) &
-         static_cast<u32>(graphics::ImageUsage::TRANSFER_DST)) != 0U) {
-        memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-    }
 
     auto result = allocator->createImage(imageInfo, memoryUsage);
     if (!result) {
@@ -74,12 +84,7 @@ auto VulkanImage::create(
         new VulkanImage(device, allocator, frameSync, image, allocation, info)
     );
 
-    VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    if (info.format == graphics::ImageFormat::D32_SFLOAT) {
-        aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    } else if (info.format == graphics::ImageFormat::D24_UNORM_S8_UINT) {
-        aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-    }
+    VkImageAspectFlags aspectMask = aspectMaskPre;
 
     auto viewResult = vulkanImage->createImageView(aspectMask);
     if (!viewResult) {
