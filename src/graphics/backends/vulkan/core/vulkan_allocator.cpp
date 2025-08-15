@@ -121,4 +121,37 @@ void VulkanAllocator::destroyBuffer(VkBuffer buffer, VmaAllocation allocation)
     vmaDestroyBuffer(m_allocator, buffer, allocation);
 }
 
+auto VulkanAllocator::createImage(
+    const VkImageCreateInfo &createInfo,
+    VmaMemoryUsage memoryUsage
+) -> std::expected<std::pair<VkImage, VmaAllocation>, std::string>
+{
+    VmaAllocationCreateInfo allocationCreateInfo{};
+    allocationCreateInfo.usage = memoryUsage;
+
+    VkImage image = VK_NULL_HANDLE;
+    VmaAllocation allocation = VK_NULL_HANDLE;
+    VmaAllocationInfo allocationInfo{};
+
+    VkResult result = vmaCreateImage(
+        m_allocator,
+        &createInfo,
+        &allocationCreateInfo,
+        &image,
+        &allocation,
+        &allocationInfo
+    );
+
+    if (result != VK_SUCCESS) {
+        return std::unexpected(utils::vkResultToString(result));
+    }
+
+    return std::make_pair(image, allocation);
+}
+
+void VulkanAllocator::destroyImage(VkImage image, VmaAllocation allocation)
+{
+    vmaDestroyImage(m_allocator, image, allocation);
+}
+
 } // namespace vostok::graphics::vulkan

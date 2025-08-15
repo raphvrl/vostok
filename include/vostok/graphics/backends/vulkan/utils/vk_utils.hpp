@@ -2,6 +2,7 @@
 
 #include "vostok/core/type.hpp"
 #include "vostok/graphics/buffers/buffer.hpp"
+#include "vostok/graphics/buffers/image.hpp"
 #include "vostok/graphics/pipeline.hpp"
 
 #include <filesystem>
@@ -35,6 +36,17 @@ auto vkColorComponentFlagsToString(VkColorComponentFlags flags) -> std::string;
 
 auto toVulkanUsage(graphics::BufferUsage usage) -> VkBufferUsageFlags;
 auto toVmaMemoryUsage(graphics::BufferMemory memory) -> VmaMemoryUsage;
+
+auto toVulkanImageLayout(graphics::ImageLayout layout) -> VkImageLayout;
+auto toVulkanImageAspectFlags(graphics::ImageFormat format)
+    -> VkImageAspectFlags;
+auto toVulkanAspectFlags(graphics::ImageAspectFlags aspectFlags)
+    -> VkImageAspectFlags;
+
+auto toVulkanFormat(graphics::ImageFormat format) -> VkFormat;
+auto toVulkanSampleCount(graphics::SampleCount samples)
+    -> VkSampleCountFlagBits;
+auto toVulkanImageUsage(graphics::ImageUsage usage) -> VkImageUsageFlags;
 
 auto setDebugObjectName(
     VkDevice device,

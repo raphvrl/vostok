@@ -13,81 +13,7 @@
 namespace vostok::graphics::vulkan
 {
 
-class VulkanBuffer::Impl
-{
-public:
-    Impl(
-        VulkanAllocator *allocator,
-        VulkanFrameSync *frameSync,
-        VkQueue transferQueue,
-        VkBuffer buffer,
-        VmaAllocation allocation,
-        graphics::BufferUsage usage,
-        graphics::BufferMemory memory,
-        size_t size
-    );
-    ~Impl();
-
-    Impl(const Impl &) = delete;
-    auto operator=(const Impl &) -> Impl & = delete;
-    Impl(Impl &&other) noexcept;
-    auto operator=(Impl &&other) noexcept -> Impl &;
-
-    void bind();
-
-    auto map() -> std::expected<std::span<std::byte>, std::string>;
-    void unmap();
-
-    auto update(std::span<const std::byte> data, size_t offset = 0)
-        -> std::expected<void, std::string>;
-
-    [[nodiscard]] auto getBuffer() const -> VkBuffer { return m_buffer; }
-    [[nodiscard]] auto getAllocation() const -> VmaAllocation
-    {
-        return m_allocation;
-    }
-    [[nodiscard]] auto getSize() const -> size_t { return m_size; }
-    [[nodiscard]] auto getUsage() const -> graphics::BufferUsage
-    {
-        return m_usage;
-    }
-    [[nodiscard]] auto getMemory() const -> graphics::BufferMemory
-    {
-        return m_memory;
-    }
-
-    auto copyFrom(
-        const graphics::Buffer &source,
-        size_t srcOffset,
-        size_t dstOffset,
-        size_t size
-    ) -> std::expected<void, std::string>;
-
-    [[nodiscard]] auto getOffset() const -> size_t { return m_offset; }
-    auto setOffset(size_t offset) -> void { m_offset = offset; }
-
-private:
-    void destroyBuffer();
-
-    auto updateGpuOnly(std::span<const std::byte> data, size_t offset = 0)
-        -> std::expected<void, std::string>;
-
-    auto updateCpuAccessible(std::span<const std::byte> data, size_t offset = 0)
-        -> std::expected<void, std::string>;
-
-    VulkanAllocator *m_allocator = nullptr;
-    VulkanFrameSync *m_frameSync = nullptr;
-    VkQueue m_transferQueue = VK_NULL_HANDLE;
-    VkBuffer m_buffer = VK_NULL_HANDLE;
-    VmaAllocation m_allocation = VK_NULL_HANDLE;
-    graphics::BufferUsage m_usage;
-    graphics::BufferMemory m_memory;
-    VkDeviceSize m_size;
-    VkDeviceSize m_offset = 0;
-    void *m_mapped = nullptr;
-};
-
-VulkanBuffer::Impl::Impl(
+VulkanBuffer::VulkanBuffer(
     VulkanAllocator *allocator,
     VulkanFrameSync *frameSync,
     VkQueue transferQueue,
@@ -107,12 +33,12 @@ VulkanBuffer::Impl::Impl(
       m_size(size)
 {}
 
-VulkanBuffer::Impl::~Impl()
+VulkanBuffer::~VulkanBuffer()
 {
     destroyBuffer();
 }
 
-VulkanBuffer::Impl::Impl(Impl &&other) noexcept
+VulkanBuffer::VulkanBuffer(VulkanBuffer &&other) noexcept
     : m_allocator(other.m_allocator),
       m_frameSync(other.m_frameSync),
       m_transferQueue(other.m_transferQueue),
@@ -130,7 +56,7 @@ VulkanBuffer::Impl::Impl(Impl &&other) noexcept
     other.m_mapped = nullptr;
 }
 
-auto VulkanBuffer::Impl::operator=(Impl &&other) noexcept -> Impl &
+auto VulkanBuffer::operator=(VulkanBuffer &&other) noexcept -> VulkanBuffer &
 {
     if (this != &other) {
         destroyBuffer();
@@ -154,7 +80,7 @@ auto VulkanBuffer::Impl::operator=(Impl &&other) noexcept -> Impl &
     return *this;
 }
 
-void VulkanBuffer::Impl::bind()
+void VulkanBuffer::bind()
 {
     auto *commandBuffer = m_frameSync->getCommandBuffer();
 
@@ -172,8 +98,7 @@ void VulkanBuffer::Impl::bind()
     }
 }
 
-auto VulkanBuffer::Impl::map()
-    -> std::expected<std::span<std::byte>, std::string>
+auto VulkanBuffer::map() -> std::expected<std::span<std::byte>, std::string>
 {
     if (m_mapped != nullptr) {
         return std::span<std::byte>(static_cast<std::byte *>(m_mapped), m_size);
@@ -190,7 +115,7 @@ auto VulkanBuffer::Impl::map()
     return std::span<std::byte>(static_cast<std::byte *>(m_mapped), m_size);
 }
 
-void VulkanBuffer::Impl::unmap()
+void VulkanBuffer::unmap()
 {
     if (m_mapped == nullptr) {
         return;
@@ -200,7 +125,7 @@ void VulkanBuffer::Impl::unmap()
     m_mapped = nullptr;
 }
 
-auto VulkanBuffer::Impl::update(std::span<const std::byte> data, size_t offset)
+auto VulkanBuffer::update(std::span<const std::byte> data, size_t offset)
     -> std::expected<void, std::string>
 {
     if (offset + data.size() > m_size) {
@@ -227,17 +152,15 @@ auto VulkanBuffer::Impl::update(std::span<const std::byte> data, size_t offset)
     return updateCpuAccessible(data, offset);
 }
 
-void VulkanBuffer::Impl::destroyBuffer()
+void VulkanBuffer::destroyBuffer()
 {
     if (m_buffer != VK_NULL_HANDLE) {
         m_allocator->destroyBuffer(m_buffer, m_allocation);
     }
 }
 
-auto VulkanBuffer::Impl::updateGpuOnly(
-    std::span<const std::byte> data,
-    size_t offset
-) -> std::expected<void, std::string>
+auto VulkanBuffer::updateGpuOnly(std::span<const std::byte> data, size_t offset)
+    -> std::expected<void, std::string>
 {
     VkBufferCreateInfo stagingInfo = {};
     stagingInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -315,7 +238,7 @@ auto VulkanBuffer::Impl::updateGpuOnly(
     return {};
 }
 
-auto VulkanBuffer::Impl::updateCpuAccessible(
+auto VulkanBuffer::updateCpuAccessible(
     std::span<const std::byte> data,
     size_t offset
 ) -> std::expected<void, std::string>
@@ -330,7 +253,7 @@ auto VulkanBuffer::Impl::updateCpuAccessible(
     return {};
 }
 
-auto VulkanBuffer::Impl::copyFrom(
+auto VulkanBuffer::copyFrom(
     const graphics::Buffer &source,
     size_t srcOffset,
     size_t dstOffset,
@@ -418,34 +341,16 @@ auto VulkanBuffer::Impl::copyFrom(
     return {};
 }
 
-VulkanBuffer::VulkanBuffer(std::unique_ptr<Impl> impl)
-    : m_impl(std::move(impl))
-{}
-
-VulkanBuffer::~VulkanBuffer() = default;
-
-VulkanBuffer::VulkanBuffer(VulkanBuffer &&other) noexcept
-    : m_impl(std::move(other.m_impl))
-{}
-
-auto VulkanBuffer::operator=(VulkanBuffer &&other) noexcept -> VulkanBuffer &
-{
-    if (this != &other) {
-        m_impl = std::move(other.m_impl);
-    }
-    return *this;
-}
-
 auto VulkanBuffer::create(
     VulkanInstance *instance,
     VulkanDevice *device,
     VulkanAllocator *allocator,
     VulkanFrameSync *frameSync,
     const graphics::BufferCreateInfo &info
-) -> std::unique_ptr<VulkanBuffer>
+) -> std::expected<std::unique_ptr<VulkanBuffer>, std::string>
 {
     if (info.size == 0) {
-        return nullptr;
+        return std::unexpected("Buffer size must be greater than 0");
     }
 
     size_t requiredAlignment = utils::getRequiredAlignment(info.usage);
@@ -477,14 +382,12 @@ auto VulkanBuffer::create(
 
     auto *transferQueue = device->getTransferQueue();
     if (transferQueue == nullptr) {
-        Logger::error("Transfer queue is not set");
-        return nullptr;
+        return std::unexpected("Transfer queue is not set");
     }
 
     auto result = allocator->createBuffer(bufferCreateInfo, memoryUsage);
     if (!result) {
-        Logger::error("Failed to create buffer: {}", result.error());
-        return nullptr;
+        return std::unexpected("Failed to create buffer: " + result.error());
     }
 
     auto [buffer, allocation] = result.value();
@@ -505,7 +408,7 @@ auto VulkanBuffer::create(
         }
     }
 
-    auto impl = std::make_unique<Impl>(
+    auto vulkanBuffer = std::unique_ptr<VulkanBuffer>(new VulkanBuffer(
         allocator,
         frameSync,
         transferQueue,
@@ -514,89 +417,54 @@ auto VulkanBuffer::create(
         info.usage,
         info.memory,
         info.size
-    );
+    ));
 
     if (!info.data.empty()) {
-        auto updateResult = impl->update(info.data);
+        auto updateResult = vulkanBuffer->update(info.data);
         if (!updateResult) {
-            Logger::error(
-                "Failed to initialize buffer with data: {}",
-                updateResult.error()
+            return std::unexpected(
+                "Failed to initialize buffer with data: " + updateResult.error()
             );
         }
     }
 
-    auto bufferPtr =
-        std::unique_ptr<VulkanBuffer>(new VulkanBuffer(std::move(impl)));
-
     Logger::debug("Buffer created successfully");
-    return bufferPtr;
+    return vulkanBuffer;
 }
 
 auto VulkanBuffer::getBuffer() const -> VkBuffer
 {
-    return m_impl->getBuffer();
+    return m_buffer;
 }
 
 auto VulkanBuffer::getAllocation() const -> VmaAllocation
 {
-    return m_impl->getAllocation();
-}
-
-void VulkanBuffer::bind()
-{
-    m_impl->bind();
-}
-
-auto VulkanBuffer::map() -> std::expected<std::span<std::byte>, std::string>
-{
-    return m_impl->map();
-}
-
-void VulkanBuffer::unmap()
-{
-    m_impl->unmap();
-}
-
-auto VulkanBuffer::update(std::span<const std::byte> data, size_t offset)
-    -> std::expected<void, std::string>
-{
-    return m_impl->update(data, offset);
+    return m_allocation;
 }
 
 auto VulkanBuffer::getSize() const -> size_t
 {
-    return m_impl->getSize();
+    return m_size;
 }
 
 auto VulkanBuffer::getUsage() const -> graphics::BufferUsage
 {
-    return m_impl->getUsage();
+    return m_usage;
 }
 
 auto VulkanBuffer::getMemory() const -> graphics::BufferMemory
 {
-    return m_impl->getMemory();
-}
-
-auto VulkanBuffer::copyFrom(
-    const graphics::Buffer &source,
-    size_t srcOffset,
-    size_t dstOffset,
-    size_t size
-) -> std::expected<void, std::string>
-{
-    return m_impl->copyFrom(source, srcOffset, dstOffset, size);
+    return m_memory;
 }
 
 auto VulkanBuffer::getOffset() const -> size_t
 {
-    return m_impl->getOffset();
+    return m_offset;
 }
 
 void VulkanBuffer::setOffset(size_t offset)
 {
-    m_impl->setOffset(offset);
+    m_offset = offset;
 }
 
 } // namespace vostok::graphics::vulkan

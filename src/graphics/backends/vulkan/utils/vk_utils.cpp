@@ -491,6 +491,85 @@ auto toVmaMemoryUsage(graphics::BufferMemory memory) -> VmaMemoryUsage
     return VMA_MEMORY_USAGE_GPU_ONLY;
 }
 
+auto toVulkanImageLayout(graphics::ImageLayout layout) -> VkImageLayout
+{
+    static const std::unordered_map<graphics::ImageLayout, VkImageLayout>
+        IMAGE_LAYOUT_TO_VULKAN_MAP = {
+            { graphics::ImageLayout::UNDEFINED, VK_IMAGE_LAYOUT_UNDEFINED },
+            { graphics::ImageLayout::GENERAL, VK_IMAGE_LAYOUT_GENERAL },
+            { graphics::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
+              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL },
+            { graphics::ImageLayout::DEPTH_ATTACHMENT_OPTIMAL,
+              VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL },
+            { graphics::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL },
+            { graphics::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
+            { graphics::ImageLayout::TRANSFER_SRC_OPTIMAL,
+              VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL },
+            { graphics::ImageLayout::TRANSFER_DST_OPTIMAL,
+              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
+            { graphics::ImageLayout::PRESENT_SRC_KHR,
+              VK_IMAGE_LAYOUT_PRESENT_SRC_KHR }
+        };
+
+    auto it = IMAGE_LAYOUT_TO_VULKAN_MAP.find(layout);
+    if (it != IMAGE_LAYOUT_TO_VULKAN_MAP.end()) {
+        return it->second;
+    }
+
+    return VK_IMAGE_LAYOUT_UNDEFINED;
+}
+
+auto toVulkanImageAspectFlags(graphics::ImageFormat format)
+    -> VkImageAspectFlags
+{
+    static const std::unordered_map<graphics::ImageFormat, VkImageAspectFlags>
+        IMAGE_ASPECT_FLAGS_MAP = {
+            { graphics::ImageFormat::R8G8B8A8_UNORM,
+              VK_IMAGE_ASPECT_COLOR_BIT },
+            { graphics::ImageFormat::R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT },
+            { graphics::ImageFormat::B8G8R8A8_UNORM,
+              VK_IMAGE_ASPECT_COLOR_BIT },
+            { graphics::ImageFormat::B8G8R8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT },
+            { graphics::ImageFormat::R32G32B32A32_SFLOAT,
+              VK_IMAGE_ASPECT_COLOR_BIT },
+        };
+
+    auto it = IMAGE_ASPECT_FLAGS_MAP.find(format);
+    if (it != IMAGE_ASPECT_FLAGS_MAP.end()) {
+        return it->second;
+    }
+
+    return VK_IMAGE_ASPECT_COLOR_BIT;
+}
+
+auto toVulkanAspectFlags(graphics::ImageAspectFlags aspectFlags)
+    -> VkImageAspectFlags
+{
+    static const std::
+        unordered_map<graphics::ImageAspectFlags, VkImageAspectFlags>
+            ASPECT_FLAGS_MAP = { { graphics::ImageAspectFlags::COLOR,
+                                   VK_IMAGE_ASPECT_COLOR_BIT },
+                                 { graphics::ImageAspectFlags::DEPTH,
+                                   VK_IMAGE_ASPECT_DEPTH_BIT },
+                                 { graphics::ImageAspectFlags::STENCIL,
+                                   VK_IMAGE_ASPECT_STENCIL_BIT },
+                                 { graphics::ImageAspectFlags::DEPTH_STENCIL,
+                                   VK_IMAGE_ASPECT_DEPTH_BIT |
+                                       VK_IMAGE_ASPECT_STENCIL_BIT },
+                                 { graphics::ImageAspectFlags::METADATA,
+                                   VK_IMAGE_ASPECT_METADATA_BIT } };
+
+    auto it = ASPECT_FLAGS_MAP.find(aspectFlags);
+
+    if (it != ASPECT_FLAGS_MAP.end()) {
+        return it->second;
+    }
+
+    return VK_IMAGE_ASPECT_COLOR_BIT;
+}
+
 auto setDebugObjectName(
     VkDevice device,
     VkObjectType objectType,
@@ -518,6 +597,69 @@ auto setDebugObjectName(
 
     VkResult result = func(device, &nameInfo);
     return result == VK_SUCCESS;
+}
+
+auto toVulkanFormat(graphics::ImageFormat format) -> VkFormat
+{
+    static const std::unordered_map<graphics::ImageFormat, VkFormat>
+        IMAGE_FORMAT_TO_VULKAN_MAP = {
+            { graphics::ImageFormat::R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM },
+            { graphics::ImageFormat::R8G8B8A8_SRGB, VK_FORMAT_R8G8B8A8_SRGB },
+            { graphics::ImageFormat::B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_UNORM },
+            { graphics::ImageFormat::B8G8R8A8_SRGB, VK_FORMAT_B8G8R8A8_SRGB },
+            { graphics::ImageFormat::R32G32B32A32_SFLOAT,
+              VK_FORMAT_R32G32B32A32_SFLOAT },
+            { graphics::ImageFormat::D32_SFLOAT, VK_FORMAT_D32_SFLOAT },
+            { graphics::ImageFormat::D24_UNORM_S8_UINT,
+              VK_FORMAT_D24_UNORM_S8_UINT }
+        };
+
+    auto it = IMAGE_FORMAT_TO_VULKAN_MAP.find(format);
+    if (it != IMAGE_FORMAT_TO_VULKAN_MAP.end()) {
+        return it->second;
+    }
+
+    return VK_FORMAT_UNDEFINED;
+}
+
+auto toVulkanSampleCount(graphics::SampleCount samples) -> VkSampleCountFlagBits
+{
+    static const std::
+        unordered_map<graphics::SampleCount, VkSampleCountFlagBits>
+            SAMPLE_COUNT_TO_VULKAN_MAP = {
+                { graphics::SampleCount::COUNT_1, VK_SAMPLE_COUNT_1_BIT },
+                { graphics::SampleCount::COUNT_2, VK_SAMPLE_COUNT_2_BIT },
+                { graphics::SampleCount::COUNT_4, VK_SAMPLE_COUNT_4_BIT },
+                { graphics::SampleCount::COUNT_8, VK_SAMPLE_COUNT_8_BIT },
+                { graphics::SampleCount::COUNT_16, VK_SAMPLE_COUNT_16_BIT }
+            };
+
+    auto it = SAMPLE_COUNT_TO_VULKAN_MAP.find(samples);
+    if (it != SAMPLE_COUNT_TO_VULKAN_MAP.end()) {
+        return it->second;
+    }
+
+    return VK_SAMPLE_COUNT_1_BIT;
+}
+
+auto toVulkanImageUsage(graphics::ImageUsage usage) -> VkImageUsageFlags
+{
+    static const std::unordered_map<graphics::ImageUsage, VkImageUsageFlags>
+        IMAGE_USAGE_TO_VULKAN_MAP = {
+            { graphics::ImageUsage::TRANSFER_SRC,
+              VK_IMAGE_USAGE_TRANSFER_SRC_BIT },
+            { graphics::ImageUsage::TRANSFER_DST,
+              VK_IMAGE_USAGE_TRANSFER_DST_BIT },
+            { graphics::ImageUsage::SAMPLED, VK_IMAGE_USAGE_SAMPLED_BIT },
+            { graphics::ImageUsage::STORAGE, VK_IMAGE_USAGE_STORAGE_BIT },
+        };
+
+    auto it = IMAGE_USAGE_TO_VULKAN_MAP.find(usage);
+    if (it != IMAGE_USAGE_TO_VULKAN_MAP.end()) {
+        return it->second;
+    }
+
+    return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 }
 
 auto getRequiredAlignment(graphics::BufferUsage usage) -> size_t

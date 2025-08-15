@@ -11,6 +11,7 @@
 #include "graphics/backends/vulkan/core/vulkan_swapchain.hpp"
 #include "graphics/backends/vulkan/platform/glfw_platform.hpp"
 #include "graphics/backends/vulkan/resources/vulkan_buffer.hpp"
+#include "graphics/backends/vulkan/resources/vulkan_image.hpp"
 #include "graphics/backends/vulkan/utils/vk_utils.hpp"
 #include "graphics/backends/vulkan/vulkan_bindless_manager.hpp"
 #include "graphics/backends/vulkan/vulkan_pipeline.hpp"
@@ -24,141 +25,19 @@
 namespace vostok::graphics::vulkan
 {
 
-class VulkanGPU::Impl
-{
-public:
-    Impl(VulkanGPU *parent, const GPUHandle::CreateInfo &createInfo);
-    ~Impl();
-
-    Impl(const Impl &) = delete;
-    auto operator=(const Impl &) -> Impl & = delete;
-    Impl(Impl &&) = delete;
-    auto operator=(Impl &&) -> Impl & = delete;
-
-    void waitIdle();
-
-    auto beginFrame() -> std::expected<u32, std::string>;
-    auto endFrame() -> std::expected<void, std::string>;
-
-    auto resize(const FramebufferSize &size)
-        -> std::expected<void, std::string>;
-
-    void draw(
-        u32 vertexCount,
-        u32 instanceCount = 1,
-        u32 firstVertex = 0,
-        u32 firstInstance = 0
-    );
-
-    void drawIndexed(
-        u32 indexCount,
-        u32 instanceCount = 1,
-        u32 firstIndex = 0,
-        u32 vertexOffset = 0,
-        u32 firstInstance = 0
-    );
-
-    [[nodiscard]] auto isInitialized() const -> bool
-    {
-        return m_instance && m_surface && m_physicalDevice && m_device &&
-               m_allocator && m_swapchain && m_frameSync;
-    }
-
-    [[nodiscard]] auto getLastError() const -> const std::string &
-    {
-        return m_lastError;
-    }
-
-    [[nodiscard]] auto getInstance() const -> VulkanInstance *
-    {
-        return m_instance.get();
-    }
-    [[nodiscard]] auto getSurface() const -> VulkanSurface *
-    {
-        return m_surface.get();
-    }
-    [[nodiscard]] auto getPhysicalDevice() const -> VulkanPhysicalDevice *
-    {
-        return m_physicalDevice.get();
-    }
-    [[nodiscard]] auto getDevice() const -> VulkanDevice *
-    {
-        return m_device.get();
-    }
-    [[nodiscard]] auto getAllocator() const -> VulkanAllocator *
-    {
-        return m_allocator.get();
-    }
-    [[nodiscard]] auto getSwapchain() const -> VulkanSwapchain *
-    {
-        return m_swapchain.get();
-    }
-    [[nodiscard]] auto getFrameSync() const -> VulkanFrameSync *
-    {
-        return m_frameSync.get();
-    }
-    [[nodiscard]] auto getBindlessManager() const -> VulkanBindlessManager *
-    {
-        return m_bindlessManager.get();
-    }
-
-    auto createPipeline(const Pipeline::CreateInfo &createInfo)
-        -> std::expected<Pipeline, std::string>;
-
-    auto createBuffer(const graphics::BufferCreateInfo &createInfo)
-        -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>;
-
-    auto registerUBO(BindableResource *ubo, size_t size)
-        -> std::expected<u32, std::string>;
-
-    void notifyDirtyResource(u32 bindlessIndex);
-
-private:
-    auto initInstance(const GPUHandle::CreateInfo &createInfo) -> bool;
-    auto initSurface(void *windowHandle) -> bool;
-    auto initPhysicalDevice() -> bool;
-    auto initDevice(const GPUHandle::CreateInfo &createInfo) -> bool;
-    auto initAllocator() -> bool;
-    auto initSwapchain(const SwapchainExtent &size) -> bool;
-    auto initFrameSync() -> bool;
-    auto initBindlessManager() -> bool;
-
-    std::unique_ptr<VulkanInstance> m_instance;
-    std::unique_ptr<VulkanSurface> m_surface;
-    std::unique_ptr<VulkanPhysicalDevice> m_physicalDevice;
-    std::unique_ptr<VulkanDevice> m_device;
-    std::unique_ptr<VulkanAllocator> m_allocator;
-    std::unique_ptr<VulkanSwapchain> m_swapchain;
-    std::unique_ptr<VulkanFrameSync> m_frameSync;
-    std::unique_ptr<VulkanCommandPool> m_graphicsCommandPool;
-    std::unique_ptr<VulkanCommandPool> m_transferCommandPool;
-    std::unique_ptr<VulkanBindlessManager> m_bindlessManager;
-    std::string m_lastError;
-
-    u32 m_currentImageIndex = 0;
-
-    VulkanGPU *m_parent;
-};
-
 auto VulkanGPU::create(const CreateInfo &createInfo)
     -> std::expected<std::unique_ptr<GPUHandle>, std::string>
 {
-    auto device = Factory::create();
+    auto device = Factory::create(createInfo);
 
-    device->m_impl = std::make_unique<Impl>(device.get(), createInfo);
-
-    if (!device->m_impl->isInitialized()) {
-        return std::unexpected(device->m_impl->getLastError());
+    if (!device->isInitialized()) {
+        return std::unexpected(device->getLastError());
     }
 
     return device;
 }
 
-VulkanGPU::Impl::Impl(
-    VulkanGPU *parent,
-    const GPUHandle::CreateInfo &createInfo
-)
-    : m_parent(parent)
+VulkanGPU::VulkanGPU(const GPUHandle::CreateInfo &createInfo)
 {
     if (!initInstance(createInfo)) {
         return;
@@ -195,7 +74,7 @@ VulkanGPU::Impl::Impl(
     }
 }
 
-VulkanGPU::Impl::~Impl()
+VulkanGPU::~VulkanGPU()
 {
     Logger::debug("Vulkan GPU device destructor called");
 
@@ -252,8 +131,7 @@ VulkanGPU::Impl::~Impl()
     Logger::debug("Vulkan GPU device destructor completed");
 }
 
-auto VulkanGPU::Impl::initInstance(const GPUHandle::CreateInfo &createInfo)
-    -> bool
+auto VulkanGPU::initInstance(const GPUHandle::CreateInfo &createInfo) -> bool
 {
     auto platform = std::make_unique<platform::GlfwPlatform>();
 
@@ -277,7 +155,7 @@ auto VulkanGPU::Impl::initInstance(const GPUHandle::CreateInfo &createInfo)
     return true;
 }
 
-auto VulkanGPU::Impl::initSurface(void *windowHandle) -> bool
+auto VulkanGPU::initSurface(void *windowHandle) -> bool
 {
     if (!m_instance) {
         m_lastError = "Instance is not initialized";
@@ -295,7 +173,18 @@ auto VulkanGPU::Impl::initSurface(void *windowHandle) -> bool
     return true;
 }
 
-auto VulkanGPU::Impl::initPhysicalDevice() -> bool
+auto VulkanGPU::isInitialized() const -> bool
+{
+    return m_instance && m_surface && m_physicalDevice && m_device &&
+           m_allocator && m_swapchain && m_frameSync;
+}
+
+auto VulkanGPU::getLastError() const -> const std::string &
+{
+    return m_lastError;
+}
+
+auto VulkanGPU::initPhysicalDevice() -> bool
 {
     auto result = VulkanPhysicalDevice::create(
         m_instance->getHandle(),
@@ -311,8 +200,7 @@ auto VulkanGPU::Impl::initPhysicalDevice() -> bool
     return true;
 }
 
-auto VulkanGPU::Impl::initDevice(const GPUHandle::CreateInfo &createInfo)
-    -> bool
+auto VulkanGPU::initDevice(const GPUHandle::CreateInfo &createInfo) -> bool
 {
     VulkanDevice::CreateInfo deviceInfo;
     deviceInfo.physicalDevice = m_physicalDevice.get();
@@ -359,7 +247,7 @@ auto VulkanGPU::Impl::initDevice(const GPUHandle::CreateInfo &createInfo)
     return true;
 }
 
-auto VulkanGPU::Impl::initAllocator() -> bool
+auto VulkanGPU::initAllocator() -> bool
 {
     if (!m_device) {
         m_lastError = "Device is not initialized";
@@ -382,7 +270,7 @@ auto VulkanGPU::Impl::initAllocator() -> bool
     return true;
 }
 
-auto VulkanGPU::Impl::initSwapchain(const SwapchainExtent &size) -> bool
+auto VulkanGPU::initSwapchain(const SwapchainExtent &size) -> bool
 {
     if (!m_device) {
         m_lastError = "Device is not initialized";
@@ -406,7 +294,7 @@ auto VulkanGPU::Impl::initSwapchain(const SwapchainExtent &size) -> bool
     return true;
 }
 
-auto VulkanGPU::Impl::initFrameSync() -> bool
+auto VulkanGPU::initFrameSync() -> bool
 {
     if (!m_device) {
         m_lastError = "Device is not initialized";
@@ -462,7 +350,7 @@ auto VulkanGPU::Impl::initFrameSync() -> bool
     return true;
 }
 
-auto VulkanGPU::Impl::initBindlessManager() -> bool
+auto VulkanGPU::initBindlessManager() -> bool
 {
     if (!m_device) {
         m_lastError = "Device is not initialized";
@@ -493,7 +381,7 @@ auto VulkanGPU::Impl::initBindlessManager() -> bool
     return true;
 }
 
-void VulkanGPU::Impl::waitIdle()
+void VulkanGPU::waitIdle()
 {
     if (!m_device) {
         return;
@@ -502,7 +390,7 @@ void VulkanGPU::Impl::waitIdle()
     m_device->waitIdle();
 }
 
-auto VulkanGPU::Impl::beginFrame() -> std::expected<u32, std::string>
+auto VulkanGPU::beginFrame() -> std::expected<u32, std::string>
 {
     if (!m_device || !m_swapchain || !m_frameSync) {
         return std::unexpected("Instance is not initialized");
@@ -592,7 +480,7 @@ auto VulkanGPU::Impl::beginFrame() -> std::expected<u32, std::string>
     return {};
 }
 
-auto VulkanGPU::Impl::endFrame() -> std::expected<void, std::string>
+auto VulkanGPU::endFrame() -> std::expected<void, std::string>
 {
     if (!m_device || !m_swapchain || !m_frameSync) {
         return std::unexpected("Instance is not initialized");
@@ -705,7 +593,7 @@ auto VulkanGPU::Impl::endFrame() -> std::expected<void, std::string>
     return {};
 }
 
-auto VulkanGPU::Impl::resize(const FramebufferSize &size)
+auto VulkanGPU::resize(const FramebufferSize &size)
     -> std::expected<void, std::string>
 {
     if (size.width == 0 || size.height == 0) {
@@ -720,7 +608,7 @@ auto VulkanGPU::Impl::resize(const FramebufferSize &size)
     return std::unexpected("Not implemented");
 }
 
-void VulkanGPU::Impl::draw(
+void VulkanGPU::draw(
     u32 vertexCount,
     u32 instanceCount,
     u32 firstVertex,
@@ -735,7 +623,7 @@ void VulkanGPU::Impl::draw(
         ->cmdDraw(vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-void VulkanGPU::Impl::drawIndexed(
+void VulkanGPU::drawIndexed(
     u32 indexCount,
     u32 instanceCount,
     u32 firstIndex,
@@ -756,17 +644,17 @@ void VulkanGPU::Impl::drawIndexed(
     );
 }
 
-auto VulkanGPU::Impl::createPipeline(const PipelineCreateInfo &createInfo)
+auto VulkanGPU::createPipeline(const Pipeline::CreateInfo &createInfo)
     -> std::expected<Pipeline, std::string>
 {
     if (!m_device) {
         return std::unexpected("Device is not initialized");
     }
 
-    return VulkanPipeline::create(m_parent, createInfo);
+    return VulkanPipeline::create(this, createInfo);
 }
 
-auto VulkanGPU::Impl::createBuffer(const graphics::BufferCreateInfo &createInfo)
+auto VulkanGPU::createBuffer(const graphics::BufferCreateInfo &createInfo)
     -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>
 {
     if (!m_allocator) {
@@ -789,10 +677,31 @@ auto VulkanGPU::Impl::createBuffer(const graphics::BufferCreateInfo &createInfo)
         return std::unexpected("Failed to create Vulkan buffer");
     }
 
-    return std::unique_ptr<graphics::Buffer>(vulkanBuffer.release());
+    return std::unique_ptr<graphics::Buffer>(vulkanBuffer->release());
 }
 
-auto VulkanGPU::Impl::registerUBO(BindableResource *ubo, size_t size)
+auto VulkanGPU::createImage(const graphics::ImageCreateInfo &createInfo)
+    -> std::expected<std::unique_ptr<graphics::Image>, std::string>
+{
+    if (!m_allocator) {
+        return std::unexpected("Allocator is not initialized");
+    }
+
+    auto vulkanImage = VulkanImage::create(
+        m_device.get(),
+        m_allocator.get(),
+        m_frameSync.get(),
+        createInfo
+    );
+
+    if (!vulkanImage) {
+        return std::unexpected("Failed to create Vulkan image");
+    }
+
+    return std::unique_ptr<graphics::Image>(vulkanImage->release());
+}
+
+auto VulkanGPU::registerUBO(BindableResource *ubo, size_t size)
     -> std::expected<u32, std::string>
 {
     if (!m_bindlessManager) {
@@ -802,7 +711,7 @@ auto VulkanGPU::Impl::registerUBO(BindableResource *ubo, size_t size)
     return m_bindlessManager->registerUBO(ubo, size);
 }
 
-void VulkanGPU::Impl::notifyDirtyResource(u32 bindlessIndex)
+void VulkanGPU::notifyDirtyResource(u32 bindlessIndex)
 {
     if (!m_bindlessManager) {
         return;
@@ -811,177 +720,66 @@ void VulkanGPU::Impl::notifyDirtyResource(u32 bindlessIndex)
     m_bindlessManager->notifyDirty(bindlessIndex);
 }
 
-VulkanGPU::VulkanGPU()
-    : m_impl(nullptr)
-{}
-
-VulkanGPU::~VulkanGPU()
-{
-    if (m_impl) {
-        m_impl->waitIdle();
-    }
-}
-
-void VulkanGPU::waitIdle()
-{
-    if (m_impl) {
-        m_impl->waitIdle();
-    }
-}
-
-auto VulkanGPU::beginFrame() -> std::expected<u32, std::string>
-{
-    if (m_impl) {
-        return m_impl->beginFrame();
-    }
-    return std::unexpected("Vulkan GPU device is not initialized");
-}
-
-auto VulkanGPU::endFrame() -> std::expected<void, std::string>
-{
-    if (m_impl) {
-        return m_impl->endFrame();
-    }
-    return std::unexpected("Vulkan GPU device is not initialized");
-}
-
-auto VulkanGPU::resize(const FramebufferSize &size)
-    -> std::expected<void, std::string>
-{
-    if (m_impl) {
-        return m_impl->resize(size);
-    }
-    return std::unexpected("Vulkan GPU device is not initialized");
-}
-
-void VulkanGPU::draw(
-    u32 vertexCount,
-    u32 instanceCount,
-    u32 firstVertex,
-    u32 firstInstance
-)
-{
-    if (m_impl) {
-        m_impl->draw(vertexCount, instanceCount, firstVertex, firstInstance);
-    }
-}
-
-void VulkanGPU::drawIndexed(
-    u32 indexCount,
-    u32 instanceCount,
-    u32 firstIndex,
-    u32 vertexOffset,
-    u32 firstInstance
-)
-
-{
-    if (m_impl) {
-        m_impl->drawIndexed(
-            indexCount,
-            instanceCount,
-            firstIndex,
-            vertexOffset,
-            firstInstance
-        );
-    }
-}
-
-auto VulkanGPU::createPipeline(const Pipeline::CreateInfo &createInfo)
-    -> std::expected<Pipeline, std::string>
-{
-    if (m_impl) {
-        return m_impl->createPipeline(createInfo);
-    }
-    return std::unexpected("Vulkan GPU device is not initialized");
-}
-
-auto VulkanGPU::createBuffer(const graphics::BufferCreateInfo &createInfo)
-    -> std::expected<std::unique_ptr<graphics::Buffer>, std::string>
-{
-    if (m_impl) {
-        return m_impl->createBuffer(createInfo);
-    }
-
-    return std::unexpected("Vulkan GPU device is not initialized");
-}
-
-auto VulkanGPU::registerUBO(BindableResource *ubo, size_t size)
-    -> std::expected<u32, std::string>
-{
-    if (m_impl) {
-        return m_impl->registerUBO(ubo, size);
-    }
-
-    return std::unexpected("Vulkan GPU device is not initialized");
-}
-
-void VulkanGPU::notifyDirtyResource(u32 bindlessIndex)
-{
-    if (m_impl) {
-        m_impl->notifyDirtyResource(bindlessIndex);
-    }
-}
-
 auto VulkanGPU::getInstance() const -> VulkanInstance *
 {
-    if (m_impl) {
-        return m_impl->getInstance();
+    if (m_instance) {
+        return m_instance.get();
     }
     return nullptr;
 }
 
 auto VulkanGPU::getSurface() const -> VulkanSurface *
 {
-    if (m_impl) {
-        return m_impl->getSurface();
+    if (m_surface) {
+        return m_surface.get();
     }
     return nullptr;
 }
 
 auto VulkanGPU::getPhysicalDevice() const -> VulkanPhysicalDevice *
 {
-    if (m_impl) {
-        return m_impl->getPhysicalDevice();
+    if (m_physicalDevice) {
+        return m_physicalDevice.get();
     }
     return nullptr;
 }
 
 auto VulkanGPU::getDevice() const -> VulkanDevice *
 {
-    if (m_impl) {
-        return m_impl->getDevice();
+    if (m_device) {
+        return m_device.get();
     }
     return nullptr;
 }
 
 auto VulkanGPU::getAllocator() const -> VulkanAllocator *
 {
-    if (m_impl) {
-        return m_impl->getAllocator();
+    if (m_allocator) {
+        return m_allocator.get();
     }
     return nullptr;
 }
 
 auto VulkanGPU::getSwapchain() const -> VulkanSwapchain *
 {
-    if (m_impl) {
-        return m_impl->getSwapchain();
+    if (m_swapchain) {
+        return m_swapchain.get();
     }
     return nullptr;
 }
 
 auto VulkanGPU::getFrameSync() const -> VulkanFrameSync *
 {
-    if (m_impl) {
-        return m_impl->getFrameSync();
+    if (m_frameSync) {
+        return m_frameSync.get();
     }
     return nullptr;
 }
 
 auto VulkanGPU::getBindlessManager() const -> VulkanBindlessManager *
 {
-    if (m_impl) {
-        return m_impl->getBindlessManager();
+    if (m_bindlessManager) {
+        return m_bindlessManager.get();
     }
     return nullptr;
 }

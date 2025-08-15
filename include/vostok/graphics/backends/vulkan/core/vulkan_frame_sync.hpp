@@ -59,6 +59,8 @@ public:
 
     auto beginCommandBuffer() -> std::expected<void, std::string>;
     auto endCommandBuffer() -> std::expected<void, std::string>;
+    auto submitCommandBuffer() -> std::expected<void, std::string>;
+    auto waitForComplete() -> std::expected<void, std::string>;
 
     void cmdDraw(
         u32 vertexCount,
