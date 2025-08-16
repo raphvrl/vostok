@@ -164,6 +164,8 @@ auto VulkanGPU::initDevice(const GPUHandle::CreateInfo &createInfo) -> bool
     features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     features12.timelineSemaphore = VK_TRUE;
     features12.bufferDeviceAddress = VK_TRUE;
+    features12.runtimeDescriptorArray = VK_TRUE;
+    features12.descriptorBindingPartiallyBound = VK_TRUE;
 
     VkPhysicalDeviceVulkan13Features features13 = {};
     features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
@@ -180,6 +182,9 @@ auto VulkanGPU::initDevice(const GPUHandle::CreateInfo &createInfo) -> bool
     deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     deviceFeatures2.pNext = &features14;
     deviceFeatures2.features.samplerAnisotropy = VK_TRUE;
+    deviceFeatures2.features.vertexPipelineStoresAndAtomics = VK_TRUE;
+    deviceFeatures2.features.fragmentStoresAndAtomics = VK_TRUE;
+    deviceFeatures2.features.shaderStorageBufferArrayDynamicIndexing = VK_TRUE;
 
     deviceInfo.pNext = &deviceFeatures2;
     deviceInfo.enableValidationLayers = createInfo.enableValidationLayers;
@@ -752,6 +757,16 @@ auto VulkanGPU::registerUBO(BindableResource *ubo, size_t size)
     }
 
     return m_bindlessManager->registerResource(ResourceType::UBO, ubo, size);
+}
+
+auto VulkanGPU::registerSSBO(BindableResource *ssbo, size_t size)
+    -> std::expected<u32, std::string>
+{
+    if (!m_bindlessManager) {
+        return std::unexpected("Bindless manager is not initialized");
+    }
+
+    return m_bindlessManager->registerResource(ResourceType::SSBO, ssbo, size);
 }
 
 auto VulkanGPU::registerTexture(BindableResource *texture)

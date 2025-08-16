@@ -18,6 +18,7 @@ namespace vostok::graphics::vulkan
 enum class ResourceType : u8
 {
     UBO,
+    SSBO,
     TEXTURE,
     SAMPLER
 };
@@ -36,6 +37,7 @@ struct VulkanBindlessManagerCreateInfo
     VulkanFrameSync *frameSync = nullptr;
     VulkanAllocator *allocator = nullptr;
     u32 maxUBOs = 1024;
+    u32 maxSSBOs = 1024;
     u32 maxTextures = 1024;
     std::string debugName = "VulkanBindlessManager";
 };
@@ -70,6 +72,12 @@ public:
                     return registerUBO(resource, std::forward<Args>(args)...);
                 } else {
                     return std::unexpected{ "UBO requires size parameter" };
+                }
+            case ResourceType::SSBO:
+                if constexpr (sizeof...(args) >= 1) {
+                    return registerSSBO(resource, std::forward<Args>(args)...);
+                } else {
+                    return std::unexpected{ "SSBO requires size parameter" };
                 }
             case ResourceType::TEXTURE:
                 return registerTexture(resource);
@@ -123,18 +131,25 @@ private:
 
     auto registerUBO(graphics::BindableResource *ubo, size_t size)
         -> std::expected<u32, std::string>;
+    auto registerSSBO(graphics::BindableResource *ssbo, size_t size)
+        -> std::expected<u32, std::string>;
     auto registerTexture(graphics::BindableResource *texture)
         -> std::expected<u32, std::string>;
 
     auto unregisterUBO(const graphics::BindableResource *ubo)
+        -> std::expected<void, std::string>;
+    auto unregisterSSBO(const graphics::BindableResource *ssbo)
         -> std::expected<void, std::string>;
     auto unregisterTexture(const graphics::BindableResource *texture)
         -> std::expected<void, std::string>;
 
     auto updateUBO(u32 index, const graphics::BindableResource *resource)
         -> std::expected<void, std::string>;
+    auto updateSSBO(u32 index, const graphics::BindableResource *resource)
+        -> std::expected<void, std::string>;
 
-    auto createGPUBuffer(size_t size, const void *data)
+    auto
+    createGPUBuffer(size_t size, const void *data, graphics::BufferUsage usage)
         -> std::expected<std::unique_ptr<Buffer>, std::string>;
     auto createGPUImage(graphics::TextureImpl *texture)
         -> std::expected<std::unique_ptr<VulkanImage>, std::string>;
@@ -155,10 +170,14 @@ private:
     VulkanAllocator *m_allocator;
 
     u32 m_maxUBOs;
+    u32 m_maxSSBOs;
     u32 m_maxTextures;
 
     std::unordered_map<const graphics::BindableResource *, u32> m_uboToIndex;
     std::unordered_map<u32, const graphics::BindableResource *> m_indexToUBO;
+
+    std::unordered_map<const graphics::BindableResource *, u32> m_ssboToIndex;
+    std::unordered_map<u32, const graphics::BindableResource *> m_indexToSSBO;
 
     std::unordered_map<const graphics::BindableResource *, u32>
         m_textureToIndex;
@@ -183,6 +202,8 @@ private:
 
     auto createSamplerForTexture(graphics::TextureImpl *texture)
         -> std::expected<std::unique_ptr<VulkanSampler>, std::string>;
+
+    auto getBufferIndex(ResourceType type, u32 relativeIndex) const -> u32;
 };
 
 } // namespace vostok::graphics::vulkan

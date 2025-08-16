@@ -1,6 +1,8 @@
 #pragma once
 
+#include "vostok/core/type.hpp"
 #include "vostok/math/concepts.hpp"
+#include "vostok/math/types.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
@@ -41,6 +43,13 @@ lookAt(const Vec &eye, const Vec &center, const Vec &up) noexcept
     -> glm::mat<4, 4, typename Vec::value_type>
 {
     return glm::lookAt(eye, center, up);
+}
+
+template <MatrixType T>
+    requires(T::length() == 4)
+[[nodiscard]] auto rotate(const T &m, f32 angle, const Vec3 &axis) noexcept -> T
+{
+    return glm::rotate(m, angle, axis);
 }
 
 } // namespace vostok::math
