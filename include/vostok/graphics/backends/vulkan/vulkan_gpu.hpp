@@ -129,6 +129,9 @@ private:
     auto registerUBO(BindableResource *ubo, size_t size)
         -> std::expected<u32, std::string> override;
 
+    auto registerTexture(BindableResource *texture)
+        -> std::expected<u32, std::string> override;
+
     void notifyDirtyResource(u32 bindlessIndex) override;
 
     auto initInstance(const GPUHandle::CreateInfo &createInfo) -> bool;

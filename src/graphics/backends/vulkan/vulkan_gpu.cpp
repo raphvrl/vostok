@@ -1,6 +1,8 @@
 #include "graphics/backends/vulkan/vulkan_gpu.hpp"
 
 #include "core/logger/logger.hpp"
+#include "graphics/backends/vulkan/buffers/vulkan_buffer.hpp"
+#include "graphics/backends/vulkan/buffers/vulkan_image.hpp"
 #include "graphics/backends/vulkan/core/vulkan_allocator.hpp"
 #include "graphics/backends/vulkan/core/vulkan_command_pool.hpp"
 #include "graphics/backends/vulkan/core/vulkan_device.hpp"
@@ -10,8 +12,6 @@
 #include "graphics/backends/vulkan/core/vulkan_surface.hpp"
 #include "graphics/backends/vulkan/core/vulkan_swapchain.hpp"
 #include "graphics/backends/vulkan/platform/glfw_platform.hpp"
-#include "graphics/backends/vulkan/resources/vulkan_buffer.hpp"
-#include "graphics/backends/vulkan/resources/vulkan_image.hpp"
 #include "graphics/backends/vulkan/utils/vk_utils.hpp"
 #include "graphics/backends/vulkan/vulkan_bindless_manager.hpp"
 #include "graphics/backends/vulkan/vulkan_pipeline.hpp"
@@ -751,7 +751,17 @@ auto VulkanGPU::registerUBO(BindableResource *ubo, size_t size)
         return std::unexpected("Bindless manager is not initialized");
     }
 
-    return m_bindlessManager->registerUBO(ubo, size);
+    return m_bindlessManager->registerResource(ResourceType::UBO, ubo, size);
+}
+
+auto VulkanGPU::registerTexture(BindableResource *texture)
+    -> std::expected<u32, std::string>
+{
+    if (!m_bindlessManager) {
+        return std::unexpected("Bindless manager is not initialized");
+    }
+
+    return m_bindlessManager->registerResource(ResourceType::TEXTURE, texture);
 }
 
 void VulkanGPU::notifyDirtyResource(u32 bindlessIndex)

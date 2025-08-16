@@ -3,6 +3,7 @@
 #include "vostok/core/type.hpp"
 #include "vostok/graphics/buffers/buffer.hpp"
 #include "vostok/graphics/buffers/image.hpp"
+#include "vostok/graphics/buffers/texture.hpp"
 #include "vostok/graphics/pipeline.hpp"
 
 #include <filesystem>
@@ -47,6 +48,8 @@ auto toVulkanFormat(graphics::ImageFormat format) -> VkFormat;
 auto toVulkanSampleCount(graphics::SampleCount samples)
     -> VkSampleCountFlagBits;
 auto toVulkanImageUsage(graphics::ImageUsage usage) -> VkImageUsageFlags;
+auto toVulkanFilter(graphics::Filter filter) -> VkFilter;
+auto toVulkanAddressMode(graphics::AddressMode mode) -> VkSamplerAddressMode;
 
 auto setDebugObjectName(
     VkDevice device,

@@ -6,6 +6,7 @@
 #include "vostok/graphics/buffers/buffer.hpp"
 #include "vostok/graphics/buffers/ibo.hpp"
 #include "vostok/graphics/buffers/image.hpp"
+#include "vostok/graphics/buffers/texture.hpp"
 #include "vostok/graphics/buffers/ubo.hpp"
 #include "vostok/graphics/buffers/vbo.hpp"
 #include "vostok/graphics/pipeline.hpp"
@@ -245,8 +246,26 @@ public:
         return UBO<T>(std::move(ubo));
     }
 
+    auto createTexture(const TextureCreateInfo &createInfo)
+        -> std::expected<Texture, std::string>
+    {
+        auto texture = std::make_unique<TextureImpl>(createInfo);
+
+        auto result = registerTexture(texture.get());
+        if (!result) {
+            return std::unexpected(result.error());
+        }
+
+        const u32 INDEX = result.value();
+        texture->setBindlessIndex(INDEX);
+
+        return Texture(std::move(texture));
+    }
+
 private:
     virtual auto registerUBO(BindableResource *ubo, size_t size)
+        -> std::expected<u32, std::string> = 0;
+    virtual auto registerTexture(BindableResource *texture)
         -> std::expected<u32, std::string> = 0;
 
     virtual void notifyDirtyResource(u32 bindlessIndex) = 0;

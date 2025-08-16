@@ -1,3 +1,3 @@
 cmake_minimum_required(VERSION 3.16)
 
-add_subdirectory(hello_triangle)
+add_subdirectory(hello_cube)

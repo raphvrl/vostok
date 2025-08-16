@@ -33,7 +33,7 @@ VulkanFrameSync::~VulkanFrameSync()
 
         if (m_transferCommandBuffer != VK_NULL_HANDLE &&
             m_transferCommandPool != nullptr) {
-            Logger::debug("Freeing transfer command buffer");
+            Logger::trace("Freeing transfer command buffer");
             m_transferCommandPool->free(m_transferCommandBuffer);
             m_transferCommandBuffer = VK_NULL_HANDLE;
         }
@@ -48,7 +48,7 @@ VulkanFrameSync::~VulkanFrameSync()
             auto &frame = m_frames[i];
             if (frame.commandBuffer != VK_NULL_HANDLE &&
                 m_graphicsCommandPool != nullptr) {
-                Logger::debug("Freeing graphics command buffer {}", i);
+                Logger::trace("Freeing graphics command buffer {}", i);
                 m_graphicsCommandPool->free(frame.commandBuffer);
                 frame.commandBuffer = VK_NULL_HANDLE;
             }
@@ -419,7 +419,7 @@ auto VulkanFrameSync::beginTransferCommandBuffer()
         return std::unexpected("Failed to begin transfer command buffer");
     }
 
-    Logger::debug("Transfer command buffer recording started");
+    Logger::trace("Transfer command buffer recording started");
 
     return {};
 }
@@ -431,7 +431,7 @@ auto VulkanFrameSync::endTransferCommandBuffer()
     if (result != VK_SUCCESS) {
         return std::unexpected("Failed to end transfer command buffer");
     }
-    Logger::debug("Transfer command buffer recording ended");
+    Logger::trace("Transfer command buffer recording ended");
     return {};
 }
 
@@ -449,7 +449,7 @@ auto VulkanFrameSync::submitTransferCommandBuffer()
         return std::unexpected("Failed to submit transfer command buffer");
     }
 
-    Logger::debug("Transfer command buffer submitted to queue");
+    Logger::trace("Transfer command buffer submitted to queue");
     return {};
 }
 
@@ -479,7 +479,7 @@ auto VulkanFrameSync::waitForTransferComplete()
         return std::unexpected("Failed to wait for transfer completion");
     }
 
-    Logger::debug("Transfer operation completed");
+    Logger::trace("Transfer operation completed");
     return {};
 }
 

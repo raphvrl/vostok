@@ -105,7 +105,7 @@ auto Camera::rotate(const math::Quat &delta) noexcept -> void
 
 auto Camera::lookAt(const LookAtParams &params) noexcept -> void
 {
-    Logger::debug(
+    Logger::trace(
         "Camera '{}' looking at target {{:.2f}, {:.2f}, {:.2f}}",
         m_name,
         params.target.x,

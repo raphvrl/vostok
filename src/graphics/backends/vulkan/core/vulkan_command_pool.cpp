@@ -158,7 +158,7 @@ void VulkanCommandPool::reset() const
                 utils::vkResultToString(result)
             );
         } else {
-            Logger::debug("Command pool reset successfully");
+            Logger::trace("Command pool reset successfully");
         }
     }
 }

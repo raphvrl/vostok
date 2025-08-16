@@ -526,6 +526,8 @@ auto toVulkanImageAspectFlags(graphics::ImageFormat format)
 {
     static const std::unordered_map<graphics::ImageFormat, VkImageAspectFlags>
         IMAGE_ASPECT_FLAGS_MAP = {
+            { graphics::ImageFormat::R8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT },
+            { graphics::ImageFormat::R8G8B8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT },
             { graphics::ImageFormat::R8G8B8A8_UNORM,
               VK_IMAGE_ASPECT_COLOR_BIT },
             { graphics::ImageFormat::R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT },
@@ -603,6 +605,8 @@ auto toVulkanFormat(graphics::ImageFormat format) -> VkFormat
 {
     static const std::unordered_map<graphics::ImageFormat, VkFormat>
         IMAGE_FORMAT_TO_VULKAN_MAP = {
+            { graphics::ImageFormat::R8_UNORM, VK_FORMAT_R8_UNORM },
+            { graphics::ImageFormat::R8G8B8_UNORM, VK_FORMAT_R8G8B8_UNORM },
             { graphics::ImageFormat::R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM },
             { graphics::ImageFormat::R8G8B8A8_SRGB, VK_FORMAT_R8G8B8A8_SRGB },
             { graphics::ImageFormat::B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_UNORM },
@@ -677,6 +681,47 @@ auto toVulkanImageUsage(graphics::ImageUsage usage) -> VkImageUsageFlags
     }
 
     return vkUsage;
+}
+
+auto toVulkanFilter(graphics::Filter filter) -> VkFilter
+{
+    static const std::unordered_map<graphics::Filter, VkFilter>
+        FILTER_TO_VULKAN_MAP = {
+            { graphics::Filter::NEAREST, VK_FILTER_NEAREST },
+            { graphics::Filter::LINEAR, VK_FILTER_LINEAR },
+            { graphics::Filter::LINEAR_MIPMAP_NEAREST, VK_FILTER_NEAREST },
+            { graphics::Filter::LINEAR_MIPMAP_LINEAR, VK_FILTER_LINEAR },
+            { graphics::Filter::NEAREST_MIPMAP_NEAREST, VK_FILTER_NEAREST },
+            { graphics::Filter::NEAREST_MIPMAP_LINEAR, VK_FILTER_LINEAR }
+        };
+
+    auto it = FILTER_TO_VULKAN_MAP.find(filter);
+    if (it != FILTER_TO_VULKAN_MAP.end()) {
+        return it->second;
+    }
+
+    return VK_FILTER_LINEAR;
+}
+
+auto toVulkanAddressMode(graphics::AddressMode mode) -> VkSamplerAddressMode
+{
+    static const std::unordered_map<graphics::AddressMode, VkSamplerAddressMode>
+        ADDRESS_MODE_TO_VULKAN_MAP = {
+            { graphics::AddressMode::REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT },
+            { graphics::AddressMode::MIRRORED_REPEAT,
+              VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT },
+            { graphics::AddressMode::CLAMP_TO_EDGE,
+              VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE },
+            { graphics::AddressMode::CLAMP_TO_BORDER,
+              VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER }
+        };
+
+    auto it = ADDRESS_MODE_TO_VULKAN_MAP.find(mode);
+    if (it != ADDRESS_MODE_TO_VULKAN_MAP.end()) {
+        return it->second;
+    }
+
+    return VK_SAMPLER_ADDRESS_MODE_REPEAT;
 }
 
 auto getRequiredAlignment(graphics::BufferUsage usage) -> size_t

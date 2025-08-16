@@ -217,12 +217,25 @@ else()
     message(WARNING "VulkanMemoryAllocator directory not found, please clone VMA in ${THIRD_PARTY_DIR}/vma")
 endif()
 
+if(EXISTS ${THIRD_PARTY_DIR}/tinygltf/CMakeLists.txt)
+    set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF CACHE BOOL "Build loader example" FORCE)
+    set(TINYGLTF_BUILD_GL_EXAMPLES OFF CACHE BOOL "Build GL examples" FORCE)
+    set(TINYGLTF_BUILD_VALIDATOR_EXAMPLE OFF CACHE BOOL "Build validator example" FORCE)
+    set(TINYGLTF_BUILD_BUILDER_EXAMPLE OFF CACHE BOOL "Build builder example" FORCE)
+    set(TINYGLTF_HEADER_ONLY OFF CACHE BOOL "Header-only mode" FORCE)
+    set(TINYGLTF_INSTALL OFF CACHE BOOL "Install tinygltf" FORCE)
+    add_third_party_library(tinygltf)
+else()
+    message(WARNING "tinygltf directory not found, please clone tinygltf in ${THIRD_PARTY_DIR}/tinygltf")
+endif()
+
 set(EXTERNAL_LIBS
     glfw
     spdlog::spdlog
     volk
     VulkanMemoryAllocator
     glm::glm
+    tinygltf
 )
 
 set(VOSTOK_SOURCES "")
