@@ -34,10 +34,17 @@ auto TextureLoader::loadFromFile(
         std::bit_cast<const std::byte *>(imageData.data()),
         imageData.size()
     );
+
     textureOptions.width = width;
     textureOptions.height = height;
 
     textureOptions.format = ImageFormat::R8G8B8A8_UNORM;
+
+    if (textureOptions.generateMipmaps) {
+        textureOptions.mipLevel = calculateMipLevels(width, height);
+    } else {
+        textureOptions.mipLevel = 1;
+    }
 
     return gpu->createTexture(textureOptions);
 }
@@ -155,6 +162,21 @@ auto TextureLoader::loadImageData(const std::filesystem::path &filePath)
 
     // We return channelsOut as 4 since we produced RGBA8
     return std::make_tuple(std::move(imageData), width, height, 4);
+}
+
+auto TextureLoader::calculateMipLevels(u32 width, u32 height) -> u32
+{
+    if (width == 0 || height == 0) {
+        return 1;
+    }
+
+    u32 maxDimension = std::max(width, height);
+
+    u32 mipLevels = static_cast<u32>(std::floor(std::log2(maxDimension))) + 1;
+
+    mipLevels = std::max(mipLevels, 1U);
+
+    return mipLevels;
 }
 
 } // namespace vostok::graphics

@@ -209,6 +209,16 @@ private:
     auto transferFromBuffer(const graphics::Buffer &buffer)
         -> std::expected<void, std::string>;
 
+    auto transitionMipLevelLayout(
+        u32 mipLevel,
+        VkImageLayout oldLayout,
+        VkImageLayout newLayout,
+        VkImageAspectFlags aspectMask
+    ) -> std::expected<void, std::string>;
+
+    auto generateMipmapsInternal(VkImageAspectFlags aspectMask)
+        -> std::expected<void, std::string>;
+
     friend class VulkanGPU;
 };
 

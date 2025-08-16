@@ -3,6 +3,7 @@
 #include "core/logger/logger.hpp"
 #include "graphics/backends/vulkan/buffers/vulkan_buffer.hpp"
 #include "graphics/backends/vulkan/buffers/vulkan_image.hpp"
+#include "graphics/backends/vulkan/buffers/vulkan_sampler.hpp"
 #include "graphics/backends/vulkan/core/vulkan_device.hpp"
 #include "graphics/backends/vulkan/core/vulkan_frame_sync.hpp"
 #include "graphics/backends/vulkan/utils/vk_utils.hpp"
@@ -473,10 +474,26 @@ auto VulkanBindlessManager::registerTexture(graphics::BindableResource *texture)
 
     m_gpuImages.push_back(std::move(imageResult.value()));
 
+    auto *textureImpl = dynamic_cast<graphics::TextureImpl *>(texture);
+    auto samplerResult = createSamplerForTexture(textureImpl);
+    if (!samplerResult) {
+        Logger::warning(
+            "Failed to create sampler for texture {}, using global sampler: {}",
+            INDEX,
+            samplerResult.error()
+        );
+        m_gpuSamplers.push_back(nullptr);
+    } else {
+        m_gpuSamplers.push_back(std::move(samplerResult.value()));
+    }
+
+    VkSampler sampler = m_gpuSamplers[INDEX] ? m_gpuSamplers[INDEX]->getHandle()
+                                             : m_globalSampler;
+
     auto descUpdateResult = updateTextureDescriptorSet(
         INDEX,
         dynamic_cast<VulkanImage *>(m_gpuImages[INDEX].get())->getImageView(),
-        m_globalSampler
+        sampler
     );
 
     if (!descUpdateResult) {
@@ -551,6 +568,10 @@ auto VulkanBindlessManager::unregisterTexture(
 
     if (INDEX < m_gpuImages.size()) {
         m_gpuImages.erase(m_gpuImages.begin() + INDEX);
+    }
+
+    if (INDEX < m_gpuSamplers.size()) {
+        m_gpuSamplers.erase(m_gpuSamplers.begin() + INDEX);
     }
 
     Logger::debug(
@@ -695,7 +716,7 @@ auto VulkanBindlessManager::createGPUImage(graphics::TextureImpl *texture)
     imageInfo.width = texture->getWidth();
     imageInfo.height = texture->getHeight();
     imageInfo.depth = 1;
-    imageInfo.mipLevels = 1;
+    imageInfo.mipLevels = texture->getMipLevels();
     imageInfo.arrayLayers = 1;
     imageInfo.format = texture->getFormat();
     imageInfo.usage = texture->getUsage();
@@ -806,6 +827,37 @@ auto VulkanBindlessManager::updateTextureDescriptorSet(
     vkUpdateDescriptorSets(m_device->getHandle(), 1, &writeInfo, 0, nullptr);
 
     return {};
+}
+
+auto VulkanBindlessManager::createSamplerForTexture(
+    graphics::TextureImpl *texture
+) -> std::expected<std::unique_ptr<VulkanSampler>, std::string>
+{
+    VulkanSampler::CreateInfo samplerInfo{};
+
+    samplerInfo.enableMipmaps = (texture->getMipLevels() > 1);
+    samplerInfo.maxMipLevels = texture->getMipLevels();
+    samplerInfo.minMipLevel = texture->getMinMipLevel();
+    samplerInfo.magFilter = texture->getMagFilter();
+    samplerInfo.minFilter = texture->getMinFilter();
+    samplerInfo.addressModeU = graphics::AddressMode::REPEAT;
+    samplerInfo.addressModeV = graphics::AddressMode::REPEAT;
+
+    samplerInfo.debugName = std::format(
+        "TextureSampler_{}x{}_{}mips",
+        texture->getWidth(),
+        texture->getHeight(),
+        texture->getMipLevels()
+    );
+
+    Logger::debug(
+        "Creating sampler for texture: {}x{} with {} mip levels",
+        texture->getWidth(),
+        texture->getHeight(),
+        texture->getMipLevels()
+    );
+
+    return VulkanSampler::create(m_device, samplerInfo);
 }
 
 } // namespace vostok::graphics::vulkan

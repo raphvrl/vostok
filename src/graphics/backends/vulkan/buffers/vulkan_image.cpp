@@ -1,6 +1,7 @@
 #include "vostok/graphics/backends/vulkan/buffers/vulkan_image.hpp"
 
 #include "vostok/core/logger/logger.hpp"
+#include "vostok/core/type.hpp"
 #include "vostok/graphics/backends/vulkan/buffers/vulkan_buffer.hpp"
 #include "vostok/graphics/backends/vulkan/core/vulkan_device.hpp"
 #include "vostok/graphics/backends/vulkan/core/vulkan_frame_sync.hpp"
@@ -60,6 +61,14 @@ auto VulkanImage::create(
         vkUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
         vkUsage &= ~static_cast<VkImageUsageFlags>(
             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+        );
+    }
+
+    if (info.mipLevels > 1) {
+        vkUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        Logger::debug(
+            "Adding TRANSFER_SRC usage for mipmap generation ({} levels)",
+            info.mipLevels
         );
     }
 
@@ -707,18 +716,28 @@ auto VulkanImage::transferFromBuffer(const graphics::Buffer &stagingBuffer)
         &copyRegion
     );
 
-    auto finalTransitionResult = transitionLayoutInternal(
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        aspectMask,
-        true
-    );
+    if (m_mipLevels > 1) {
+        auto mipGenResult = generateMipmapsInternal(aspectMask);
+        if (!mipGenResult) {
+            Logger::warning(
+                "Failed to generate mipmaps: {}",
+                mipGenResult.error()
+            );
+        }
+    } else {
+        auto finalTransitionResult = transitionLayoutInternal(
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            aspectMask,
+            true
+        );
 
-    if (!finalTransitionResult) {
-        return std::unexpected{ std::format(
-            "Failed to transition to final layout: {}",
-            finalTransitionResult.error()
-        ) };
+        if (!finalTransitionResult) {
+            return std::unexpected{ std::format(
+                "Failed to transition to final layout: {}",
+                finalTransitionResult.error()
+            ) };
+        }
     }
 
     auto endResult = m_frameSync->endTransferCommandBuffer();
@@ -754,6 +773,141 @@ auto VulkanImage::transferFromBuffer(const graphics::Buffer &stagingBuffer)
         m_depth
     );
 
+    return {};
+}
+
+auto VulkanImage::transitionMipLevelLayout(
+    u32 mipLevel,
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout,
+    VkImageAspectFlags aspectMask
+) -> std::expected<void, std::string>
+{
+    if (oldLayout == newLayout) {
+        return {};
+    }
+
+    auto [srcStageMask, srcAccessMask, dstStageMask, dstAccessMask] =
+        getLayoutTransitionStages(
+            LayoutTransitionRequest{ oldLayout, newLayout, aspectMask }
+        );
+
+    VkImageMemoryBarrier2 imageBarrier = {};
+    imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+    imageBarrier.srcStageMask = srcStageMask;
+    imageBarrier.srcAccessMask = srcAccessMask;
+    imageBarrier.dstStageMask = dstStageMask;
+    imageBarrier.dstAccessMask = dstAccessMask;
+    imageBarrier.oldLayout = oldLayout;
+    imageBarrier.newLayout = newLayout;
+    imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imageBarrier.image = m_image;
+    imageBarrier.subresourceRange.aspectMask = aspectMask;
+    imageBarrier.subresourceRange.baseMipLevel = mipLevel;
+    imageBarrier.subresourceRange.levelCount = 1;
+    imageBarrier.subresourceRange.baseArrayLayer = 0;
+    imageBarrier.subresourceRange.layerCount = m_arrayLayers;
+
+    VkDependencyInfo dependencyInfo = {};
+    dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dependencyInfo.imageMemoryBarrierCount = 1;
+    dependencyInfo.pImageMemoryBarriers = &imageBarrier;
+
+    vkCmdPipelineBarrier2(
+        m_frameSync->getTransferCommandBuffer(),
+        &dependencyInfo
+    );
+
+    return {};
+}
+
+auto VulkanImage::generateMipmapsInternal(VkImageAspectFlags aspectMask)
+    -> std::expected<void, std::string>
+{
+    auto transitionResult = transitionMipLevelLayout(
+        0,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        aspectMask
+    );
+
+    if (!transitionResult) {
+        return std::unexpected{ "Failed to transition to transfer src: " +
+                                transitionResult.error() };
+    }
+
+    for (u32 i = 1; i < m_mipLevels; ++i) {
+        VkImageBlit blit{};
+        blit.srcSubresource.aspectMask = aspectMask;
+        blit.srcSubresource.mipLevel = i - 1;
+        blit.srcSubresource.baseArrayLayer = 0;
+        blit.srcSubresource.layerCount = m_arrayLayers;
+        blit.srcOffsets[0] = { .x = 0, .y = 0, .z = 0 };
+        blit.srcOffsets[1] = { .x = static_cast<i32>(m_width >> (i - 1)),
+                               .y = static_cast<i32>(m_height >> (i - 1)),
+                               .z = 1 };
+
+        blit.dstSubresource.aspectMask = aspectMask;
+        blit.dstSubresource.mipLevel = i;
+        blit.dstSubresource.baseArrayLayer = 0;
+        blit.dstSubresource.layerCount = m_arrayLayers;
+        blit.dstOffsets[0] = { .x = 0, .y = 0, .z = 0 };
+        blit.dstOffsets[1] = { .x = static_cast<i32>(m_width >> i),
+                               .y = static_cast<i32>(m_height >> i),
+                               .z = 1 };
+
+        auto dstTransitionResult = transitionMipLevelLayout(
+            i,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            aspectMask
+        );
+
+        if (!dstTransitionResult) {
+            return std::unexpected{ "Failed to transition dst mip level: " +
+                                    dstTransitionResult.error() };
+        }
+
+        vkCmdBlitImage(
+            m_frameSync->getTransferCommandBuffer(),
+            m_image,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            m_image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &blit,
+            VK_FILTER_LINEAR
+        );
+
+        auto srcTransitionResult = transitionMipLevelLayout(
+            i,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            aspectMask
+        );
+
+        if (!srcTransitionResult) {
+            return std::unexpected{ "Failed to transition dst to src: " +
+                                    srcTransitionResult.error() };
+        }
+    }
+
+    auto finalTransitionResult = transitionLayoutInternal(
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        aspectMask,
+        true
+    );
+
+    if (!finalTransitionResult) {
+        return std::unexpected{ "Failed to transition to final layout: " +
+                                finalTransitionResult.error() };
+    }
+
+    m_currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    Logger::debug("Successfully generated {} mip levels", m_mipLevels);
     return {};
 }
 

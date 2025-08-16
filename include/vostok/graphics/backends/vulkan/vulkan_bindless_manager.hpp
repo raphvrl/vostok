@@ -27,6 +27,7 @@ class VulkanDevice;
 class VulkanFrameSync;
 class VulkanAllocator;
 class VulkanImage;
+class VulkanSampler;
 
 struct VulkanBindlessManagerCreateInfo
 {
@@ -177,6 +178,11 @@ private:
     std::vector<size_t> m_bufferSizes;
 
     std::vector<std::unique_ptr<Image>> m_gpuImages;
+
+    std::vector<std::unique_ptr<VulkanSampler>> m_gpuSamplers;
+
+    auto createSamplerForTexture(graphics::TextureImpl *texture)
+        -> std::expected<std::unique_ptr<VulkanSampler>, std::string>;
 };
 
 } // namespace vostok::graphics::vulkan

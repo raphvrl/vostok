@@ -41,6 +41,9 @@ struct TextureCreateInfo
     AddressMode addressModeV = AddressMode::REPEAT;
 
     bool generateMipmaps = true;
+    u32 minMipLevel = 1;
+    u32 mipLevel = 1;
+
     std::string debugName;
 };
 
@@ -53,7 +56,10 @@ public:
           m_height(createInfo.height),
           m_format(createInfo.format),
           m_usage(createInfo.usage),
-          m_magFilter(createInfo.magFilter)
+          m_magFilter(createInfo.magFilter),
+          m_minFilter(createInfo.minFilter),
+          m_mipLevels(createInfo.mipLevel),
+          m_minMipLevel(createInfo.minMipLevel)
     {}
 
     ~TextureImpl() override = default;
@@ -67,7 +73,10 @@ public:
           m_height(other.m_height),
           m_format(other.m_format),
           m_usage(other.m_usage),
-          m_magFilter(other.m_magFilter)
+          m_magFilter(other.m_magFilter),
+          m_minFilter(other.m_minFilter),
+          m_mipLevels(other.m_mipLevels),
+          m_minMipLevel(other.m_minMipLevel)
     {}
 
     auto operator=(TextureImpl &&other) noexcept -> TextureImpl &
@@ -78,6 +87,9 @@ public:
         m_format = other.m_format;
         m_usage = other.m_usage;
         m_magFilter = other.m_magFilter;
+        m_minFilter = other.m_minFilter;
+        m_mipLevels = other.m_mipLevels;
+        m_minMipLevel = other.m_minMipLevel;
         return *this;
     }
 
@@ -95,11 +107,16 @@ public:
     [[nodiscard]] auto getHeight() const -> u32 { return m_height; }
     [[nodiscard]] auto getFormat() const -> ImageFormat { return m_format; }
     [[nodiscard]] auto getUsage() const -> ImageUsage { return m_usage; }
+    [[nodiscard]] auto getMagFilter() const -> Filter { return m_magFilter; }
+    [[nodiscard]] auto getMinFilter() const -> Filter { return m_minFilter; }
     [[nodiscard]] auto getImageData() const
         -> const std::span<const std::byte> &
     {
         return m_imageData;
     }
+
+    [[nodiscard]] auto getMipLevels() const -> u32 { return m_mipLevels; }
+    [[nodiscard]] auto getMinMipLevel() const -> u32 { return m_minMipLevel; }
 
 private:
     std::span<const std::byte> m_imageData;
@@ -108,6 +125,9 @@ private:
     ImageFormat m_format;
     ImageUsage m_usage;
     Filter m_magFilter;
+    Filter m_minFilter;
+    u32 m_mipLevels;
+    u32 m_minMipLevel;
 };
 
 class Texture

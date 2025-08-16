@@ -31,6 +31,8 @@ private:
     static auto loadImageData(
         const std::filesystem::path &filePath
     ) -> std::expected<std::tuple<std::vector<u8>, u32, u32, u32>, std::string>;
+
+    static auto calculateMipLevels(u32 width, u32 height) -> u32;
 };
 
 } // namespace vostok::graphics
