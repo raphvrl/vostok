@@ -128,7 +128,8 @@ private:
 
     auto registerUBO(BindableResource *ubo, size_t size)
         -> std::expected<u32, std::string> override;
-
+    auto registerSSBO(BindableResource *ssbo, size_t size)
+        -> std::expected<u32, std::string> override;
     auto registerTexture(BindableResource *texture)
         -> std::expected<u32, std::string> override;
 

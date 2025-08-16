@@ -88,9 +88,13 @@ VulkanBindlessManager::VulkanBindlessManager(const CreateInfo &createInfo)
       m_frameSync{ createInfo.frameSync },
       m_allocator{ createInfo.allocator },
       m_maxUBOs{ createInfo.maxUBOs },
+      m_maxSSBOs{ createInfo.maxSSBOs },
       m_maxTextures{ createInfo.maxTextures }
 {
     m_uboToIndex.reserve(m_maxUBOs);
+    m_indexToUBO.reserve(m_maxUBOs);
+    m_ssboToIndex.reserve(m_maxSSBOs);
+    m_indexToSSBO.reserve(m_maxSSBOs);
     m_dirtyStack.reserve(m_maxUBOs);
     m_gpuBuffers.reserve(m_maxUBOs);
     m_bufferSizes.reserve(m_maxUBOs);
@@ -112,9 +116,12 @@ VulkanBindlessManager::VulkanBindlessManager(
       m_frameSync{ std::exchange(other.m_frameSync, nullptr) },
       m_allocator{ std::exchange(other.m_allocator, nullptr) },
       m_maxUBOs{ std::exchange(other.m_maxUBOs, 0) },
+      m_maxSSBOs{ std::exchange(other.m_maxSSBOs, 0) },
       m_maxTextures{ std::exchange(other.m_maxTextures, 0) },
       m_uboToIndex{ std::move(other.m_uboToIndex) },
       m_indexToUBO{ std::move(other.m_indexToUBO) },
+      m_ssboToIndex{ std::move(other.m_ssboToIndex) },
+      m_indexToSSBO{ std::move(other.m_indexToSSBO) },
       m_textureToIndex{ std::move(other.m_textureToIndex) },
       m_indexToTexture{ std::move(other.m_indexToTexture) },
       m_dirtyStack{ std::move(other.m_dirtyStack) },
@@ -139,7 +146,11 @@ auto VulkanBindlessManager::operator=(VulkanBindlessManager &&other) noexcept
         m_frameSync = std::exchange(other.m_frameSync, nullptr);
         m_allocator = std::exchange(other.m_allocator, nullptr);
         m_maxUBOs = std::exchange(other.m_maxUBOs, 0);
+        m_maxSSBOs = std::exchange(other.m_maxSSBOs, 0);
         m_uboToIndex = std::move(other.m_uboToIndex);
+        m_indexToUBO = std::move(other.m_indexToUBO);
+        m_ssboToIndex = std::move(other.m_ssboToIndex);
+        m_indexToSSBO = std::move(other.m_indexToSSBO);
         m_dirtyStack = std::move(other.m_dirtyStack);
         m_gpuBuffers = std::move(other.m_gpuBuffers);
         m_bufferSizes = std::move(other.m_bufferSizes);
@@ -170,7 +181,7 @@ auto VulkanBindlessManager::initBindlessResources()
     VkDescriptorSetLayoutBinding ssboBinding{};
     ssboBinding.binding = 1;
     ssboBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    ssboBinding.descriptorCount = m_maxUBOs;
+    ssboBinding.descriptorCount = m_maxSSBOs;
     ssboBinding.stageFlags = VK_SHADER_STAGE_ALL;
     ssboBinding.pImmutableSamplers = nullptr;
     bindings.push_back(ssboBinding);
@@ -213,7 +224,7 @@ auto VulkanBindlessManager::initBindlessResources()
 
     VkDescriptorPoolSize ssboPoolSize{};
     ssboPoolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    ssboPoolSize.descriptorCount = m_maxUBOs;
+    ssboPoolSize.descriptorCount = m_maxSSBOs;
     poolSizes.push_back(ssboPoolSize);
 
     VkDescriptorPoolSize texturePoolSize{};
@@ -339,6 +350,8 @@ auto VulkanBindlessManager::unregisterResource(
     switch (type) {
         case ResourceType::UBO:
             return unregisterUBO(resource);
+        case ResourceType::SSBO:
+            return unregisterSSBO(resource);
         case ResourceType::TEXTURE:
             return unregisterTexture(resource);
         default:
@@ -374,6 +387,20 @@ auto VulkanBindlessManager::update() -> std::expected<void, std::string>
             continue;
         }
 
+        const auto SSBO_IT = m_ssboToIndex.find(resource);
+        if (SSBO_IT != m_ssboToIndex.end()) {
+            const u32 INDEX = SSBO_IT->second;
+            auto updateResult = updateSSBO(INDEX, resource);
+            if (!updateResult) {
+                return std::unexpected{ std::format(
+                    "Failed to update SSBO at index {}: {}",
+                    INDEX,
+                    updateResult.error()
+                ) };
+            }
+            continue;
+        }
+
         Logger::warning("Dirty resource not found in any map, skipping");
     }
 
@@ -387,6 +414,16 @@ void VulkanBindlessManager::notifyDirty(u32 bindlessIndex)
         const auto *resource = UBO_IT->second;
         std::lock_guard<std::mutex> lock(m_dirtyMutex);
 
+        if (std::ranges::find(m_dirtyStack, resource) == m_dirtyStack.end()) {
+            m_dirtyStack.push_back(resource);
+        }
+        return;
+    }
+
+    const auto SSBO_IT = m_indexToSSBO.find(bindlessIndex);
+    if (SSBO_IT != m_indexToSSBO.end()) {
+        const auto *resource = SSBO_IT->second;
+        std::lock_guard<std::mutex> lock(m_dirtyMutex);
         if (std::ranges::find(m_dirtyStack, resource) == m_dirtyStack.end()) {
             m_dirtyStack.push_back(resource);
         }
@@ -413,7 +450,12 @@ auto VulkanBindlessManager::registerUBO(
     m_uboToIndex[ubo] = INDEX;
     m_indexToUBO[INDEX] = ubo;
 
-    auto bufferResult = createGPUBuffer(size, ubo->getRawData());
+    auto bufferResult = createGPUBuffer(
+        size,
+        ubo->getRawData(),
+        graphics::BufferUsage::UNIFORM
+    );
+
     if (!bufferResult) {
         m_uboToIndex.erase(ubo);
         return std::unexpected(
@@ -424,9 +466,13 @@ auto VulkanBindlessManager::registerUBO(
     m_gpuBuffers.push_back(std::move(bufferResult.value()));
     m_bufferSizes.push_back(size);
 
+    // Utiliser l'index absolu du buffer dans m_gpuBuffers
+    const u32 BUFFER_INDEX = static_cast<u32>(m_gpuBuffers.size() - 1);
+
     auto descUpdateResult = updateUBODescriptorSet(
-        INDEX,
-        dynamic_cast<VulkanBuffer *>(m_gpuBuffers[INDEX].get())->getBuffer(),
+        INDEX, // Index relatif pour le binding
+        dynamic_cast<VulkanBuffer *>(m_gpuBuffers[BUFFER_INDEX].get())
+            ->getBuffer(),
         size
     );
 
@@ -442,6 +488,66 @@ auto VulkanBindlessManager::registerUBO(
         "UBO registered at index {} (total: {})",
         INDEX,
         m_uboToIndex.size()
+    );
+
+    return INDEX;
+}
+
+auto VulkanBindlessManager::registerSSBO(
+    graphics::BindableResource *ssbo,
+    size_t size
+) -> std::expected<u32, std::string>
+{
+    if (ssbo == nullptr) {
+        return std::unexpected("SSBO is null");
+    }
+
+    if (m_ssboToIndex.size() >= m_maxSSBOs) {
+        return std::unexpected("Maximum number of SSBOs reached");
+    }
+
+    const u32 INDEX = static_cast<u32>(m_ssboToIndex.size());
+    m_ssboToIndex[ssbo] = INDEX;
+    m_indexToSSBO[INDEX] = ssbo;
+
+    auto bufferResult = createGPUBuffer(
+        size,
+        ssbo->getRawData(),
+        graphics::BufferUsage::STORAGE
+    );
+
+    if (!bufferResult) {
+        m_ssboToIndex.erase(ssbo);
+        return std::unexpected(
+            std::format("Failed to create GPU buffer: {}", bufferResult.error())
+        );
+    }
+
+    m_gpuBuffers.push_back(std::move(bufferResult.value()));
+    m_bufferSizes.push_back(size);
+
+    // Utiliser l'index absolu du buffer dans m_gpuBuffers
+    const u32 BUFFER_INDEX = static_cast<u32>(m_gpuBuffers.size() - 1);
+
+    auto descUpdateResult = updateSSBODescriptorSet(
+        INDEX, // Index relatif pour le binding
+        dynamic_cast<VulkanBuffer *>(m_gpuBuffers[BUFFER_INDEX].get())
+            ->getBuffer(),
+        size
+    );
+
+    if (!descUpdateResult) {
+        Logger::warning(
+            "Failed to update descriptor set for SSBO {}: {}",
+            INDEX,
+            descUpdateResult.error()
+        );
+    }
+
+    Logger::debug(
+        "SSBO registered at index {} (total: {})",
+        INDEX,
+        m_ssboToIndex.size()
     );
 
     return INDEX;
@@ -549,6 +655,43 @@ auto VulkanBindlessManager::unregisterUBO(const graphics::BindableResource *ubo)
     return {};
 }
 
+auto VulkanBindlessManager::unregisterSSBO(
+    const graphics::BindableResource *ssbo
+) -> std::expected<void, std::string>
+{
+    if (ssbo == nullptr) {
+        return std::unexpected{ "Cannot unregister null SSBO" };
+    }
+
+    const auto IT = m_ssboToIndex.find(ssbo);
+    if (IT == m_ssboToIndex.end()) {
+        return std::unexpected{ "SSBO not registered" };
+    }
+
+    const u32 INDEX = IT->second;
+    m_ssboToIndex.erase(IT);
+    m_indexToSSBO.erase(INDEX);
+
+    std::lock_guard<std::mutex> lock(m_dirtyMutex);
+    const auto DIRTY_IT = std::ranges::find(m_dirtyStack, ssbo);
+    if (DIRTY_IT != m_dirtyStack.end()) {
+        m_dirtyStack.erase(DIRTY_IT);
+    }
+
+    if (INDEX < m_gpuBuffers.size()) {
+        m_gpuBuffers.erase(m_gpuBuffers.begin() + INDEX);
+        m_bufferSizes.erase(m_bufferSizes.begin() + INDEX);
+    }
+
+    Logger::debug(
+        "Unregistered SSBO at index {} (total: {})",
+        INDEX,
+        m_ssboToIndex.size()
+    );
+
+    return {};
+}
+
 auto VulkanBindlessManager::unregisterTexture(
     const graphics::BindableResource *texture
 ) -> std::expected<void, std::string>
@@ -622,18 +765,21 @@ auto VulkanBindlessManager::updateUBO(
 
         if (m_bufferSizes[index] != size) {
             m_bufferSizes[index] = size;
-            auto descUpdateResult = updateUBODescriptorSet(
-                index,
-                dynamic_cast<VulkanBuffer *>(m_gpuBuffers[index].get())
-                    ->getBuffer(),
-                size
-            );
 
-            if (!descUpdateResult) {
-                Logger::warning(
-                    "Failed to update descriptor set: {}",
-                    descUpdateResult.error()
+            const auto *buffer = m_gpuBuffers[index].get();
+            if (buffer != nullptr) {
+                auto descUpdateResult = updateUBODescriptorSet(
+                    index,
+                    dynamic_cast<const VulkanBuffer *>(buffer)->getBuffer(),
+                    size
                 );
+
+                if (!descUpdateResult) {
+                    Logger::warning(
+                        "Failed to update descriptor set: {}",
+                        descUpdateResult.error()
+                    );
+                }
             }
         }
 
@@ -645,8 +791,79 @@ auto VulkanBindlessManager::updateUBO(
     }
 }
 
-auto VulkanBindlessManager::createGPUBuffer(size_t size, const void *data)
-    -> std::expected<std::unique_ptr<Buffer>, std::string>
+auto VulkanBindlessManager::updateSSBO(
+    u32 index,
+    const graphics::BindableResource *resource
+) -> std::expected<void, std::string>
+{
+    if (resource == nullptr) {
+        return std::unexpected{ "Cannot update null resource" };
+    }
+
+    try {
+        const auto *data = resource->getRawData();
+        auto size = resource->getDataSize();
+
+        if ((data == nullptr) || size == 0) {
+            return std::unexpected{ "Invalid resource data" };
+        }
+
+        if (index >= m_gpuBuffers.size()) {
+            return std::unexpected{
+                std::format("Invalid SSBO index: {}", index)
+            };
+        }
+
+        auto updateResult = m_gpuBuffers[index]->update(
+            std::span<const std::byte>(
+                static_cast<const std::byte *>(data),
+                size
+            )
+        );
+
+        if (!updateResult) {
+            return std::unexpected{ std::format(
+                "Failed to update GPU buffer: {}",
+                updateResult.error()
+            ) };
+        }
+
+        if (m_bufferSizes[index] != size) {
+            m_bufferSizes[index] = size;
+
+            // Trouver le buffer correspondant à cette ressource
+            const auto *buffer = m_gpuBuffers[index].get();
+            if (buffer != nullptr) {
+                auto descUpdateResult = updateSSBODescriptorSet(
+                    index,
+                    dynamic_cast<const VulkanBuffer *>(buffer)->getBuffer(),
+                    size
+                );
+
+                if (!descUpdateResult) {
+                    Logger::warning(
+                        "Failed to update descriptor set: {}",
+                        descUpdateResult.error()
+                    );
+                }
+            }
+        }
+
+        return {};
+    } catch (const std::exception &e) {
+        return std::unexpected{ std::format(
+            "Failed to update SSBO at index {}: {}",
+            index,
+            e.what()
+        ) };
+    }
+}
+
+auto VulkanBindlessManager::createGPUBuffer(
+    size_t size,
+    const void *data,
+    graphics::BufferUsage usage
+) -> std::expected<std::unique_ptr<Buffer>, std::string>
 {
     if (size == 0) {
         return std::unexpected{ "Buffer size cannot be zero" };
@@ -658,8 +875,8 @@ auto VulkanBindlessManager::createGPUBuffer(size_t size, const void *data)
 
     try {
         graphics::BufferCreateInfo bufferInfo{};
-        bufferInfo.usage = graphics::BufferUsage::UNIFORM |
-                           graphics::BufferUsage::TRANSFER_DST;
+
+        bufferInfo.usage = usage | graphics::BufferUsage::TRANSFER_DST;
         bufferInfo.memory = graphics::BufferMemory::GPU_ONLY;
         bufferInfo.size = size;
 

@@ -6,6 +6,7 @@
 #include "vostok/graphics/buffers/buffer.hpp"
 #include "vostok/graphics/buffers/ibo.hpp"
 #include "vostok/graphics/buffers/image.hpp"
+#include "vostok/graphics/buffers/ssbo.hpp"
 #include "vostok/graphics/buffers/texture.hpp"
 #include "vostok/graphics/buffers/ubo.hpp"
 #include "vostok/graphics/buffers/vbo.hpp"
@@ -216,8 +217,7 @@ public:
         return IBO<T>(std::move(iboImpl));
     }
 
-    template <typename T>
-        requires std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>
+    template <UBOType T>
     auto createUBO(const T &initialData = T{})
         -> std::expected<UBO<T>, std::string>
     {
@@ -239,11 +239,38 @@ public:
                 );
                 return;
             }
-
             notifyDirtyResource(INDEX);
         });
 
         return UBO<T>(std::move(ubo));
+    }
+
+    template <SSBOType T>
+    auto createSSBO(const std::span<const T> &data)
+        -> std::expected<SSBO<T>, std::string>
+    {
+        auto ssbo = std::make_unique<SSBOImpl<T>>(data);
+
+        auto result = registerSSBO(ssbo.get(), sizeof(T));
+        if (!result) {
+            return std::unexpected(result.error());
+        }
+
+        const u32 INDEX = result.value();
+        ssbo->setBindlessIndex(INDEX);
+
+        ssbo->setDirtyCallback([this, INDEX](const BindableResource *resource) {
+            if (resource->getBindlessIndex() != INDEX) {
+                Logger::error(
+                    "Null resource in dirty callback for index {}",
+                    INDEX
+                );
+                return;
+            }
+            notifyDirtyResource(INDEX);
+        });
+
+        return SSBO<T>(std::move(ssbo));
     }
 
     auto createTexture(const TextureCreateInfo &createInfo)
@@ -264,6 +291,8 @@ public:
 
 private:
     virtual auto registerUBO(BindableResource *ubo, size_t size)
+        -> std::expected<u32, std::string> = 0;
+    virtual auto registerSSBO(BindableResource *ssbo, size_t size)
         -> std::expected<u32, std::string> = 0;
     virtual auto registerTexture(BindableResource *texture)
         -> std::expected<u32, std::string> = 0;
