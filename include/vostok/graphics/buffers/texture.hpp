@@ -32,7 +32,7 @@ struct TextureCreateInfo
     std::span<const std::byte> imageData;
     u32 width;
     u32 height;
-    ImageFormat format;
+    ImageFormat format = ImageFormat::UNDEFINED;
     ImageUsage usage = ImageUsage::SAMPLED | ImageUsage::TRANSFER_DST;
 
     Filter magFilter = Filter::LINEAR;

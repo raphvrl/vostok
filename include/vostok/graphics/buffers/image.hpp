@@ -38,6 +38,8 @@ inline auto operator&(ImageUsage lhs, ImageUsage rhs) -> ImageUsage
 enum class ImageFormat : u8
 {
     UNDEFINED,
+    R8_UNORM,
+    R8G8B8_UNORM,
     R8G8B8A8_UNORM,
     R8G8B8A8_SRGB,
     B8G8R8A8_UNORM,

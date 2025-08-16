@@ -39,6 +39,13 @@ auto VulkanImage::create(
     }
 
     VkFormat vkFormat = utils::toVulkanFormat(info.format);
+    if (vkFormat == VK_FORMAT_UNDEFINED) {
+        return std::unexpected(
+            "Unsupported image format: " +
+            std::to_string(static_cast<int>(info.format))
+        );
+    }
+
     VkSampleCountFlagBits vkSamples = utils::toVulkanSampleCount(info.samples);
     VkImageUsageFlags vkUsage = utils::toVulkanImageUsage(info.usage);
 

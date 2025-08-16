@@ -1,4 +1,5 @@
 #include "vostok/core/logger/logger.hpp"
+#include "vostok/graphics/buffers/texture_loader.hpp"
 #include "vostok/graphics/camera/perspective_camera.hpp"
 #include "vostok/graphics/gpu.hpp"
 #include "vostok/graphics/pipeline.hpp"
@@ -170,13 +171,39 @@ auto createVertexBuffer(graphics::GPUHandle *gpu)
     -> std::expected<graphics::VBO<Vertex>, std::string>
 {
     std::vector<Vertex> vertices = {
+        // Front face (z = 0.5)
         { .position = { -0.5F, -0.5F, 0.5F }, .uv = { 0.0F, 0.0F } },
         { .position = { 0.5F, -0.5F, 0.5F }, .uv = { 1.0F, 0.0F } },
         { .position = { 0.5F, 0.5F, 0.5F }, .uv = { 1.0F, 1.0F } },
         { .position = { -0.5F, 0.5F, 0.5F }, .uv = { 0.0F, 1.0F } },
 
+        // Back face (z = -0.5)
+        { .position = { 0.5F, -0.5F, -0.5F }, .uv = { 0.0F, 0.0F } },
+        { .position = { -0.5F, -0.5F, -0.5F }, .uv = { 1.0F, 0.0F } },
+        { .position = { -0.5F, 0.5F, -0.5F }, .uv = { 1.0F, 1.0F } },
+        { .position = { 0.5F, 0.5F, -0.5F }, .uv = { 0.0F, 1.0F } },
+
+        // Left face (x = -0.5)
+        { .position = { -0.5F, -0.5F, -0.5F }, .uv = { 0.0F, 0.0F } },
+        { .position = { -0.5F, -0.5F, 0.5F }, .uv = { 1.0F, 0.0F } },
+        { .position = { -0.5F, 0.5F, 0.5F }, .uv = { 1.0F, 1.0F } },
+        { .position = { -0.5F, 0.5F, -0.5F }, .uv = { 0.0F, 1.0F } },
+
+        // Right face (x = 0.5)
+        { .position = { 0.5F, -0.5F, 0.5F }, .uv = { 0.0F, 0.0F } },
+        { .position = { 0.5F, -0.5F, -0.5F }, .uv = { 1.0F, 0.0F } },
+        { .position = { 0.5F, 0.5F, -0.5F }, .uv = { 1.0F, 1.0F } },
+        { .position = { 0.5F, 0.5F, 0.5F }, .uv = { 0.0F, 1.0F } },
+
+        // Bottom face (y = -0.5)
         { .position = { -0.5F, -0.5F, -0.5F }, .uv = { 0.0F, 0.0F } },
         { .position = { 0.5F, -0.5F, -0.5F }, .uv = { 1.0F, 0.0F } },
+        { .position = { 0.5F, -0.5F, 0.5F }, .uv = { 1.0F, 1.0F } },
+        { .position = { -0.5F, -0.5F, 0.5F }, .uv = { 0.0F, 1.0F } },
+
+        // Top face (y = 0.5)
+        { .position = { -0.5F, 0.5F, 0.5F }, .uv = { 0.0F, 0.0F } },
+        { .position = { 0.5F, 0.5F, 0.5F }, .uv = { 1.0F, 0.0F } },
         { .position = { 0.5F, 0.5F, -0.5F }, .uv = { 1.0F, 1.0F } },
         { .position = { -0.5F, 0.5F, -0.5F }, .uv = { 0.0F, 1.0F } }
     };
@@ -206,33 +233,33 @@ auto createIndexBuffer(graphics::GPUHandle *gpu)
                                  7,
                                  4,
                                  // Left face (x = -0.5)
-                                 0,
-                                 3,
-                                 7,
-                                 7,
-                                 4,
-                                 0,
+                                 8,
+                                 9,
+                                 10,
+                                 10,
+                                 11,
+                                 8,
                                  // Right face (x = 0.5)
-                                 1,
-                                 5,
-                                 6,
-                                 6,
-                                 2,
-                                 1,
+                                 12,
+                                 13,
+                                 14,
+                                 14,
+                                 15,
+                                 12,
                                  // Bottom face (y = -0.5)
-                                 0,
-                                 1,
-                                 5,
-                                 5,
-                                 4,
-                                 0,
+                                 16,
+                                 17,
+                                 18,
+                                 18,
+                                 19,
+                                 16,
                                  // Top face (y = 0.5)
-                                 3,
-                                 2,
-                                 6,
-                                 6,
-                                 7,
-                                 3
+                                 20,
+                                 21,
+                                 22,
+                                 22,
+                                 23,
+                                 20
     };
 
     return gpu->createIBO<u32>(indices);
@@ -241,42 +268,10 @@ auto createIndexBuffer(graphics::GPUHandle *gpu)
 auto createTestTexture(graphics::GPUHandle *gpu)
     -> std::expected<graphics::Texture, std::string>
 {
-    constexpr u32 TEXTURE_SIZE = 4096;
-    constexpr u32 TEXTURE_DATA_SIZE = TEXTURE_SIZE * TEXTURE_SIZE * 4;
-
-    std::vector<u8> textureData(TEXTURE_DATA_SIZE);
-
-    for (u32 y = 0; y < TEXTURE_SIZE; ++y) {
-        for (u32 x = 0; x < TEXTURE_SIZE; ++x) {
-            const u32 INDEX = (y * TEXTURE_SIZE + x) * 4;
-            const bool EVENT = ((x + y) % 2) == 0;
-
-            if (EVENT) {
-                textureData[INDEX + 0] = 255;
-                textureData[INDEX + 1] = 0;
-                textureData[INDEX + 2] = 0;
-                textureData[INDEX + 3] = 255;
-            } else {
-                textureData[INDEX + 0] = 0;
-                textureData[INDEX + 1] = 0;
-                textureData[INDEX + 2] = 255;
-                textureData[INDEX + 3] = 255;
-            }
-        }
-    }
-
-    graphics::TextureCreateInfo textureInfo;
-    textureInfo.imageData = std::span<const std::byte>(
-        std::bit_cast<const std::byte *>(textureData.data()),
-        textureData.size()
+    return graphics::TextureLoader::loadFromFile(
+        gpu,
+        findResourcePath("textures", "test.png")
     );
-    textureInfo.width = TEXTURE_SIZE;
-    textureInfo.height = TEXTURE_SIZE;
-    textureInfo.format = graphics::ImageFormat::R8G8B8A8_UNORM;
-    textureInfo.usage =
-        graphics::ImageUsage::SAMPLED | graphics::ImageUsage::TRANSFER_DST;
-
-    return gpu->createTexture(textureInfo);
 }
 
 auto createPipeline(

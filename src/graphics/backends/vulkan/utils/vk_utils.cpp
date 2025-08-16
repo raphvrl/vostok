@@ -526,6 +526,8 @@ auto toVulkanImageAspectFlags(graphics::ImageFormat format)
 {
     static const std::unordered_map<graphics::ImageFormat, VkImageAspectFlags>
         IMAGE_ASPECT_FLAGS_MAP = {
+            { graphics::ImageFormat::R8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT },
+            { graphics::ImageFormat::R8G8B8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT },
             { graphics::ImageFormat::R8G8B8A8_UNORM,
               VK_IMAGE_ASPECT_COLOR_BIT },
             { graphics::ImageFormat::R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT },
@@ -603,6 +605,8 @@ auto toVulkanFormat(graphics::ImageFormat format) -> VkFormat
 {
     static const std::unordered_map<graphics::ImageFormat, VkFormat>
         IMAGE_FORMAT_TO_VULKAN_MAP = {
+            { graphics::ImageFormat::R8_UNORM, VK_FORMAT_R8_UNORM },
+            { graphics::ImageFormat::R8G8B8_UNORM, VK_FORMAT_R8G8B8_UNORM },
             { graphics::ImageFormat::R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM },
             { graphics::ImageFormat::R8G8B8A8_SRGB, VK_FORMAT_R8G8B8A8_SRGB },
             { graphics::ImageFormat::B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_UNORM },
