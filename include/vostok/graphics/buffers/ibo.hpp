@@ -30,7 +30,7 @@ public:
     auto operator=(const IBOImpl &other) -> IBOImpl & = default;
     auto operator=(IBOImpl &&other) noexcept -> IBOImpl & = default;
 
-    void bind() { m_buffer->bind(); }
+    void bind() const { m_buffer->bind(); }
 
     [[nodiscard]] auto getData() const noexcept -> const std::vector<T> &
     {

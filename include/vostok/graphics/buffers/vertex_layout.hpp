@@ -38,6 +38,7 @@ struct VertexAttribute
 
     VertexAttribute() = default;
 
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     VertexAttribute(u32 loc, u32 off, u32 sz, VertexFormat fmt)
         : location(loc),
           offset(off),
@@ -76,7 +77,6 @@ struct VertexLayout
     [[nodiscard]] auto isValid() const -> bool;
 };
 
-// Déclarations seulement (pas d'implémentation)
 auto getFormatSize(VertexFormat format) -> u32;
 auto createVertexLayout(std::initializer_list<VertexFormat> formats)
     -> VertexLayout;
@@ -129,5 +129,10 @@ auto getVertexLayout() -> VertexLayout
 {
     return VertexLayoutTraits<T>::getLayout();
 }
+
+template <typename T>
+concept VertexType = requires() {
+    { T::getLayout() } -> std::convertible_to<const VertexLayout &>;
+};
 
 } // namespace vostok::graphics

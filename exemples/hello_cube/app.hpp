@@ -1,11 +1,10 @@
 #pragma once
 
-#include "vostok/graphics/buffers/ibo.hpp"
 #include "vostok/graphics/buffers/texture.hpp"
 #include "vostok/graphics/buffers/ubo.hpp"
-#include "vostok/graphics/buffers/vbo.hpp"
 #include "vostok/graphics/camera/perspective_camera.hpp"
 #include "vostok/graphics/gpu.hpp"
+#include "vostok/graphics/mesh.hpp"
 #include "vostok/graphics/pipeline.hpp"
 #include "vostok/math/types.hpp"
 #include "vostok/window/window.hpp"
@@ -29,9 +28,17 @@ struct Vertex
 {
     math::Vec3 position;
     math::Vec2 uv;
+
+    static auto getLayout() -> const graphics::VertexLayout &
+    {
+        static const auto LAYOUT = graphics::createVertexLayout(
+            { graphics::formats::VEC3, graphics::formats::VEC2 }
+        );
+        return LAYOUT;
+    }
 };
 
-class App
+class App 
 {
 public:
     App();
@@ -49,8 +56,7 @@ public:
 private:
     auto createWindow() -> bool;
     auto createGPUDevice() -> bool;
-    auto createVertexBuffer() -> bool;
-    auto createIndexBuffer() -> bool;
+    auto createMesh() -> bool;
     auto createTexture() -> bool;
     auto createPipeline() -> bool;
     auto createUBO() -> bool;
@@ -67,8 +73,7 @@ private:
     Window m_window;
     graphics::GPU m_gpu;
 
-    graphics::VBO<Vertex> m_vertexBuffer;
-    graphics::IBO<u32> m_indexBuffer;
+    graphics::Mesh<Vertex, u32> m_mesh;
     graphics::Pipeline m_pipeline;
 
     graphics::UBO<CameraUBO> m_cameraUBO;
