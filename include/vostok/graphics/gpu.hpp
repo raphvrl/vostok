@@ -152,9 +152,8 @@ public:
         return createImage(imageInfo);
     }
 
-    template <typename T, typename... Formats>
-        requires std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>
-    auto createVBO(const std::span<const T> &data, Formats... formats)
+    template <graphics::VertexType T>
+    auto createVBO(const std::span<const T> &data)
         -> std::expected<VBO<T>, std::string>
     {
         const size_t SIZE = data.size() * sizeof(T);
@@ -176,7 +175,7 @@ public:
             );
         }
 
-        auto layout = createVertexLayout({ formats... });
+        auto layout = T::getLayout();
 
         auto vboImpl = std::make_unique<VBOImpl<T>>(
             std::move(bufferResult.value()),
@@ -188,7 +187,6 @@ public:
     }
 
     template <typename T>
-        requires std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>
     auto createIBO(const std::span<const T> &data)
         -> std::expected<IBO<T>, std::string>
     {

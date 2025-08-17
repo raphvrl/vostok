@@ -26,10 +26,7 @@ auto App::initialize() -> bool
     if (!createGPUDevice()) {
         return false;
     }
-    if (!createVertexBuffer()) {
-        return false;
-    }
-    if (!createIndexBuffer()) {
+    if (!createMesh()) {
         return false;
     }
     if (!createTexture()) {
@@ -113,7 +110,7 @@ auto App::createGPUDevice() -> bool
     return true;
 }
 
-auto App::createVertexBuffer() -> bool
+auto App::createMesh() -> bool
 {
     std::vector<Vertex> vertices = {
         // Front face (z = 0.5)
@@ -153,24 +150,6 @@ auto App::createVertexBuffer() -> bool
         { .position = { -0.5F, 0.5F, -0.5F }, .uv = { 0.0F, 1.0F } }
     };
 
-    auto vboResult = m_gpu->createVBO<Vertex>(
-        vertices,
-        graphics::formats::VEC3,
-        graphics::formats::VEC2
-    );
-
-    if (!vboResult) {
-        Logger::error("Failed to create vertex buffer: {}", vboResult.error());
-        return false;
-    }
-
-    m_vertexBuffer = std::move(vboResult.value());
-    Logger::info("Vertex buffer created successfully");
-    return true;
-}
-
-auto App::createIndexBuffer() -> bool
-{
     std::vector<u32> indices = { // Front face (z = 0.5)
                                  0,
                                  1,
@@ -215,14 +194,16 @@ auto App::createIndexBuffer() -> bool
                                  20
     };
 
-    auto iboResult = m_gpu->createIBO<u32>(indices);
-    if (!iboResult) {
-        Logger::error("Failed to create index buffer: {}", iboResult.error());
+    auto meshResult =
+        graphics::Mesh<Vertex, u32>::create(m_gpu.get(), vertices, indices);
+
+    if (!meshResult) {
+        Logger::error("Failed to create mesh: {}", meshResult.error());
         return false;
     }
 
-    m_indexBuffer = std::move(iboResult.value());
-    Logger::info("Index buffer created successfully");
+    m_mesh = std::move(meshResult.value());
+
     return true;
 }
 
@@ -312,7 +293,7 @@ auto App::createPipeline() -> bool
     pipelineInfo.colorWriteMask = graphics::ColorComponentFlags::ALL;
 
     pipelineInfo.pushConstantSize = sizeof(math::Vec3);
-    pipelineInfo.vertexLayout = m_vertexBuffer->getLayout();
+    pipelineInfo.vertexLayout = Vertex::getLayout();
 
     auto pipelineResult = m_gpu->createPipeline(pipelineInfo);
     if (!pipelineResult) {
@@ -444,10 +425,7 @@ auto App::render() -> void
     updateCamera(0.016F);
 
     m_pipeline->bind();
-    m_vertexBuffer->bind();
-    m_indexBuffer->bind();
-
-    m_gpu->drawIndexed(m_indexBuffer->getIndexCount());
+    m_mesh->draw();
 }
 
 auto App::getExecutablePath() -> fs::path

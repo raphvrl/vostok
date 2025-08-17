@@ -9,7 +9,7 @@
 namespace vostok::graphics
 {
 
-template <typename T>
+template <graphics::VertexType T>
 class VBOImpl
 {
 public:
@@ -39,7 +39,7 @@ public:
     auto operator=(const VBOImpl &other) -> VBOImpl & = default;
     auto operator=(VBOImpl &&other) noexcept -> VBOImpl & = default;
 
-    void bind() { m_buffer->bind(); }
+    void bind() const { m_buffer->bind(); }
 
     [[nodiscard]] auto getData() const noexcept -> const std::vector<T> &
     {
@@ -104,7 +104,7 @@ private:
     VertexLayout m_layout;
 };
 
-template <typename T>
+template <graphics::VertexType T>
 class VBO
 {
 public:
