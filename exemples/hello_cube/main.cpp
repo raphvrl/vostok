@@ -88,7 +88,6 @@ auto main(int argc, char *argv[]) -> int
         }
 
         app.run();
-        app.shutdown();
 
         Logger::info("Application exited successfully");
 

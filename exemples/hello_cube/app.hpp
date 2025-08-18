@@ -38,7 +38,7 @@ struct Vertex
     }
 };
 
-class App 
+class App
 {
 public:
     App();
@@ -51,7 +51,6 @@ public:
 
     auto initialize() -> bool;
     auto run() -> void;
-    auto shutdown() -> void;
 
 private:
     auto createWindow() -> bool;

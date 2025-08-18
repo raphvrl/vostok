@@ -52,20 +52,6 @@ auto App::run() -> void
     mainLoop();
 }
 
-auto App::shutdown() -> void
-{
-    if (m_gpu) {
-        try {
-            m_gpu->waitIdle();
-        } catch (const std::exception &e) {
-            Logger::warning("Exception during GPU wait: {}", e.what());
-        }
-    }
-
-    m_isRunning = false;
-    Logger::info("App shutdown complete");
-}
-
 auto App::createWindow() -> bool
 {
     WindowConfig windowInfo;
@@ -396,35 +382,15 @@ auto App::mainLoop() -> void
     Logger::info("Entering main render loop");
 
     while (m_isRunning && !m_window->shouldClose()) {
-        try {
-            auto frameResult = m_gpu->beginFrame();
-            if (frameResult) {
-                render();
+        if (!m_gpu->beginFrame()) {
+            continue;
+        }
 
-                auto endResult = m_gpu->endFrame();
-                if (!endResult) {
-                    const auto &err = endResult.error();
-                    Logger::warning(
-                        "Failed to end frame: {}: {}",
-                        err.context,
-                        err.message
-                    );
-                }
-                m_frameCount++;
-            } else {
-                const auto &err = frameResult.error();
-                Logger::warning(
-                    "Failed to begin frame: {}: {}",
-                    err.context,
-                    err.message
-                );
-            }
-        } catch (const std::exception &e) {
-            Logger::critical("Exception in main loop: {}", e.what());
-            break;
-        } catch (...) {
-            Logger::critical("Unknown exception in main loop");
-            break;
+        render();
+        m_frameCount++;
+
+        if (!m_gpu->endFrame()) {
+            continue;
         }
 
         m_window->pollEvents();
@@ -432,12 +398,7 @@ auto App::mainLoop() -> void
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 
-    try {
-        m_gpu->waitIdle();
-        Logger::info("Exiting main render loop");
-    } catch (const std::exception &e) {
-        Logger::critical("Exception during GPU wait: {}", e.what());
-    }
+    Logger::info("Exiting main render loop");
 }
 
 auto App::updateCamera(f32 deltaTime) -> void
