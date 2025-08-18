@@ -6,6 +6,7 @@
 
 #include <expected>
 #include <memory>
+#include <optional>
 
 namespace vostok::graphics::vulkan
 {
@@ -39,8 +40,8 @@ public:
 
     void waitIdle() override;
 
-    auto beginFrame() -> std::expected<u32, std::string> override;
-    auto endFrame() -> std::expected<void, std::string> override;
+    auto beginFrame() -> std::expected<u32, graphics::FrameErrorInfo> override;
+    auto endFrame() -> std::expected<void, graphics::FrameErrorInfo> override;
 
     auto resize(const FramebufferSize &size)
         -> std::expected<void, std::string> override;
@@ -163,6 +164,11 @@ private:
         -> std::expected<void, std::string>;
     auto recreateDepthImage(u32 width, u32 height)
         -> std::expected<void, std::string>;
+
+    static auto convertSwapchainErrorToFrameError(
+        const graphics::SwapchainErrorInfo &swapchainError,
+        const std::string &context
+    ) -> graphics::FrameErrorInfo;
 };
 
 } // namespace vostok::graphics::vulkan

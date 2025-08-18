@@ -52,20 +52,6 @@ auto App::run() -> void
     mainLoop();
 }
 
-auto App::shutdown() -> void
-{
-    if (m_gpu) {
-        try {
-            m_gpu->waitIdle();
-        } catch (const std::exception &e) {
-            Logger::warning("Exception during GPU wait: {}", e.what());
-        }
-    }
-
-    m_isRunning = false;
-    Logger::info("App shutdown complete");
-}
-
 auto App::createWindow() -> bool
 {
     WindowConfig windowInfo;
@@ -86,12 +72,65 @@ auto App::createWindow() -> bool
         m_window->getWidth(),
         m_window->getHeight()
     );
+
+    m_window->setEventCallback(
+        [this](WindowEvent event, const void *data) -> bool {
+            if (event == WindowEvent::RESIZE && data != nullptr) {
+                const auto *size =
+                    static_cast<const graphics::FramebufferSize *>(data);
+                Logger::info(
+                    "Window resize event: {}x{}",
+                    size->width,
+                    size->height
+                );
+
+                if (m_gpu) {
+                    Logger::debug("Triggering GPU forceResize...");
+                    auto resizeResult = m_gpu->resize(
+                        { .width = size->width, .height = size->height }
+                    );
+                    if (!resizeResult) {
+                        Logger::error(
+                            "Failed to force GPU resize: {}",
+                            resizeResult.error()
+                        );
+                    } else {
+                        Logger::info("GPU resize triggered successfully");
+                    }
+                } else {
+                    Logger::error("GPU not available during window resize");
+                }
+
+                Logger::debug("Updating camera aspect ratio...");
+                const f32 NEW_ASPECT = static_cast<f32>(size->width) /
+                                       static_cast<f32>(size->height);
+
+                auto aspectRatioResult = m_camera->setAspectRatio(NEW_ASPECT);
+
+                if (!aspectRatioResult) {
+                    Logger::error(
+                        "Failed to set camera aspect ratio: {}",
+                        aspectRatioResult.error()
+                    );
+                } else {
+                    Logger::info(
+                        "Camera aspect ratio updated to: {:.2f}",
+                        NEW_ASPECT
+                    );
+                }
+
+                return true;
+            }
+            return false;
+        }
+    );
+
     return true;
 }
 
 auto App::createGPUDevice() -> bool
 {
-    graphics::GPUHandle::CreateInfo deviceInfo;
+    graphics::GPU::CreateInfo deviceInfo;
     deviceInfo.appName = "Hello cube";
     deviceInfo.appVersion = core::Version{ .major = 0, .minor = 1, .patch = 0 };
     deviceInfo.enableValidationLayers = true;
@@ -106,6 +145,7 @@ auto App::createGPUDevice() -> bool
     }
 
     m_gpu = std::move(gpuResult.value());
+
     Logger::info("GPU device created successfully");
     return true;
 }
@@ -292,7 +332,6 @@ auto App::createPipeline() -> bool
     pipelineInfo.alphaBlendOp = graphics::BlendOp::ADD;
     pipelineInfo.colorWriteMask = graphics::ColorComponentFlags::ALL;
 
-    pipelineInfo.pushConstantSize = sizeof(math::Vec3);
     pipelineInfo.vertexLayout = Vertex::getLayout();
 
     auto pipelineResult = m_gpu->createPipeline(pipelineInfo);
@@ -313,7 +352,9 @@ auto App::createUBO() -> bool
     cameraInfo.position = { 0.0F, 0.0F, 3.0F };
     cameraInfo.rotation = { 1.0F, 0.0F, 0.0F, 0.0F };
     cameraInfo.perspective.fieldOfView = 45.0F;
-    cameraInfo.perspective.aspectRatio = 800.0F / 600.0F;
+    cameraInfo.perspective.aspectRatio =
+        static_cast<f32>(m_window->getWidth()) /
+        static_cast<f32>(m_window->getHeight());
     cameraInfo.perspective.nearPlane = 0.1F;
     cameraInfo.perspective.farPlane = 100.0F;
 
@@ -341,59 +382,23 @@ auto App::mainLoop() -> void
     Logger::info("Entering main render loop");
 
     while (m_isRunning && !m_window->shouldClose()) {
-        try {
-            m_window->pollEvents();
-
-            auto frameResult = m_gpu->beginFrame();
-            if (frameResult) {
-                render();
-
-                auto endResult = m_gpu->endFrame();
-                if (!endResult) {
-                    Logger::warning(
-                        "Failed to end frame: {}",
-                        endResult.error()
-                    );
-                }
-
-                m_frameCount++;
-            } else {
-                Logger::warning(
-                    "Failed to begin frame: {}",
-                    frameResult.error()
-                );
-
-                if (frameResult.error().find("out of date") !=
-                        std::string::npos ||
-                    frameResult.error().find("Surface lost") !=
-                        std::string::npos) {
-                    Logger::info(
-                        "Swapchain needs recreation, waiting for window "
-                        "resize..."
-                    );
-
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                } else {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                }
-            }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(16));
-        } catch (const std::exception &e) {
-            Logger::critical("Exception in main loop: {}", e.what());
-            break;
-        } catch (...) {
-            Logger::critical("Unknown exception in main loop");
-            break;
+        if (!m_gpu->beginFrame()) {
+            continue;
         }
+
+        render();
+        m_frameCount++;
+
+        if (!m_gpu->endFrame()) {
+            continue;
+        }
+
+        m_window->pollEvents();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 
-    try {
-        m_gpu->waitIdle();
-        Logger::info("Exiting main render loop");
-    } catch (const std::exception &e) {
-        Logger::critical("Exception during GPU wait: {}", e.what());
-    }
+    Logger::info("Exiting main render loop");
 }
 
 auto App::updateCamera(f32 deltaTime) -> void

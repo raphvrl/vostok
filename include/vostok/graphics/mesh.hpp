@@ -7,7 +7,7 @@
 namespace vostok::graphics
 {
 
-template <graphics::VertexType VertexType, typename IndexType>
+template <VertexType VertexType, typename IndexType>
 class MeshHandle
 {
 public:

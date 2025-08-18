@@ -238,7 +238,7 @@ auto VulkanGPU::initSwapchain(const SwapchainExtent &size) -> bool
 
     auto result = VulkanSwapchain::create(createInfo);
     if (!result) {
-        m_lastError = result.error();
+        m_lastError = graphics::swapchainErrorToString(result.error());
         return false;
     }
 
@@ -343,14 +343,17 @@ void VulkanGPU::waitIdle()
     m_device->waitIdle();
 }
 
-auto VulkanGPU::beginFrame() -> std::expected<u32, std::string>
+auto VulkanGPU::beginFrame() -> std::expected<u32, graphics::FrameErrorInfo>
 {
     if (!m_device || !m_swapchain || !m_frameSync) {
-        return std::unexpected("Instance is not initialized");
+        return std::unexpected(
+            graphics::FrameErrorInfo{ .type = graphics::FrameError::OTHER_ERROR,
+                                      .message = "Instance is not initialized",
+                                      .context = "beginFrame" }
+        );
     }
 
     m_frameSync->waitForFence();
-    m_frameSync->resetFences();
 
     if (m_bindlessManager) {
         auto updateResult = m_bindlessManager->update();
@@ -365,7 +368,31 @@ auto VulkanGPU::beginFrame() -> std::expected<u32, std::string>
     );
 
     if (!imageResult) {
-        return std::unexpected(imageResult.error());
+        if (imageResult.error().type == graphics::SwapchainError::OUT_OF_DATE ||
+            imageResult.error().type ==
+                graphics::SwapchainError::SURFACE_LOST) {
+            Logger::info(
+                "Attempting auto-resize due to swapchain error: {}",
+                graphics::swapchainErrorToString(imageResult.error())
+            );
+
+            imageResult = m_swapchain->acquireNextImage(
+                m_frameSync->getImageAvailableSemaphore(),
+                VK_NULL_HANDLE
+            );
+
+            if (!imageResult) {
+                return std::unexpected(convertSwapchainErrorToFrameError(
+                    imageResult.error(),
+                    "beginFrame"
+                ));
+            }
+        } else {
+            return std::unexpected(convertSwapchainErrorToFrameError(
+                imageResult.error(),
+                "beginFrame"
+            ));
+        }
     }
 
     u32 imageIndex = imageResult.value();
@@ -386,7 +413,11 @@ auto VulkanGPU::beginFrame() -> std::expected<u32, std::string>
 
     auto cmdBufferResult = m_frameSync->beginCommandBuffer();
     if (!cmdBufferResult) {
-        return std::unexpected(cmdBufferResult.error());
+        return std::unexpected(
+            graphics::FrameErrorInfo{ .type = graphics::FrameError::OTHER_ERROR,
+                                      .message = cmdBufferResult.error(),
+                                      .context = "beginFrame" }
+        );
     }
 
     VkImageMemoryBarrier2 imageBarrier = {};
@@ -489,10 +520,14 @@ auto VulkanGPU::beginFrame() -> std::expected<u32, std::string>
     return {};
 }
 
-auto VulkanGPU::endFrame() -> std::expected<void, std::string>
+auto VulkanGPU::endFrame() -> std::expected<void, graphics::FrameErrorInfo>
 {
     if (!m_device || !m_swapchain || !m_frameSync) {
-        return std::unexpected("Instance is not initialized");
+        return std::unexpected(
+            graphics::FrameErrorInfo{ .type = graphics::FrameError::OTHER_ERROR,
+                                      .message = "Instance is not initialized",
+                                      .context = "endFrame" }
+        );
     }
 
     vkCmdEndRendering(m_frameSync->getCommandBuffer());
@@ -551,7 +586,11 @@ auto VulkanGPU::endFrame() -> std::expected<void, std::string>
 
     auto endResult = m_frameSync->endCommandBuffer();
     if (!endResult) {
-        return std::unexpected(endResult.error());
+        return std::unexpected(
+            graphics::FrameErrorInfo{ .type = graphics::FrameError::OTHER_ERROR,
+                                      .message = endResult.error(),
+                                      .context = "endFrame" }
+        );
     }
 
     VkCommandBufferSubmitInfo cmdBufferInfo = {};
@@ -583,6 +622,8 @@ auto VulkanGPU::endFrame() -> std::expected<void, std::string>
     submitInfo.signalSemaphoreInfoCount = 1;
     submitInfo.pSignalSemaphoreInfos = &signalSemaphoreInfo;
 
+    m_frameSync->resetFences();
+
     VkResult result = vkQueueSubmit2(
         m_device->getGraphicsQueue(),
         1,
@@ -592,8 +633,11 @@ auto VulkanGPU::endFrame() -> std::expected<void, std::string>
 
     if (result != VK_SUCCESS) {
         return std::unexpected(
-            "Failed to submit command buffer: " +
-            utils::vkResultToString(result)
+            graphics::FrameErrorInfo{ .type = graphics::FrameError::OTHER_ERROR,
+                                      .message =
+                                          "Failed to submit command buffer: " +
+                                          utils::vkResultToString(result),
+                                      .context = "endFrame" }
         );
     }
 
@@ -609,21 +653,31 @@ auto VulkanGPU::endFrame() -> std::expected<void, std::string>
 
     result = vkQueuePresentKHR(m_device->getPresentQueue(), &presentInfo);
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        return std::unexpected("Swapchain is out of date");
+        Logger::info(
+            "Swapchain out of date during present, will auto-resize on next "
+            "frame"
+        );
+        return {};
     }
 
     if (result == VK_SUBOPTIMAL_KHR) {
         Logger::warning("Swapchain is suboptimal during present");
-        // Continue with suboptimal swapchain
     }
 
     if (result == VK_ERROR_SURFACE_LOST_KHR) {
-        return std::unexpected("Surface lost during present");
+        Logger::warning(
+            "Surface lost during present, will auto-resize on next frame"
+        );
+        return {};
     }
 
     if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         return std::unexpected(
-            "Failed to present image: " + utils::vkResultToString(result)
+            graphics::FrameErrorInfo{ .type = graphics::FrameError::OTHER_ERROR,
+                                      .message =
+                                          "Failed to present image: " +
+                                          utils::vkResultToString(result),
+                                      .context = "endFrame" }
         );
     }
 
@@ -643,8 +697,18 @@ auto VulkanGPU::resize(const FramebufferSize &size)
         return std::unexpected("Instance is not initialized");
     }
 
-    // TODO: Implement resize
-    return std::unexpected("Not implemented");
+    auto swapchainResult =
+        m_swapchain->recreate({ .width = size.width, .height = size.height });
+    if (!swapchainResult) {
+        return std::unexpected(
+            "Failed to recreate swapchain: " +
+            graphics::swapchainErrorToString(swapchainResult.error())
+        );
+    }
+
+    m_swapchain = std::move(swapchainResult.value());
+
+    return {};
 }
 
 void VulkanGPU::draw(
@@ -839,6 +903,33 @@ auto VulkanGPU::recreateDepthImage(u32 width, u32 height)
     }
 
     return {};
+}
+
+auto VulkanGPU::convertSwapchainErrorToFrameError(
+    const graphics::SwapchainErrorInfo &swapchainError,
+    const std::string &context
+) -> graphics::FrameErrorInfo
+{
+    switch (swapchainError.type) {
+        case graphics::SwapchainError::OUT_OF_DATE:
+            return graphics::FrameErrorInfo{
+                .type = graphics::FrameError::SWAPCHAIN_OUT_OF_DATE,
+                .message = swapchainError.message,
+                .context = context
+            };
+        case graphics::SwapchainError::SURFACE_LOST:
+            return graphics::FrameErrorInfo{
+                .type = graphics::FrameError::SURFACE_LOST,
+                .message = swapchainError.message,
+                .context = context
+            };
+        default:
+            return graphics::FrameErrorInfo{
+                .type = graphics::FrameError::OTHER_ERROR,
+                .message = swapchainError.message,
+                .context = context
+            };
+    }
 }
 
 } // namespace vostok::graphics::vulkan
