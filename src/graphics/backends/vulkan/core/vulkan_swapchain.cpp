@@ -87,19 +87,37 @@ void VulkanSwapchain::cleanup()
     Logger::debug("Swapchain destroyed");
 }
 
-auto VulkanSwapchain::create(const CreateInfo &createInfo)
-    -> std::expected<std::unique_ptr<VulkanSwapchain>, std::string>
+auto VulkanSwapchain::create(
+    const CreateInfo &createInfo,
+    VkSwapchainKHR oldSwapchain
+) -> std::
+    expected<std::unique_ptr<VulkanSwapchain>, graphics::SwapchainErrorInfo>
 {
     if (createInfo.device == nullptr) {
-        return std::unexpected("Device is null");
+        return std::unexpected(
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Device is null",
+                .context = "create" }
+        );
     }
 
     if (createInfo.surface == VK_NULL_HANDLE) {
-        return std::unexpected("Surface is null");
+        return std::unexpected(
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Surface is null",
+                .context = "create" }
+        );
     }
 
     if (createInfo.width == 0 || createInfo.height == 0) {
-        return std::unexpected("Width and height must be greater than 0");
+        return std::unexpected(
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Width and height must be greater than 0",
+                .context = "create" }
+        );
     }
 
     VulkanPhysicalDevice *physicalDevice =
@@ -116,8 +134,11 @@ auto VulkanSwapchain::create(const CreateInfo &createInfo)
 
     if (result != VK_SUCCESS) {
         return std::unexpected(
-            "Failed to get surface capabilities: " +
-            utils::vkResultToString(result)
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Failed to get surface capabilities: " +
+                           utils::vkResultToString(result),
+                .context = "create" }
         );
     }
 
@@ -131,8 +152,11 @@ auto VulkanSwapchain::create(const CreateInfo &createInfo)
 
     if (result != VK_SUCCESS || formatCount == 0) {
         return std::unexpected(
-            "Failed to get surface formats count: " +
-            utils::vkResultToString(result)
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Failed to get surface formats count: " +
+                           utils::vkResultToString(result),
+                .context = "create" }
         );
     }
 
@@ -146,7 +170,11 @@ auto VulkanSwapchain::create(const CreateInfo &createInfo)
 
     if (result != VK_SUCCESS) {
         return std::unexpected(
-            "Failed to get surface formats: " + utils::vkResultToString(result)
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Failed to get surface formats: " +
+                           utils::vkResultToString(result),
+                .context = "create" }
         );
     }
 
@@ -160,8 +188,11 @@ auto VulkanSwapchain::create(const CreateInfo &createInfo)
 
     if (result != VK_SUCCESS || presentModeCount == 0) {
         return std::unexpected(
-            "Failed to get surface present modes count: " +
-            utils::vkResultToString(result)
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Failed to get surface present modes count: " +
+                           utils::vkResultToString(result),
+                .context = "create" }
         );
     }
 
@@ -175,8 +206,11 @@ auto VulkanSwapchain::create(const CreateInfo &createInfo)
 
     if (result != VK_SUCCESS) {
         return std::unexpected(
-            "Failed to get surface present modes: " +
-            utils::vkResultToString(result)
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Failed to get surface present modes: " +
+                           utils::vkResultToString(result),
+                .context = "create" }
         );
     }
 
@@ -260,14 +294,18 @@ auto VulkanSwapchain::create(const CreateInfo &createInfo)
     swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     swapchainInfo.presentMode = presentMode;
     swapchainInfo.clipped = VK_TRUE;
-    swapchainInfo.oldSwapchain = VK_NULL_HANDLE;
+    swapchainInfo.oldSwapchain = oldSwapchain;
 
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
     result =
         vkCreateSwapchainKHR(deviceHandle, &swapchainInfo, nullptr, &swapchain);
     if (result != VK_SUCCESS) {
         return std::unexpected(
-            "Failed to create swapchain: " + utils::vkResultToString(result)
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Failed to create swapchain: " +
+                           utils::vkResultToString(result),
+                .context = "create" }
         );
     }
 
@@ -288,8 +326,11 @@ auto VulkanSwapchain::create(const CreateInfo &createInfo)
     );
     if (result != VK_SUCCESS || actualImageCount == 0) {
         return std::unexpected(
-            "Failed to get swapchain images count: " +
-            utils::vkResultToString(result)
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Failed to get swapchain images count: " +
+                           utils::vkResultToString(result),
+                .context = "create" }
         );
     }
 
@@ -303,12 +344,21 @@ auto VulkanSwapchain::create(const CreateInfo &createInfo)
 
     if (result != VK_SUCCESS) {
         return std::unexpected(
-            "Failed to get swapchain images: " + utils::vkResultToString(result)
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Failed to get swapchain images: " +
+                           utils::vkResultToString(result),
+                .context = "create" }
         );
     }
 
     if (!swapchainPtr->createImageViews()) {
-        return std::unexpected("Failed to create swapchain image views");
+        return std::unexpected(
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Failed to create swapchain image views",
+                .context = "create" }
+        );
     }
 
     Logger::info(
@@ -368,24 +418,34 @@ auto VulkanSwapchain::createImageViews() -> bool
 }
 
 auto VulkanSwapchain::acquireNextImage(VkSemaphore semaphore, VkFence fence)
-    -> std::expected<u32, std::string>
+    -> std::expected<u32, graphics::SwapchainErrorInfo>
 {
     if (m_swapchain == VK_NULL_HANDLE || m_device == nullptr) {
-        return std::unexpected("Swapchain is invalid");
+        return std::unexpected(
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Swapchain is invalid",
+                .context = "acquireNextImage" }
+        );
     }
 
     u32 imageIndex = 0;
     VkResult result = vkAcquireNextImageKHR(
         m_device->getHandle(),
         m_swapchain,
-        std::numeric_limits<u64>::max(),
+        UINT64_MAX,
         semaphore,
         fence,
         &imageIndex
     );
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        return std::unexpected("Swapchain out of date");
+        return std::unexpected(
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OUT_OF_DATE,
+                .message = "Swapchain out of date",
+                .context = "acquireNextImage" }
+        );
     }
 
     if (result == VK_SUBOPTIMAL_KHR) {
@@ -393,12 +453,21 @@ auto VulkanSwapchain::acquireNextImage(VkSemaphore semaphore, VkFence fence)
     }
 
     if (result == VK_ERROR_SURFACE_LOST_KHR) {
-        return std::unexpected("Surface lost");
+        return std::unexpected(
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::SURFACE_LOST,
+                .message = "Surface lost",
+                .context = "acquireNextImage" }
+        );
     }
 
     if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         return std::unexpected(
-            "Failed to acquire next image: " + utils::vkResultToString(result)
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Failed to acquire next image: " +
+                           utils::vkResultToString(result),
+                .context = "acquireNextImage" }
         );
     }
 
@@ -406,10 +475,15 @@ auto VulkanSwapchain::acquireNextImage(VkSemaphore semaphore, VkFence fence)
 }
 
 auto VulkanSwapchain::present(u32 imageIndex, VkSemaphore renderSemaphore)
-    -> std::expected<void, std::string>
+    -> std::expected<void, graphics::SwapchainErrorInfo>
 {
     if (m_device == nullptr || m_swapchain == VK_NULL_HANDLE) {
-        return std::unexpected("Swapchain is invalid");
+        return std::unexpected(
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Swapchain is invalid",
+                .context = "present" }
+        );
     }
 
     VkPresentInfoKHR presentInfo = {};
@@ -429,7 +503,12 @@ auto VulkanSwapchain::present(u32 imageIndex, VkSemaphore renderSemaphore)
         vkQueuePresentKHR(m_device->getPresentQueue(), &presentInfo);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        return std::unexpected("Swapchain is out of date");
+        return std::unexpected(
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OUT_OF_DATE,
+                .message = "Swapchain is out of date",
+                .context = "present" }
+        );
     }
 
     if (result == VK_SUBOPTIMAL_KHR) {
@@ -438,21 +517,32 @@ auto VulkanSwapchain::present(u32 imageIndex, VkSemaphore renderSemaphore)
 
     if (result != VK_SUCCESS) {
         return std::unexpected(
-            "Failed to present image: " + utils::vkResultToString(result)
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Failed to present image: " +
+                           utils::vkResultToString(result),
+                .context = "present" }
         );
     }
 
     return {};
 }
 
-auto VulkanSwapchain::recreate(const SwapchainExtent &size)
-    -> std::expected<std::unique_ptr<VulkanSwapchain>, std::string>
+auto VulkanSwapchain::recreate(const SwapchainExtent &size) -> std::
+    expected<std::unique_ptr<VulkanSwapchain>, graphics::SwapchainErrorInfo>
 {
     if (m_device == nullptr) {
-        return std::unexpected("Device is null");
+        return std::unexpected(
+            graphics::SwapchainErrorInfo{
+                .type = graphics::SwapchainError::OTHER_ERROR,
+                .message = "Device is null",
+                .context = "recreate" }
+        );
     }
 
     m_device->waitIdle();
+
+    VkSwapchainKHR oldSwapchain = this->m_swapchain;
 
     CreateInfo createInfo;
     createInfo.device = m_device;
@@ -461,7 +551,16 @@ auto VulkanSwapchain::recreate(const SwapchainExtent &size)
     createInfo.height = size.height;
     createInfo.imageCount = static_cast<u32>(m_images.size());
 
-    return create(createInfo);
+    auto result = create(createInfo, oldSwapchain);
+    if (result) {
+        Logger::info(
+            "Swapchain recreated successfully: {}x{}",
+            size.width,
+            size.height
+        );
+    }
+
+    return result;
 }
 
 } // namespace vostok::graphics::vulkan

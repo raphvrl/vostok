@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics/backends/vulkan/core/vulkan_device.hpp"
+#include "graphics/frame_result.hpp"
 
 #include <expected>
 #include <memory>
@@ -29,8 +30,13 @@ public:
         bool vsync = false;
     };
 
-    static auto create(const CreateInfo &createInfo)
-        -> std::expected<std::unique_ptr<VulkanSwapchain>, std::string>;
+    static auto create(
+        const CreateInfo &createInfo,
+        VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE
+    )
+        -> std::expected<
+            std::unique_ptr<VulkanSwapchain>,
+            graphics::SwapchainErrorInfo>;
 
     ~VulkanSwapchain();
 
@@ -55,12 +61,13 @@ public:
     }
 
     auto acquireNextImage(VkSemaphore semaphore, VkFence fence)
-        -> std::expected<u32, std::string>;
+        -> std::expected<u32, graphics::SwapchainErrorInfo>;
     auto present(u32 imageIndex, VkSemaphore renderSemaphore)
-        -> std::expected<void, std::string>;
+        -> std::expected<void, graphics::SwapchainErrorInfo>;
 
-    auto recreate(const SwapchainExtent &size)
-        -> std::expected<std::unique_ptr<VulkanSwapchain>, std::string>;
+    auto recreate(const SwapchainExtent &size) -> std::expected<
+        std::unique_ptr<VulkanSwapchain>,
+        graphics::SwapchainErrorInfo>;
 
 private:
     VulkanSwapchain(

@@ -209,22 +209,10 @@ void VulkanFrameSync::waitForFence()
 
     if (result == VK_TIMEOUT) {
         Logger::warning("Frame fence wait timed out after 1 second");
-
-        vkResetFences(
-            m_device->getHandle(),
-            1,
-            &m_frames[m_currentFrame].inFlight
-        );
     } else if (result != VK_SUCCESS) {
         Logger::error(
             "Failed to wait for frame fence: {}",
             utils::vkResultToString(result)
-        );
-
-        vkResetFences(
-            m_device->getHandle(),
-            1,
-            &m_frames[m_currentFrame].inFlight
         );
     }
 }
@@ -335,7 +323,7 @@ auto VulkanFrameSync::waitForComplete() -> std::expected<void, std::string>
         1,
         &frame.inFlight,
         VK_TRUE,
-        UINT64_MAX
+        1000000000ULL
     );
 
     if (result != VK_SUCCESS) {

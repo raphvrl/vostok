@@ -10,9 +10,11 @@
 #include "vostok/graphics/buffers/texture.hpp"
 #include "vostok/graphics/buffers/ubo.hpp"
 #include "vostok/graphics/buffers/vbo.hpp"
+#include "vostok/graphics/frame_result.hpp"
 #include "vostok/graphics/pipeline.hpp"
 
 #include <expected>
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -63,8 +65,12 @@ public:
 
     virtual void waitIdle() = 0;
 
-    virtual auto beginFrame() -> std::expected<u32, std::string> = 0;
-    virtual auto endFrame() -> std::expected<void, std::string> = 0;
+    virtual auto beginFrame()
+        -> std::expected<u32, graphics::FrameErrorInfo> = 0;
+    virtual auto endFrame()
+        -> std::expected<void, graphics::FrameErrorInfo> = 0;
+
+    using ResizeCallback = std::function<void(const FramebufferSize &)>;
 
     virtual auto resize(const FramebufferSize &size)
         -> std::expected<void, std::string> = 0;

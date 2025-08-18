@@ -81,6 +81,6 @@ private:
     graphics::PerspectiveCamera m_camera;
 
     bool m_isRunning = false;
-    uint32_t m_frameCount = 0;
+    u32 m_frameCount = 0;
     std::chrono::high_resolution_clock::time_point m_startTime;
 };
