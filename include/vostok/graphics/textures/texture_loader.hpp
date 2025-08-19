@@ -1,7 +1,7 @@
 #pragma once
 
-#include "vostok/graphics/buffers/texture.hpp"
 #include "vostok/graphics/gpu.hpp"
+#include "vostok/graphics/textures/texture.hpp"
 
 #include <filesystem>
 #include <string>

@@ -843,6 +843,39 @@ auto VulkanGPU::registerTexture(BindableResource *texture)
     return m_bindlessManager->registerResource(ResourceType::TEXTURE, texture);
 }
 
+auto VulkanGPU::unregisterUBO(BindableResource *ubo)
+    -> std::expected<void, std::string>
+{
+    if (!m_bindlessManager) {
+        return std::unexpected("Bindless manager is not initialized");
+    }
+
+    return m_bindlessManager->unregisterResource(ResourceType::UBO, ubo);
+}
+
+auto VulkanGPU::unregisterSSBO(BindableResource *ssbo)
+    -> std::expected<void, std::string>
+{
+    if (!m_bindlessManager) {
+        return std::unexpected("Bindless manager is not initialized");
+    }
+
+    return m_bindlessManager->unregisterResource(ResourceType::SSBO, ssbo);
+}
+
+auto VulkanGPU::unregisterTexture(BindableResource *texture)
+    -> std::expected<void, std::string>
+{
+    if (!m_bindlessManager) {
+        return std::unexpected("Bindless manager is not initialized");
+    }
+
+    return m_bindlessManager->unregisterResource(
+        ResourceType::TEXTURE,
+        texture
+    );
+}
+
 void VulkanGPU::notifyDirtyResource(u32 bindlessIndex)
 {
     if (!m_bindlessManager) {

@@ -1,7 +1,6 @@
 #pragma once
 
-#include "vostok/graphics/backends/vulkan/core/vulkan_device.hpp"
-#include "vostok/graphics/buffers/texture.hpp"
+#include "vostok/graphics/textures/texture.hpp"
 
 #include <expected>
 #include <memory>
@@ -10,6 +9,8 @@
 
 namespace vostok::graphics::vulkan
 {
+
+class VulkanDevice;
 
 struct SamplerCreateInfo
 {

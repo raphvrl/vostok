@@ -31,6 +31,8 @@ VulkanFrameSync::~VulkanFrameSync()
     if (m_device != nullptr) {
         VkDevice device = m_device->getHandle();
 
+        m_device->waitIdle();
+
         if (m_transferCommandBuffer != VK_NULL_HANDLE &&
             m_transferCommandPool != nullptr) {
             Logger::trace("Freeing transfer command buffer");

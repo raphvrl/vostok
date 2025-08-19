@@ -1,11 +1,11 @@
 #pragma once
 
-#include "vostok/graphics/buffers/texture.hpp"
 #include "vostok/graphics/buffers/ubo.hpp"
 #include "vostok/graphics/camera/perspective_camera.hpp"
 #include "vostok/graphics/gpu.hpp"
 #include "vostok/graphics/mesh.hpp"
 #include "vostok/graphics/pipeline.hpp"
+#include "vostok/graphics/textures/texture_cache.hpp"
 #include "vostok/math/types.hpp"
 #include "vostok/window/window.hpp"
 
@@ -53,10 +53,11 @@ public:
     auto run() -> void;
 
 private:
+    auto createResourcesPaths() -> bool;
     auto createWindow() -> bool;
     auto createGPUDevice() -> bool;
     auto createMesh() -> bool;
-    auto createTexture() -> bool;
+    auto createTextureCache() -> bool;
     auto createPipeline() -> bool;
     auto createUBO() -> bool;
 
@@ -69,6 +70,10 @@ private:
         -> fs::path;
     static auto getExecutablePath() -> fs::path;
 
+    fs::path m_texturePath;
+    fs::path m_vertexShaderPath;
+    fs::path m_fragmentShaderPath;
+
     Window m_window;
     graphics::GPU m_gpu;
 
@@ -76,7 +81,7 @@ private:
     graphics::Pipeline m_pipeline;
 
     graphics::UBO<CameraUBO> m_cameraUBO;
-    graphics::Texture m_texture;
+    std::unique_ptr<graphics::TextureCache> m_textureCache;
     graphics::PerspectiveCamera m_camera;
 
     bool m_isRunning = false;

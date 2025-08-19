@@ -1,6 +1,6 @@
 #include "app.hpp"
 
-#include "vostok/graphics/buffers/texture_loader.hpp"
+#include "vostok/graphics/textures/texture_loader.hpp"
 
 #include <array>
 #include <thread>
@@ -20,6 +20,10 @@ auto App::initialize() -> bool
 {
     Logger::info("Initializing App...");
 
+    if (!createResourcesPaths()) {
+        return false;
+    }
+
     if (!createWindow()) {
         return false;
     }
@@ -29,7 +33,7 @@ auto App::initialize() -> bool
     if (!createMesh()) {
         return false;
     }
-    if (!createTexture()) {
+    if (!createTextureCache()) {
         return false;
     }
     if (!createPipeline()) {
@@ -50,6 +54,14 @@ auto App::run() -> void
 {
     Logger::info("Starting main loop...");
     mainLoop();
+}
+
+auto App::createResourcesPaths() -> bool
+{
+    m_texturePath = findResourcePath("textures", "test.png");
+    m_vertexShaderPath = findResourcePath("shaders", "cube.vert.spv");
+    m_fragmentShaderPath = findResourcePath("shaders", "cube.frag.spv");
+    return true;
 }
 
 auto App::createWindow() -> bool
@@ -247,27 +259,70 @@ auto App::createMesh() -> bool
     return true;
 }
 
-auto App::createTexture() -> bool
+auto App::createTextureCache() -> bool
 {
-    auto textureResult = graphics::TextureLoader::loadFromFile(
-        m_gpu.get(),
-        findResourcePath("textures", "test.png")
-    );
+    graphics::TextureCache::CacheConfig cacheConfig;
+    cacheConfig.maxMemoryBytes =
+        static_cast<size_t>(512 * 1024 * 1024); // 512MB
+    cacheConfig.maxTextures = 100;
+    cacheConfig.enableLRU = true;
+    cacheConfig.evictionThreshold = 0.8F;
 
-    if (!textureResult) {
-        Logger::error("Failed to create texture: {}", textureResult.error());
+    auto cacheResult = graphics::TextureCache::create(m_gpu.get(), cacheConfig);
+    if (!cacheResult) {
+        Logger::error(
+            "Failed to create texture cache: {}",
+            cacheResult.error()
+        );
         return false;
     }
 
-    m_texture = std::move(textureResult.value());
-    Logger::info("Texture created successfully");
+    m_textureCache = std::move(cacheResult.value());
+    Logger::info("Texture cache created successfully");
+
+    auto texturePath = m_texturePath;
+
+    auto existingTexture = m_textureCache->get(texturePath);
+    if (existingTexture) {
+        Logger::info("Texture already in cache: {}", texturePath.string());
+        return true;
+    }
+
+    auto textureResult =
+        graphics::TextureLoader::loadFromFile(m_gpu.get(), texturePath);
+
+    if (!textureResult) {
+        Logger::error("Failed to load texture: {}", textureResult.error());
+        return false;
+    }
+
+    bool putResult = m_textureCache->put(
+        texturePath,
+        std::move(textureResult.value()),
+        "test_texture"
+    );
+
+    if (!putResult) {
+        Logger::error(
+            "Failed to add texture to cache: {}",
+            texturePath.string()
+        );
+        return false;
+    }
+
+    m_textureCache->incrementReference(texturePath);
+
+    Logger::info(
+        "Texture loaded and cached successfully: {}",
+        texturePath.string()
+    );
     return true;
 }
 
 auto App::createPipeline() -> bool
 {
-    fs::path vertexShaderPath = findResourcePath("shaders", "cube.vert.spv");
-    fs::path fragmentShaderPath = findResourcePath("shaders", "cube.frag.spv");
+    fs::path vertexShaderPath = m_vertexShaderPath;
+    fs::path fragmentShaderPath = m_fragmentShaderPath;
 
     if (!fs::exists(vertexShaderPath) || !fs::exists(fragmentShaderPath)) {
         std::vector<fs::path> shaderLocations = {
@@ -429,8 +484,16 @@ auto App::render() -> void
 {
     updateCamera(0.016F);
 
+    auto texturePath = m_texturePath;
+
+    m_textureCache->incrementReference(texturePath);
+
     m_pipeline->bind();
     m_mesh->draw();
+
+    m_textureCache->decrementReference(texturePath);
+
+    m_textureCache->update();
 }
 
 auto App::getExecutablePath() -> fs::path

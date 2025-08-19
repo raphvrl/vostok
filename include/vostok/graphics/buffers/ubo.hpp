@@ -3,6 +3,7 @@
 #include "vostok/graphics/buffers/bindable_resource.hpp"
 
 #include <memory>
+#include <type_traits>
 
 namespace vostok::graphics
 {
