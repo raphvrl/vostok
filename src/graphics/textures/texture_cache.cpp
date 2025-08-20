@@ -141,6 +141,7 @@ auto TextureCache::put(
         entry.width = entry.texture->getWidth();
         entry.height = entry.texture->getHeight();
         entry.format = entry.texture->getFormat();
+        entry.bindlessIndex = entry.texture->getBindlessIndex();
 
         if (entry.width == 0 || entry.height == 0) {
             Logger::warning(

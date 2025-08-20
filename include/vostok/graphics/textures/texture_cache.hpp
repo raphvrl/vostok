@@ -44,6 +44,8 @@ struct TextureCacheEntry
     u32 height = 0;
     ImageFormat format = ImageFormat::UNDEFINED;
 
+    u32 bindlessIndex = 0;
+
     u32 referenceCount = 0;
 };
 

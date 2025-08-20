@@ -1,7 +1,5 @@
 #include "app.hpp"
 
-#include "vostok/graphics/textures/texture_loader.hpp"
-
 #include <array>
 #include <thread>
 
@@ -23,7 +21,6 @@ auto App::initialize() -> bool
     if (!createResourcesPaths()) {
         return false;
     }
-
     if (!createWindow()) {
         return false;
     }
@@ -33,7 +30,7 @@ auto App::initialize() -> bool
     if (!createMesh()) {
         return false;
     }
-    if (!createTextureCache()) {
+    if (!createTextureManager()) {
         return false;
     }
     if (!createPipeline()) {
@@ -259,63 +256,41 @@ auto App::createMesh() -> bool
     return true;
 }
 
-auto App::createTextureCache() -> bool
+auto App::createTextureManager() -> bool
 {
-    graphics::TextureCache::CacheConfig cacheConfig;
-    cacheConfig.maxMemoryBytes =
+    graphics::TextureManager::CreateInfo managerConfig;
+    managerConfig.maxMemoryBytes =
         static_cast<size_t>(512 * 1024 * 1024); // 512MB
-    cacheConfig.maxTextures = 100;
-    cacheConfig.enableLRU = true;
-    cacheConfig.evictionThreshold = 0.8F;
+    managerConfig.maxTextures = 100;
+    managerConfig.enableLRU = true;
+    managerConfig.enableAsyncEviction = true;
+    managerConfig.evictionThreshold = 0.8F;
+    managerConfig.autoDetectFormat = true;
+    managerConfig.createPlaceholderOnError = true;
+    managerConfig.logWarnings = true;
+    managerConfig.enablePreloading = true;
+    managerConfig.debugPrefix = "HelloCubeTextureManager";
 
-    auto cacheResult = graphics::TextureCache::create(m_gpu.get(), cacheConfig);
-    if (!cacheResult) {
+    auto managerResult =
+        graphics::TextureManager::create(m_gpu.get(), managerConfig);
+    if (!managerResult) {
         Logger::error(
-            "Failed to create texture cache: {}",
-            cacheResult.error()
+            "Failed to create texture manager: {}",
+            managerResult.error()
         );
         return false;
     }
 
-    m_textureCache = std::move(cacheResult.value());
-    Logger::info("Texture cache created successfully");
+    m_textureManager = std::move(managerResult.value());
+    Logger::info("Texture manager created successfully");
 
-    auto texturePath = m_texturePath;
-
-    auto existingTexture = m_textureCache->get(texturePath);
-    if (existingTexture) {
-        Logger::info("Texture already in cache: {}", texturePath.string());
-        return true;
-    }
-
-    auto textureResult =
-        graphics::TextureLoader::loadFromFile(m_gpu.get(), texturePath);
-
-    if (!textureResult) {
-        Logger::error("Failed to load texture: {}", textureResult.error());
-        return false;
-    }
-
-    bool putResult = m_textureCache->put(
-        texturePath,
-        std::move(textureResult.value()),
-        "test_texture"
-    );
-
-    if (!putResult) {
-        Logger::error(
-            "Failed to add texture to cache: {}",
-            texturePath.string()
-        );
-        return false;
-    }
-
-    m_textureCache->incrementReference(texturePath);
+    m_textureManager->preloadTextures({ m_texturePath });
 
     Logger::info(
-        "Texture loaded and cached successfully: {}",
-        texturePath.string()
+        "Texture manager initialized and texture preloaded: {}",
+        m_texturePath.string()
     );
+
     return true;
 }
 
@@ -484,16 +459,10 @@ auto App::render() -> void
 {
     updateCamera(0.016F);
 
-    auto texturePath = m_texturePath;
-
-    m_textureCache->incrementReference(texturePath);
-
     m_pipeline->bind();
     m_mesh->draw();
 
-    m_textureCache->decrementReference(texturePath);
-
-    m_textureCache->update();
+    m_textureManager->update();
 }
 
 auto App::getExecutablePath() -> fs::path

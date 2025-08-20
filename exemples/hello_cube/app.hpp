@@ -5,7 +5,7 @@
 #include "vostok/graphics/gpu.hpp"
 #include "vostok/graphics/mesh.hpp"
 #include "vostok/graphics/pipeline.hpp"
-#include "vostok/graphics/textures/texture_cache.hpp"
+#include "vostok/graphics/textures/texture_manager.hpp"
 #include "vostok/math/types.hpp"
 #include "vostok/window/window.hpp"
 
@@ -57,7 +57,7 @@ private:
     auto createWindow() -> bool;
     auto createGPUDevice() -> bool;
     auto createMesh() -> bool;
-    auto createTextureCache() -> bool;
+    auto createTextureManager() -> bool;
     auto createPipeline() -> bool;
     auto createUBO() -> bool;
 
@@ -81,7 +81,7 @@ private:
     graphics::Pipeline m_pipeline;
 
     graphics::UBO<CameraUBO> m_cameraUBO;
-    std::unique_ptr<graphics::TextureCache> m_textureCache;
+    graphics::TextureManager m_textureManager;
     graphics::PerspectiveCamera m_camera;
 
     bool m_isRunning = false;
