@@ -7,11 +7,11 @@
 #include "vostok/graphics/buffers/ibo.hpp"
 #include "vostok/graphics/buffers/image.hpp"
 #include "vostok/graphics/buffers/ssbo.hpp"
-#include "vostok/graphics/buffers/texture.hpp"
 #include "vostok/graphics/buffers/ubo.hpp"
 #include "vostok/graphics/buffers/vbo.hpp"
 #include "vostok/graphics/frame_result.hpp"
 #include "vostok/graphics/pipeline.hpp"
+#include "vostok/graphics/textures/texture.hpp"
 
 #include <expected>
 #include <functional>
@@ -293,6 +293,23 @@ public:
         return Texture(std::move(texture));
     }
 
+    template <UBOType T>
+    auto destroyUBO(UBO<T> &ubo) -> std::expected<void, std::string>
+    {
+        return unregisterUBO(ubo.get());
+    }
+
+    template <SSBOType T>
+    auto destroySSBO(SSBO<T> &ssbo) -> std::expected<void, std::string>
+    {
+        return unregisterSSBO(ssbo.get());
+    }
+
+    auto destroyTexture(Texture &texture) -> std::expected<void, std::string>
+    {
+        return unregisterTexture(texture.get());
+    }
+
 private:
     virtual auto registerUBO(BindableResource *ubo, size_t size)
         -> std::expected<u32, std::string> = 0;
@@ -300,6 +317,13 @@ private:
         -> std::expected<u32, std::string> = 0;
     virtual auto registerTexture(BindableResource *texture)
         -> std::expected<u32, std::string> = 0;
+
+    virtual auto unregisterUBO(BindableResource *ubo)
+        -> std::expected<void, std::string> = 0;
+    virtual auto unregisterSSBO(BindableResource *ssbo)
+        -> std::expected<void, std::string> = 0;
+    virtual auto unregisterTexture(BindableResource *texture)
+        -> std::expected<void, std::string> = 0;
 
     virtual void notifyDirtyResource(u32 bindlessIndex) = 0;
 };

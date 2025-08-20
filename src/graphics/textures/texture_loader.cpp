@@ -1,4 +1,4 @@
-#include "graphics/buffers/texture_loader.hpp"
+#include "graphics/textures/texture_loader.hpp"
 
 #include <cstddef>
 #include <stb_image.h>
@@ -160,7 +160,6 @@ auto TextureLoader::loadImageData(const std::filesystem::path &filePath)
 
     stbi_image_free(data);
 
-    // We return channelsOut as 4 since we produced RGBA8
     return std::make_tuple(std::move(imageData), width, height, 4);
 }
 

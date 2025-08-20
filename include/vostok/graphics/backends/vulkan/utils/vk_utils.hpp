@@ -3,14 +3,15 @@
 #include "vostok/core/type.hpp"
 #include "vostok/graphics/buffers/buffer.hpp"
 #include "vostok/graphics/buffers/image.hpp"
-#include "vostok/graphics/buffers/texture.hpp"
 #include "vostok/graphics/pipeline.hpp"
+#include "vostok/graphics/textures/texture.hpp"
 
 #include <filesystem>
 #include <string>
 #include <vector>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
+
 
 namespace fs = std::filesystem;
 

@@ -3,7 +3,7 @@
 #include "vostok/core/type.hpp"
 #include "vostok/graphics/buffers/bindable_resource.hpp"
 #include "vostok/graphics/buffers/buffer.hpp"
-#include "vostok/graphics/buffers/texture.hpp"
+#include "vostok/graphics/textures/texture.hpp"
 
 #include <expected>
 #include <memory>

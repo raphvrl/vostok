@@ -1,7 +1,5 @@
 #include "app.hpp"
 
-#include "vostok/graphics/buffers/texture_loader.hpp"
-
 #include <array>
 #include <thread>
 
@@ -20,6 +18,9 @@ auto App::initialize() -> bool
 {
     Logger::info("Initializing App...");
 
+    if (!createResourcesPaths()) {
+        return false;
+    }
     if (!createWindow()) {
         return false;
     }
@@ -29,7 +30,7 @@ auto App::initialize() -> bool
     if (!createMesh()) {
         return false;
     }
-    if (!createTexture()) {
+    if (!createTextureManager()) {
         return false;
     }
     if (!createPipeline()) {
@@ -50,6 +51,14 @@ auto App::run() -> void
 {
     Logger::info("Starting main loop...");
     mainLoop();
+}
+
+auto App::createResourcesPaths() -> bool
+{
+    m_texturePath = findResourcePath("textures", "test.png");
+    m_vertexShaderPath = findResourcePath("shaders", "cube.vert.spv");
+    m_fragmentShaderPath = findResourcePath("shaders", "cube.frag.spv");
+    return true;
 }
 
 auto App::createWindow() -> bool
@@ -247,27 +256,48 @@ auto App::createMesh() -> bool
     return true;
 }
 
-auto App::createTexture() -> bool
+auto App::createTextureManager() -> bool
 {
-    auto textureResult = graphics::TextureLoader::loadFromFile(
-        m_gpu.get(),
-        findResourcePath("textures", "test.png")
-    );
+    graphics::TextureManager::CreateInfo managerConfig;
+    managerConfig.maxMemoryBytes =
+        static_cast<size_t>(512 * 1024 * 1024); // 512MB
+    managerConfig.maxTextures = 100;
+    managerConfig.enableLRU = true;
+    managerConfig.enableAsyncEviction = true;
+    managerConfig.evictionThreshold = 0.8F;
+    managerConfig.autoDetectFormat = true;
+    managerConfig.createPlaceholderOnError = true;
+    managerConfig.logWarnings = true;
+    managerConfig.enablePreloading = true;
+    managerConfig.debugPrefix = "HelloCubeTextureManager";
 
-    if (!textureResult) {
-        Logger::error("Failed to create texture: {}", textureResult.error());
+    auto managerResult =
+        graphics::TextureManager::create(m_gpu.get(), managerConfig);
+    if (!managerResult) {
+        Logger::error(
+            "Failed to create texture manager: {}",
+            managerResult.error()
+        );
         return false;
     }
 
-    m_texture = std::move(textureResult.value());
-    Logger::info("Texture created successfully");
+    m_textureManager = std::move(managerResult.value());
+    Logger::info("Texture manager created successfully");
+
+    m_textureManager->preloadTextures({ m_texturePath });
+
+    Logger::info(
+        "Texture manager initialized and texture preloaded: {}",
+        m_texturePath.string()
+    );
+
     return true;
 }
 
 auto App::createPipeline() -> bool
 {
-    fs::path vertexShaderPath = findResourcePath("shaders", "cube.vert.spv");
-    fs::path fragmentShaderPath = findResourcePath("shaders", "cube.frag.spv");
+    fs::path vertexShaderPath = m_vertexShaderPath;
+    fs::path fragmentShaderPath = m_fragmentShaderPath;
 
     if (!fs::exists(vertexShaderPath) || !fs::exists(fragmentShaderPath)) {
         std::vector<fs::path> shaderLocations = {
@@ -431,6 +461,8 @@ auto App::render() -> void
 
     m_pipeline->bind();
     m_mesh->draw();
+
+    m_textureManager->update();
 }
 
 auto App::getExecutablePath() -> fs::path

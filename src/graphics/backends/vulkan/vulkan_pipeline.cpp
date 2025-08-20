@@ -270,6 +270,8 @@ VulkanPipeline::Impl::~Impl()
     Logger::debug("VulkanPipeline::Impl destructor called");
     auto *device = m_gpu->getDevice();
 
+    m_gpu->waitIdle();
+
     for (auto *shaderModule : m_shaderModules) {
         if (shaderModule != VK_NULL_HANDLE) {
             Logger::debug("Destroying shader module");
