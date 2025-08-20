@@ -7,6 +7,7 @@ option(VOSTOK_ENABLE_CLANG_TIDY "Enable clang-tidy checks" ON)
 option(VOSTOK_BUILD_EXAMPLES "Build Vostok examples" ON)
 option(VOSTOK_BUILD_TESTS "Build Vostok tests" ON)
 option(VOSTOK_ENABLE_COVERAGE "Enable coverage reporting" OFF)
+option(VOSTOK_ENABLE_TRACY "Enable Tracy profiling" ON)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -195,6 +196,25 @@ else()
     message(STATUS "GLM found via find_package")
 endif()
 
+if(EXISTS ${THIRD_PARTY_DIR}/tracy/CMakeLists.txt)
+    # Configuration spécifique pour Tracy
+    set(TRACY_STATIC ON CACHE BOOL "Build Tracy as static library" FORCE)
+    set(TRACY_Fortran OFF CACHE BOOL "Build Fortran bindings" FORCE)
+    set(TRACY_LTO OFF CACHE BOOL "Enable Link-Time optimization" FORCE)
+    
+    add_third_party_library(TracyClient tracy)
+
+    if(VOSTOK_ENABLE_CLANG_TIDY)
+        set_target_properties(TracyClient PROPERTIES 
+            CXX_CLANG_TIDY ""
+            C_CLANG_TIDY ""
+        )
+        message(STATUS "Disabled clang-tidy for Tracy")
+    endif()
+else()
+    message(WARNING "Tracy directory not found, please clone tracy in ${THIRD_PARTY_DIR}/tracy")
+endif()
+
 find_package(Vulkan REQUIRED)
 
 if(EXISTS ${THIRD_PARTY_DIR}/volk/CMakeLists.txt)
@@ -236,6 +256,7 @@ set(EXTERNAL_LIBS
     VulkanMemoryAllocator
     glm::glm
     tinygltf
+    $<$<BOOL:${VOSTOK_ENABLE_TRACY}>:TracyClient>
 )
 
 set(VOSTOK_SOURCES "")
@@ -285,6 +306,7 @@ target_compile_definitions(vostok
     PRIVATE
         $<$<CONFIG:Debug>:VOSTOK_DEBUG>
         $<$<BOOL:${VOSTOK_ENABLE_VALIDATION}>:VOSTOK_ENABLE_VALIDATION>
+        $<$<BOOL:${VOSTOK_ENABLE_TRACY}>:VOSTOK_ENABLE_TRACY>
         VK_NO_PROTOTYPES
         VOSTOK_HAS_GLFW
         VOSTOK_HAS_VULKAN
