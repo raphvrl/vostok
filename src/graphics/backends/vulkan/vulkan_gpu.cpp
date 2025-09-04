@@ -12,11 +12,13 @@
 #include "graphics/backends/vulkan/core/vulkan_surface.hpp"
 #include "graphics/backends/vulkan/core/vulkan_swapchain.hpp"
 #include "graphics/backends/vulkan/platform/glfw_platform.hpp"
+#include "graphics/backends/vulkan/utils/vk_tracy_utils.hpp"
 #include "graphics/backends/vulkan/utils/vk_utils.hpp"
 #include "graphics/backends/vulkan/vulkan_bindless_manager.hpp"
 #include "graphics/backends/vulkan/vulkan_pipeline.hpp"
 #include "graphics/gpu.hpp"
 #include "volk.h"
+#include "vostok/utils/colors/colors.hpp"
 
 #include <expected>
 #include <memory>
@@ -353,6 +355,10 @@ auto VulkanGPU::beginFrame() -> std::expected<u32, graphics::FrameErrorInfo>
         );
     }
 
+#ifdef VOSTOK_ENABLE_TRACY
+    ZoneScopedN("GPU Frame Begin");
+#endif
+
     m_frameSync->waitForFence();
 
     if (m_bindlessManager) {
@@ -502,6 +508,19 @@ auto VulkanGPU::beginFrame() -> std::expected<u32, graphics::FrameErrorInfo>
     }
 
     vkCmdBeginRendering(m_frameSync->getCommandBuffer(), &renderingInfo);
+
+    utils::ifTracyEnabled(
+        m_frameSync->getTracyContext(),
+        m_frameSync->getCommandBuffer(),
+        [&]() {
+            TracyVkZoneC(
+                m_frameSync->getTracyContext(),
+                m_frameSync->getCommandBuffer(),
+                "Main Rendering",
+                vostok::colors::GREEN
+            );
+        }
+    );
 
     VkViewport viewport = {};
     viewport.x = 0.0F;
@@ -679,6 +698,10 @@ auto VulkanGPU::endFrame() -> std::expected<void, graphics::FrameErrorInfo>
                                           utils::vkResultToString(result),
                                       .context = "endFrame" }
         );
+    }
+
+    if (m_frameSync->isTracyEnabled()) {
+        m_frameSync->collectGPUEvents();
     }
 
     m_frameSync->nextFrame();

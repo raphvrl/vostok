@@ -2,10 +2,14 @@
 
 #include "vostok/core/type.hpp"
 
+// clang-format off
 #include <expected>
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <volk.h>
+#include <tracy/TracyVulkan.hpp>
+// clang-format on
 
 namespace vostok::graphics::vulkan
 {
@@ -88,6 +92,14 @@ public:
         return m_transferCommandPool;
     }
 
+    auto initTracy() -> std::expected<void, std::string>;
+    void cleanupTracy();
+
+    void collectGPUEvents();
+
+    [[nodiscard]] auto getTracyContext() const -> tracy::VkCtx *;
+    [[nodiscard]] auto isTracyEnabled() const -> bool;
+
 private:
     VulkanFrameSync(
         VulkanDevice *device,
@@ -109,6 +121,11 @@ private:
     VkQueue m_transferQueue = VK_NULL_HANDLE;
     VkCommandBuffer m_transferCommandBuffer = VK_NULL_HANDLE;
     VkFence m_transferFence = VK_NULL_HANDLE;
+
+#ifdef VOSTOK_ENABLE_TRACY
+    tracy::VkCtx *m_tracyContext = nullptr;
+    bool m_tracyEnabled = false;
+#endif
 };
 
 } // namespace vostok::graphics::vulkan

@@ -5,6 +5,10 @@ add_subdirectory(shaders)
 add_executable(hello_cube main.cpp app.cpp)
 target_link_libraries(hello_cube PRIVATE vostok)
 
+if(VOSTOK_ENABLE_TRACY)
+    target_compile_definitions(hello_cube PRIVATE TRACY_ENABLE)
+endif()
+
 add_dependencies(hello_cube hello_cube_shaders)
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/textures)

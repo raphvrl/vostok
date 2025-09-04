@@ -3,8 +3,9 @@
 #include "core/logger/logger.hpp"
 #include "graphics/backends/vulkan/core/vulkan_command_pool.hpp"
 #include "graphics/backends/vulkan/core/vulkan_device.hpp"
+#include "graphics/backends/vulkan/utils/vk_tracy_utils.hpp"
 #include "graphics/backends/vulkan/utils/vk_utils.hpp"
-#include "volk.h"
+#include "vostok/utils/colors/colors.hpp"
 
 #include <expected>
 
@@ -32,6 +33,8 @@ VulkanFrameSync::~VulkanFrameSync()
         VkDevice device = m_device->getHandle();
 
         m_device->waitIdle();
+
+        cleanupTracy();
 
         if (m_transferCommandBuffer != VK_NULL_HANDLE &&
             m_transferCommandPool != nullptr) {
@@ -172,7 +175,14 @@ auto VulkanFrameSync::init() -> bool
         Logger::error("Failed to create transfer fence");
         return false;
     }
+
     Logger::debug("Frame synchronization objects initialized successfully");
+
+    if (!initTracy()) {
+        Logger::warning("Failed to initialize Tracy");
+        return false;
+    }
+
     return true;
 }
 
@@ -199,6 +209,10 @@ auto VulkanFrameSync::create(const CreateInfo &createInfo)
 
 void VulkanFrameSync::waitForFence()
 {
+#ifdef VOSTOK_ENABLE_TRACY
+    ZoneScopedN("Fence Wait");
+#endif
+
     constexpr u64 TIMEOUT_NS = 1000000000ULL;
 
     VkResult result = vkWaitForFences(
@@ -251,6 +265,10 @@ auto VulkanFrameSync::getCommandBuffer() const -> VkCommandBuffer
 
 auto VulkanFrameSync::beginCommandBuffer() -> std::expected<void, std::string>
 {
+#ifdef VOSTOK_ENABLE_TRACY
+    ZoneScopedN("Command Buffer Begin");
+#endif
+
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -269,6 +287,10 @@ auto VulkanFrameSync::beginCommandBuffer() -> std::expected<void, std::string>
 
 auto VulkanFrameSync::endCommandBuffer() -> std::expected<void, std::string>
 {
+#ifdef VOSTOK_ENABLE_TRACY
+    ZoneScopedN("Command Buffer End");
+#endif
+
     VkResult result =
         vkEndCommandBuffer(m_frames[m_currentFrame].commandBuffer);
 
@@ -345,6 +367,19 @@ void VulkanFrameSync::cmdDraw(
     u32 firstInstance
 )
 {
+    utils::ifTracyEnabled(
+        m_tracyContext,
+        m_frames[m_currentFrame].commandBuffer,
+        [&]() {
+            TracyVkZoneC(
+                m_tracyContext,
+                m_frames[m_currentFrame].commandBuffer,
+                "Draw Call",
+                vostok::colors::RED
+            );
+        }
+    );
+
     vkCmdDraw(
         m_frames[m_currentFrame].commandBuffer,
         vertexCount,
@@ -362,6 +397,19 @@ void VulkanFrameSync::cmdDrawIndexed(
     u32 firstInstance
 )
 {
+    utils::ifTracyEnabled(
+        m_tracyContext,
+        m_frames[m_currentFrame].commandBuffer,
+        [&]() {
+            TracyVkZoneC(
+                m_tracyContext,
+                m_frames[m_currentFrame].commandBuffer,
+                "Indexed Draw",
+                vostok::colors::BLUE
+            );
+        }
+    );
+
     vkCmdDrawIndexed(
         m_frames[m_currentFrame].commandBuffer,
         indexCount,
@@ -471,6 +519,77 @@ auto VulkanFrameSync::waitForTransferComplete()
 
     Logger::trace("Transfer operation completed");
     return {};
+}
+
+auto VulkanFrameSync::initTracy() -> std::expected<void, std::string>
+{
+#ifdef VOSTOK_ENABLE_TRACY
+    try {
+        VkPhysicalDevice physdev = m_device->getPhysicalDevice()->getHandle();
+        VkDevice device = m_device->getHandle();
+        VkQueue graphicsQueue = m_device->getGraphicsQueue();
+        VkCommandBuffer cmdbuf = getCommandBuffer();
+
+        m_tracyContext = TracyVkContext(physdev, device, graphicsQueue, cmdbuf);
+        if (m_tracyContext == nullptr) {
+            return std::unexpected("Failed to create Tracy Vulkan context");
+        }
+
+        m_tracyEnabled = true;
+
+        Logger::info("Vulkan Tracy context initialized successfully");
+        return {};
+    } catch (const std::exception &e) {
+        return std::unexpected(
+            std::format("Exception during Tracy context creation: {}", e.what())
+        );
+    }
+#else
+    return std::unexpected("Tracy not enabled in build configuration");
+#endif
+}
+
+void VulkanFrameSync::cleanupTracy()
+{
+#ifdef VOSTOK_ENABLE_TRACY
+    if (!m_tracyEnabled || (m_tracyContext == nullptr)) {
+        return;
+    }
+
+    TracyVkDestroy(m_tracyContext);
+    m_tracyContext = nullptr;
+    m_tracyEnabled = false;
+    Logger::debug("Vulkan Tracy context cleaned up");
+#endif
+}
+
+void VulkanFrameSync::collectGPUEvents()
+{
+#ifdef VOSTOK_ENABLE_TRACY
+    if (!m_tracyEnabled || (m_tracyContext == nullptr)) {
+        return;
+    }
+
+    TracyVkCollect(m_tracyContext, getCommandBuffer());
+#endif
+}
+
+auto VulkanFrameSync::isTracyEnabled() const -> bool
+{
+#ifdef VOSTOK_ENABLE_TRACY
+    return m_tracyEnabled;
+#else
+    return false;
+#endif
+}
+
+auto VulkanFrameSync::getTracyContext() const -> tracy::VkCtx *
+{
+#ifdef VOSTOK_ENABLE_TRACY
+    return m_tracyContext;
+#else
+    return nullptr;
+#endif
 }
 
 } // namespace vostok::graphics::vulkan
