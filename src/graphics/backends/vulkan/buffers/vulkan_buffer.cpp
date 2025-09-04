@@ -1,10 +1,16 @@
 #include "vostok/graphics/backends/vulkan/buffers/vulkan_buffer.hpp"
 
+#include "graphics/backends/vulkan/core/vulkan_allocator.hpp"
+#include "graphics/backends/vulkan/core/vulkan_frame_sync.hpp"
+#include "graphics/backends/vulkan/utils/vk_tracy_utils.hpp"
+#include "graphics/backends/vulkan/utils/vk_utils.hpp"
+#include "graphics/backends/vulkan/vulkan_gpu.hpp"
 #include "vostok/core/logger/logger.hpp"
 #include "vostok/graphics/backends/vulkan/core/vulkan_allocator.hpp"
 #include "vostok/graphics/backends/vulkan/core/vulkan_frame_sync.hpp"
 #include "vostok/graphics/backends/vulkan/utils/vk_utils.hpp"
 #include "vostok/graphics/backends/vulkan/vulkan_gpu.hpp"
+#include "vostok/utils/colors/colors.hpp"
 
 #include <cstring>
 #include <vk_mem_alloc.h>
@@ -84,11 +90,46 @@ void VulkanBuffer::bind()
 {
     auto *commandBuffer = m_frameSync->getCommandBuffer();
 
+    utils::ifTracyEnabled(m_frameSync->getTracyContext(), commandBuffer, [&]() {
+        TracyVkZoneC(
+            m_frameSync->getTracyContext(),
+            commandBuffer,
+            "Buffer Bind",
+            vostok::colors::YELLOW
+        );
+    });
+
     const u32 USAGE = static_cast<u32>(m_usage);
     if ((USAGE & static_cast<u32>(graphics::BufferUsage::VERTEX)) != 0U) {
+        utils::ifTracyEnabled(
+            m_frameSync->getTracyContext(),
+            commandBuffer,
+            [&]() {
+                TracyVkZoneC(
+                    m_frameSync->getTracyContext(),
+                    commandBuffer,
+                    "Vertex Buffer Bind",
+                    vostok::colors::MAGENTA
+                );
+            }
+        );
+
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_buffer, &m_offset);
     }
     if ((USAGE & static_cast<u32>(graphics::BufferUsage::INDEX)) != 0U) {
+        utils::ifTracyEnabled(
+            m_frameSync->getTracyContext(),
+            commandBuffer,
+            [&]() {
+                TracyVkZoneC(
+                    m_frameSync->getTracyContext(),
+                    commandBuffer,
+                    "Index Buffer Bind",
+                    vostok::colors::LIGHT_BLUE
+                );
+            }
+        );
+
         vkCmdBindIndexBuffer(
             commandBuffer,
             m_buffer,

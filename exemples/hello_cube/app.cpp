@@ -1,5 +1,7 @@
 #include "app.hpp"
 
+#include "vostok/core/profiler/profiler.hpp"
+
 #include <array>
 #include <thread>
 
@@ -12,11 +14,20 @@
 
 App::App() = default;
 
-App::~App() = default;
+App::~App()
+{
+    if (Profiler::isInitialized()) {
+        Profiler::shutdown();
+    }
+}
 
 auto App::initialize() -> bool
 {
     Logger::info("Initializing App...");
+
+    if (!createProfiler()) {
+        return false;
+    }
 
     if (!createResourcesPaths()) {
         return false;
@@ -51,6 +62,31 @@ auto App::run() -> void
 {
     Logger::info("Starting main loop...");
     mainLoop();
+}
+
+auto App::createProfiler() -> bool
+{
+    Logger::info("Initializing Profiler...");
+
+    ProfilerConfig config;
+    config.enableProfiling = true;
+    config.enableGPUProfiling = true;
+    config.enableMemoryProfiling = true;
+    config.profileTextureOperations = true;
+    config.applicationName = "Hello Cube";
+    config.buildInfo = "Debug Build";
+
+    auto profilerResult = Profiler::init(config);
+    if (!profilerResult) {
+        Logger::error(
+            "Failed to initialize profiler: {}",
+            profilerResult.error()
+        );
+        return false;
+    }
+
+    Logger::info("Profiler initialized successfully");
+    return true;
 }
 
 auto App::createResourcesPaths() -> bool

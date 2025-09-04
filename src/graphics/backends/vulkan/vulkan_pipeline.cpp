@@ -4,9 +4,11 @@
 #include "graphics/backends/vulkan/core/vulkan_device.hpp"
 #include "graphics/backends/vulkan/core/vulkan_frame_sync.hpp"
 #include "graphics/backends/vulkan/core/vulkan_swapchain.hpp"
+#include "graphics/backends/vulkan/utils/vk_tracy_utils.hpp"
 #include "graphics/backends/vulkan/utils/vk_utils.hpp"
 #include "graphics/backends/vulkan/vulkan_bindless_manager.hpp"
 #include "graphics/backends/vulkan/vulkan_gpu.hpp"
+#include "vostok/utils/colors/colors.hpp"
 
 #include <expected>
 #include <memory>
@@ -310,10 +312,32 @@ void VulkanPipeline::Impl::bind() const
     auto *frameSync = m_gpu->getFrameSync();
     auto *commandBuffer = frameSync->getCommandBuffer();
 
+    utils::ifTracyEnabled(frameSync->getTracyContext(), commandBuffer, [&]() {
+        TracyVkZoneC(
+            frameSync->getTracyContext(),
+            commandBuffer,
+            "Pipeline Bind",
+            vostok::colors::PURPLE
+        );
+    });
+
     if (auto *bindlessManager = m_gpu->getBindlessManager()) {
         VkDescriptorSet bindlessDescriptorSet =
             bindlessManager->getDescriptorSet();
         if (bindlessDescriptorSet != VK_NULL_HANDLE) {
+            utils::ifTracyEnabled(
+                frameSync->getTracyContext(),
+                commandBuffer,
+                [&]() {
+                    TracyVkZoneC(
+                        frameSync->getTracyContext(),
+                        commandBuffer,
+                        "Descriptor Set Bind",
+                        vostok::colors::CYAN
+                    );
+                }
+            );
+
             vkCmdBindDescriptorSets(
                 commandBuffer,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -344,6 +368,15 @@ auto VulkanPipeline::Impl::pushRaw(std::span<const std::byte> data, u32 offset)
 
     auto *frameSync = m_gpu->getFrameSync();
     auto *commandBuffer = frameSync->getCommandBuffer();
+
+    utils::ifTracyEnabled(frameSync->getTracyContext(), commandBuffer, [&]() {
+        TracyVkZoneC(
+            frameSync->getTracyContext(),
+            commandBuffer,
+            "Push Constants",
+            vostok::colors::ORANGE
+        );
+    });
 
     vkCmdPushConstants(
         commandBuffer,

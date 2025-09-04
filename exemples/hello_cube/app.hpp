@@ -53,6 +53,7 @@ public:
     auto run() -> void;
 
 private:
+    static auto createProfiler() -> bool;
     auto createResourcesPaths() -> bool;
     auto createWindow() -> bool;
     auto createGPUDevice() -> bool;
