@@ -1,11 +1,14 @@
 #pragma once
 
+#include "systems/cube_render_system.hpp"
+#include "vostok/ecs/ecs.hpp"
 #include "vostok/graphics/buffers/ubo.hpp"
 #include "vostok/graphics/camera/perspective_camera.hpp"
 #include "vostok/graphics/gpu.hpp"
 #include "vostok/graphics/mesh.hpp"
 #include "vostok/graphics/pipeline.hpp"
 #include "vostok/graphics/textures/texture_manager.hpp"
+#include "vostok/graphics/vertex_types.hpp"
 #include "vostok/math/types.hpp"
 #include "vostok/window/window.hpp"
 
@@ -61,6 +64,8 @@ private:
     auto createTextureManager() -> bool;
     auto createPipeline() -> bool;
     auto createUBO() -> bool;
+    auto createECS() -> bool;
+    auto createCubeEntity() -> bool;
 
     auto mainLoop() -> void;
     auto updateCamera(f32 deltaTime) -> void;
@@ -78,12 +83,14 @@ private:
     Window m_window;
     graphics::GPU m_gpu;
 
-    graphics::Mesh<Vertex, u32> m_mesh;
+    graphics::Mesh<PositionNormalUV, u32> m_mesh;
     graphics::Pipeline m_pipeline;
 
     graphics::UBO<CameraUBO> m_cameraUBO;
     graphics::TextureManager m_textureManager;
     graphics::PerspectiveCamera m_camera;
+
+    std::unique_ptr<ecs::ECS> m_ecs;
 
     bool m_isRunning = false;
     u32 m_frameCount = 0;

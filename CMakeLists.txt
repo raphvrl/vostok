@@ -249,6 +249,16 @@ else()
     message(WARNING "tinygltf directory not found, please clone tinygltf in ${THIRD_PARTY_DIR}/tinygltf")
 endif()
 
+if(EXISTS ${THIRD_PARTY_DIR}/entt/CMakeLists.txt)
+    set(ENTT_BUILD_TESTING OFF CACHE BOOL "Build EnTT tests" FORCE)
+    set(ENTT_BUILD_DOCS OFF CACHE BOOL "Build EnTT documentation" FORCE)
+    set(ENTT_INSTALL OFF CACHE BOOL "Install EnTT" FORCE)
+
+    add_third_party_library(entt)
+else()
+    message(WARNING "EnTT directory not found, please clone entt in ${THIRD_PARTY_DIR}/entt")
+endif()
+
 set(EXTERNAL_LIBS
     glfw
     spdlog::spdlog
@@ -256,6 +266,7 @@ set(EXTERNAL_LIBS
     VulkanMemoryAllocator
     glm::glm
     tinygltf
+    EnTT
     $<$<BOOL:${VOSTOK_ENABLE_TRACY}>:TracyClient>
 )
 
@@ -273,6 +284,7 @@ endfunction()
 add_vostok_module(core)
 add_vostok_module(window)
 add_vostok_module(graphics)
+add_vostok_module(ecs)
 
 add_library(vostok STATIC "")
 target_sources(vostok 

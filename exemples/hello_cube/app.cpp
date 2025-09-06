@@ -50,6 +50,12 @@ auto App::initialize() -> bool
     if (!createUBO()) {
         return false;
     }
+    if (!createECS()) {
+        return false;
+    }
+    if (!createCubeEntity()) {
+        return false;
+    }
 
     m_startTime = std::chrono::high_resolution_clock::now();
     m_isRunning = true;
@@ -197,42 +203,90 @@ auto App::createGPUDevice() -> bool
 
 auto App::createMesh() -> bool
 {
-    std::vector<Vertex> vertices = {
+    std::vector<PositionNormalUV> vertices = {
         // Front face (z = 0.5)
-        { .position = { -0.5F, -0.5F, 0.5F }, .uv = { 0.0F, 0.0F } },
-        { .position = { 0.5F, -0.5F, 0.5F }, .uv = { 1.0F, 0.0F } },
-        { .position = { 0.5F, 0.5F, 0.5F }, .uv = { 1.0F, 1.0F } },
-        { .position = { -0.5F, 0.5F, 0.5F }, .uv = { 0.0F, 1.0F } },
+        { .position = { -0.5F, -0.5F, 0.5F },
+          .normal = { 0.0F, 0.0F, 1.0F },
+          .uv = { 0.0F, 0.0F } },
+        { .position = { 0.5F, -0.5F, 0.5F },
+          .normal = { 0.0F, 0.0F, 1.0F },
+          .uv = { 1.0F, 0.0F } },
+        { .position = { 0.5F, 0.5F, 0.5F },
+          .normal = { 0.0F, 0.0F, 1.0F },
+          .uv = { 1.0F, 1.0F } },
+        { .position = { -0.5F, 0.5F, 0.5F },
+          .normal = { 0.0F, 0.0F, 1.0F },
+          .uv = { 0.0F, 1.0F } },
 
         // Back face (z = -0.5)
-        { .position = { 0.5F, -0.5F, -0.5F }, .uv = { 0.0F, 0.0F } },
-        { .position = { -0.5F, -0.5F, -0.5F }, .uv = { 1.0F, 0.0F } },
-        { .position = { -0.5F, 0.5F, -0.5F }, .uv = { 1.0F, 1.0F } },
-        { .position = { 0.5F, 0.5F, -0.5F }, .uv = { 0.0F, 1.0F } },
+        { .position = { 0.5F, -0.5F, -0.5F },
+          .normal = { 0.0F, 0.0F, -1.0F },
+          .uv = { 0.0F, 0.0F } },
+        { .position = { -0.5F, -0.5F, -0.5F },
+          .normal = { 0.0F, 0.0F, -1.0F },
+          .uv = { 1.0F, 0.0F } },
+        { .position = { -0.5F, 0.5F, -0.5F },
+          .normal = { 0.0F, 0.0F, -1.0F },
+          .uv = { 1.0F, 1.0F } },
+        { .position = { 0.5F, 0.5F, -0.5F },
+          .normal = { 0.0F, 0.0F, -1.0F },
+          .uv = { 0.0F, 1.0F } },
 
         // Left face (x = -0.5)
-        { .position = { -0.5F, -0.5F, -0.5F }, .uv = { 0.0F, 0.0F } },
-        { .position = { -0.5F, -0.5F, 0.5F }, .uv = { 1.0F, 0.0F } },
-        { .position = { -0.5F, 0.5F, 0.5F }, .uv = { 1.0F, 1.0F } },
-        { .position = { -0.5F, 0.5F, -0.5F }, .uv = { 0.0F, 1.0F } },
+        { .position = { -0.5F, -0.5F, -0.5F },
+          .normal = { -1.0F, 0.0F, 0.0F },
+          .uv = { 0.0F, 0.0F } },
+        { .position = { -0.5F, -0.5F, 0.5F },
+          .normal = { -1.0F, 0.0F, 0.0F },
+          .uv = { 1.0F, 0.0F } },
+        { .position = { -0.5F, 0.5F, 0.5F },
+          .normal = { -1.0F, 0.0F, 0.0F },
+          .uv = { 1.0F, 1.0F } },
+        { .position = { -0.5F, 0.5F, -0.5F },
+          .normal = { -1.0F, 0.0F, 0.0F },
+          .uv = { 0.0F, 1.0F } },
 
         // Right face (x = 0.5)
-        { .position = { 0.5F, -0.5F, 0.5F }, .uv = { 0.0F, 0.0F } },
-        { .position = { 0.5F, -0.5F, -0.5F }, .uv = { 1.0F, 0.0F } },
-        { .position = { 0.5F, 0.5F, -0.5F }, .uv = { 1.0F, 1.0F } },
-        { .position = { 0.5F, 0.5F, 0.5F }, .uv = { 0.0F, 1.0F } },
+        { .position = { 0.5F, -0.5F, 0.5F },
+          .normal = { 1.0F, 0.0F, 0.0F },
+          .uv = { 0.0F, 0.0F } },
+        { .position = { 0.5F, -0.5F, -0.5F },
+          .normal = { 1.0F, 0.0F, 0.0F },
+          .uv = { 1.0F, 0.0F } },
+        { .position = { 0.5F, 0.5F, -0.5F },
+          .normal = { 1.0F, 0.0F, 0.0F },
+          .uv = { 1.0F, 1.0F } },
+        { .position = { 0.5F, 0.5F, 0.5F },
+          .normal = { 1.0F, 0.0F, 0.0F },
+          .uv = { 0.0F, 1.0F } },
 
         // Bottom face (y = -0.5)
-        { .position = { -0.5F, -0.5F, -0.5F }, .uv = { 0.0F, 0.0F } },
-        { .position = { 0.5F, -0.5F, -0.5F }, .uv = { 1.0F, 0.0F } },
-        { .position = { 0.5F, -0.5F, 0.5F }, .uv = { 1.0F, 1.0F } },
-        { .position = { -0.5F, -0.5F, 0.5F }, .uv = { 0.0F, 1.0F } },
+        { .position = { -0.5F, -0.5F, -0.5F },
+          .normal = { 0.0F, -1.0F, 0.0F },
+          .uv = { 0.0F, 0.0F } },
+        { .position = { 0.5F, -0.5F, -0.5F },
+          .normal = { 0.0F, -1.0F, 0.0F },
+          .uv = { 1.0F, 0.0F } },
+        { .position = { 0.5F, -0.5F, 0.5F },
+          .normal = { 0.0F, -1.0F, 0.0F },
+          .uv = { 1.0F, 1.0F } },
+        { .position = { -0.5F, -0.5F, 0.5F },
+          .normal = { 0.0F, -1.0F, 0.0F },
+          .uv = { 0.0F, 1.0F } },
 
         // Top face (y = 0.5)
-        { .position = { -0.5F, 0.5F, 0.5F }, .uv = { 0.0F, 0.0F } },
-        { .position = { 0.5F, 0.5F, 0.5F }, .uv = { 1.0F, 0.0F } },
-        { .position = { 0.5F, 0.5F, -0.5F }, .uv = { 1.0F, 1.0F } },
-        { .position = { -0.5F, 0.5F, -0.5F }, .uv = { 0.0F, 1.0F } }
+        { .position = { -0.5F, 0.5F, 0.5F },
+          .normal = { 0.0F, 1.0F, 0.0F },
+          .uv = { 0.0F, 0.0F } },
+        { .position = { 0.5F, 0.5F, 0.5F },
+          .normal = { 0.0F, 1.0F, 0.0F },
+          .uv = { 1.0F, 0.0F } },
+        { .position = { 0.5F, 0.5F, -0.5F },
+          .normal = { 0.0F, 1.0F, 0.0F },
+          .uv = { 1.0F, 1.0F } },
+        { .position = { -0.5F, 0.5F, -0.5F },
+          .normal = { 0.0F, 1.0F, 0.0F },
+          .uv = { 0.0F, 1.0F } }
     };
 
     std::vector<u32> indices = { // Front face (z = 0.5)
@@ -279,8 +333,11 @@ auto App::createMesh() -> bool
                                  20
     };
 
-    auto meshResult =
-        graphics::Mesh<Vertex, u32>::create(m_gpu.get(), vertices, indices);
+    auto meshResult = graphics::Mesh<PositionNormalUV, u32>::create(
+        m_gpu.get(),
+        vertices,
+        indices
+    );
 
     if (!meshResult) {
         Logger::error("Failed to create mesh: {}", meshResult.error());
@@ -398,7 +455,9 @@ auto App::createPipeline() -> bool
     pipelineInfo.alphaBlendOp = graphics::BlendOp::ADD;
     pipelineInfo.colorWriteMask = graphics::ColorComponentFlags::ALL;
 
-    pipelineInfo.vertexLayout = Vertex::getLayout();
+    pipelineInfo.pushConstantSize = sizeof(math::Mat4);
+
+    pipelineInfo.vertexLayout = PositionNormalUV::getLayout();
 
     auto pipelineResult = m_gpu->createPipeline(pipelineInfo);
     if (!pipelineResult) {
@@ -495,8 +554,7 @@ auto App::render() -> void
 {
     updateCamera(0.016F);
 
-    m_pipeline->bind();
-    m_mesh->draw();
+    m_ecs->render();
 
     m_textureManager->update();
 }
@@ -546,4 +604,81 @@ auto App::findResourcePath(
         resourceName.string()
     );
     return basePath / resourceType / resourceName;
+}
+
+auto App::createECS() -> bool
+{
+    Logger::info("Creating ECS...");
+
+    auto ecsResult = ecs::ECS::create();
+    if (!ecsResult) {
+        Logger::error("Failed to create ECS: {}", ecsResult.error());
+        return false;
+    }
+
+    m_ecs = std::move(ecsResult.value());
+
+    m_ecs->registerSystem<CubeRenderSystem>(
+        m_textureManager.get(),
+        m_pipeline.get()
+    );
+
+    Logger::info("ECS created successfully");
+    return true;
+}
+
+auto App::createCubeEntity() -> bool
+{
+    Logger::info("Creating cube entity...");
+
+    auto cubeEntity1 = m_ecs->createEntity();
+
+    m_ecs->addComponent(
+        cubeEntity1,
+        ecs::TransformComponent(
+            { 0.0F, 0.0F, 0.0F },
+            { 0.0F, 0.0F, 0.0F, 0.0F },
+            { 1.0F, 1.0F, 1.0F }
+        )
+    );
+
+    m_ecs->addComponent(
+        cubeEntity1,
+        CubeComponent(m_mesh.get(), m_texturePath)
+    );
+
+    auto cubeEntity2 = m_ecs->createEntity();
+
+    m_ecs->addComponent(
+        cubeEntity2,
+        ecs::TransformComponent(
+            { 1.0F, 1.0F, 1.0F },
+            { 0.0F, 0.0F, 0.0F, 0.0F },
+            { 1.0F, 1.0F, 1.0F }
+        )
+    );
+
+    m_ecs->addComponent(
+        cubeEntity2,
+        CubeComponent(m_mesh.get(), m_texturePath)
+    );
+
+    auto cubeEntity3 = m_ecs->createEntity();
+
+    m_ecs->addComponent(
+        cubeEntity3,
+        ecs::TransformComponent(
+            { -1.0F, -1.0F, -1.0F },
+            { 0.0F, 0.0F, 0.0F, 0.0F },
+            { 1.0F, 1.0F, 1.0F }
+        )
+    );
+
+    m_ecs->addComponent(
+        cubeEntity3,
+        CubeComponent(m_mesh.get(), m_texturePath)
+    );
+
+    Logger::info("Cube entity created successfully");
+    return true;
 }

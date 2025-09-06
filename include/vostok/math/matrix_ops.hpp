@@ -47,9 +47,23 @@ lookAt(const Vec &eye, const Vec &center, const Vec &up) noexcept
 
 template <MatrixType T>
     requires(T::length() == 4)
+[[nodiscard]] auto translate(const T &m, const Vec3 &v) noexcept -> T
+{
+    return glm::translate(m, v);
+}
+
+template <MatrixType T>
+    requires(T::length() == 4)
 [[nodiscard]] auto rotate(const T &m, f32 angle, const Vec3 &axis) noexcept -> T
 {
     return glm::rotate(m, angle, axis);
+}
+
+template <MatrixType T>
+    requires(T::length() == 4)
+[[nodiscard]] auto scale(const T &m, const Vec3 &v) noexcept -> T
+{
+    return glm::scale(m, v);
 }
 
 } // namespace vostok::math

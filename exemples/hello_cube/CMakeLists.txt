@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.25)
 
 add_subdirectory(shaders)
 
-add_executable(hello_cube main.cpp app.cpp)
+add_executable(hello_cube 
+    main.cpp 
+    app.cpp
+    systems/cube_render_system.cpp
+)
 target_link_libraries(hello_cube PRIVATE vostok)
 
 if(VOSTOK_ENABLE_TRACY)
